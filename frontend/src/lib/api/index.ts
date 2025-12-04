@@ -10,3 +10,4 @@ export * as containers from './containers';
 export * as items from './items';
 export * as search from './search';
 export * as tags from './tags';
+export * as activity from './activity';
