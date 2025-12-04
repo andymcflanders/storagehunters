@@ -108,6 +108,14 @@
 					>
 						Tags
 					</a>
+					<a
+						href="/printers"
+						class="flex items-center border-b-2 px-1 text-sm font-medium {$page.url.pathname.startsWith('/printers')
+							? 'border-primary-500 text-primary-600'
+							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'}"
+					>
+						Printers
+					</a>
 				</div>
 			</div>
 		</nav>

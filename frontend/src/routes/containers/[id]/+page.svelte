@@ -5,13 +5,20 @@
 	import { user } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
 	import { containers, items } from '$lib/api';
+	import * as printers from '$lib/api/printers';
 	import { ItemCard, ContainerCard, Breadcrumb, Button, Card, Input, Modal } from '$lib/components';
-	import type { ContainerWithItems, ItemCreate } from '$lib/types';
+	import type { ContainerWithItems, ItemCreate, Printer } from '$lib/types';
 
 	let container: ContainerWithItems | null = null;
 	let loading = true;
 	let showCreateModal = false;
+	let showPrintModal = false;
 	let creating = false;
+	let printing = false;
+
+	let printerList: Printer[] = [];
+	let selectedPrinterId = '';
+	let previewUrl = '';
 
 	let newItem: ItemCreate = {
 		name: '',
@@ -59,6 +66,55 @@
 			creating = false;
 		}
 	}
+
+	async function openPrintModal() {
+		showPrintModal = true;
+		try {
+			printerList = await printers.getPrinters();
+			// Select default printer if available
+			const defaultPrinter = printerList.find((p) => p.is_default);
+			selectedPrinterId = defaultPrinter?.id ?? printerList[0]?.id ?? '';
+			updatePreview();
+		} catch (error) {
+			toast.error('Failed to load printers');
+		}
+	}
+
+	function updatePreview() {
+		if (selectedPrinterId && containerId) {
+			previewUrl = printers.getPreviewUrl(selectedPrinterId, containerId);
+		}
+	}
+
+	async function handlePrint() {
+		if (!selectedPrinterId) {
+			toast.warning('Please select a printer');
+			return;
+		}
+
+		printing = true;
+		try {
+			const result = await printers.printLabel(selectedPrinterId, containerId);
+			if (result.success) {
+				toast.success(result.message || 'Label sent to printer');
+				showPrintModal = false;
+			} else {
+				toast.error(result.message || 'Print failed');
+			}
+		} catch (error) {
+			toast.error('Failed to print label');
+		} finally {
+			printing = false;
+		}
+	}
+
+	function downloadPdf() {
+		if (selectedPrinterId && containerId) {
+			window.open(printers.getPreviewUrl(selectedPrinterId, containerId), '_blank');
+		}
+	}
+
+	$: if (selectedPrinterId) updatePreview();
 </script>
 
 <svelte:head>
@@ -89,7 +145,7 @@
 				{/if}
 			</div>
 			<div class="flex gap-2">
-				<Button variant="secondary">
+				<Button variant="secondary" on:click={openPrintModal}>
 					<svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 					</svg>
@@ -178,5 +234,65 @@
 	<svelte:fragment slot="footer">
 		<Button variant="secondary" on:click={() => (showCreateModal = false)}>Cancel</Button>
 		<Button loading={creating} on:click={handleCreateItem}>Create Item</Button>
+	</svelte:fragment>
+</Modal>
+
+<!-- Print Label Modal -->
+<Modal open={showPrintModal} title="Print Label" on:close={() => (showPrintModal = false)}>
+	<div class="space-y-4">
+		{#if printerList.length === 0}
+			<div class="rounded-lg bg-amber-50 p-4 text-center">
+				<svg class="mx-auto h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+					/>
+				</svg>
+				<p class="mt-2 text-amber-700">No printers configured</p>
+				<a href="/printers" class="mt-2 inline-block text-sm text-primary-600 hover:underline">
+					Add a printer
+				</a>
+			</div>
+		{:else}
+			<div>
+				<label for="printer-select" class="mb-1.5 block text-sm font-medium text-slate-700">Select Printer</label>
+				<select
+					id="printer-select"
+					bind:value={selectedPrinterId}
+					class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+				>
+					{#each printerList as printer}
+						<option value={printer.id}>
+							{printer.name}
+							{#if printer.is_default}(Default){/if}
+						</option>
+					{/each}
+				</select>
+			</div>
+
+			{#if previewUrl}
+				<div>
+					<p class="mb-2 text-sm font-medium text-slate-700">Preview</p>
+					<div class="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-4">
+						<img
+							src={previewUrl}
+							alt="Label preview"
+							class="mx-auto max-h-48 object-contain"
+							on:error={() => (previewUrl = '')}
+						/>
+					</div>
+				</div>
+			{/if}
+		{/if}
+	</div>
+
+	<svelte:fragment slot="footer">
+		<Button variant="secondary" on:click={() => (showPrintModal = false)}>Cancel</Button>
+		{#if printerList.length > 0}
+			<Button variant="secondary" on:click={downloadPdf}>Download PDF</Button>
+			<Button loading={printing} on:click={handlePrint}>Print</Button>
+		{/if}
 	</svelte:fragment>
 </Modal>
