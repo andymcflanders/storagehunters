@@ -100,6 +100,14 @@
 					>
 						Locations
 					</a>
+					<a
+						href="/tags"
+						class="flex items-center border-b-2 px-1 text-sm font-medium {$page.url.pathname.startsWith('/tags')
+							? 'border-primary-500 text-primary-600'
+							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'}"
+					>
+						Tags
+					</a>
 				</div>
 			</div>
 		</nav>

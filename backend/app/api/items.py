@@ -265,6 +265,10 @@ async def upload_image(
     db.add(image)
     await db.flush()
 
+    # Queue background AI processing
+    from app.worker.tasks import process_image_ai
+    process_image_ai.delay(str(image.id))
+
     return ItemImageResponse(
         id=image.id,
         filename=image.filename,
@@ -354,6 +358,57 @@ async def remove_tag(
         )
 
     await db.delete(item_tag)
+
+
+@router.post("/{item_id}/images/{image_id}/reprocess")
+async def reprocess_image(
+    item_id: UUID,
+    image_id: UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> dict[str, str]:
+    """Trigger AI reprocessing for an image."""
+    result = await db.execute(
+        select(ItemImage).where(ItemImage.id == image_id, ItemImage.item_id == item_id)
+    )
+    image = result.scalar_one_or_none()
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found",
+        )
+
+    # Reset AI processed flag and queue for reprocessing
+    image.ai_processed = False
+    image.ai_tags = []
+    image.ai_description = None
+    await db.flush()
+
+    from app.worker.tasks import process_image_ai
+    task = process_image_ai.delay(str(image.id))
+
+    return {"status": "queued", "task_id": task.id}
+
+
+@router.post("/{item_id}/process-all-images")
+async def process_all_item_images(
+    item_id: UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> dict[str, str]:
+    """Trigger AI processing for all unprocessed images of an item."""
+    result = await db.execute(select(Item).where(Item.id == item_id))
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found",
+        )
+
+    from app.worker.tasks import batch_process_item_images
+    task = batch_process_item_images.delay(str(item_id))
+
+    return {"status": "queued", "task_id": task.id}
 
 
 @router.post("/{item_id}/move", response_model=ItemResponse)
