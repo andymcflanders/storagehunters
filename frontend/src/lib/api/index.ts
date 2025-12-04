@@ -11,3 +11,5 @@ export * as items from './items';
 export * as search from './search';
 export * as tags from './tags';
 export * as activity from './activity';
+export * as shares from './shares';
+export * as reminders from './reminders';

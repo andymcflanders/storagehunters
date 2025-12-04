@@ -10,7 +10,9 @@ from app.api import (
     items,
     locations,
     printers,
+    reminders,
     search,
+    shares,
     tags,
     users,
 )
@@ -27,3 +29,5 @@ api_router.include_router(search.router, prefix="/search", tags=["Search"])
 api_router.include_router(printers.router, prefix="/printers", tags=["Printers"])
 api_router.include_router(activity.router, prefix="/activity", tags=["Activity"])
 api_router.include_router(export.router, prefix="/export", tags=["Export"])
+api_router.include_router(shares.router, prefix="/shares", tags=["Shares"])
+api_router.include_router(reminders.router, prefix="/reminders", tags=["Reminders"])
