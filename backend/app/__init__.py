@@ -1,0 +1,1 @@
+"""StorageHub Backend Application."""
