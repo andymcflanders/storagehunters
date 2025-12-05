@@ -50,9 +50,8 @@ docker compose logs -f
 ```
 
 Access the application:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
+- **Application**: http://localhost
+- **API Docs**: http://localhost/docs
 
 To stop:
 ```bash

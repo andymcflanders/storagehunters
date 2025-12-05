@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  # Nginx Reverse Proxy (Entry Point)
+  nginx:
+    image: nginx:alpine
+    container_name: storagehub-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
@@ -11,8 +24,6 @@ services:
       POSTGRES_DB: storagehub
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U storagehub -d storagehub"]
       interval: 5s
@@ -24,8 +35,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: storagehub-redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -49,12 +58,9 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       UPLOAD_DIR: /app/uploads
       MAX_UPLOAD_SIZE_MB: 10
-      FRONTEND_URL: http://localhost:3000
+      FRONTEND_URL: http://localhost
     volumes:
       - uploads_data:/app/uploads
-      - ./backend:/app
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,6 +71,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   # Celery Worker (background tasks)
@@ -83,7 +90,6 @@ services:
       UPLOAD_DIR: /app/uploads
     volumes:
       - uploads_data:/app/uploads
-      - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,10 +103,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: storagehub-frontend
-    environment:
-      PUBLIC_API_URL: http://localhost:8000
-    ports:
-      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped
