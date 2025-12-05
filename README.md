@@ -26,14 +26,54 @@ A self-hosted web application for tracking personal belongings across multiple s
 
 ## Getting Started
 
-### Prerequisites
+### Quick Start with Docker (Recommended)
+
+The easiest way to run StorageHub is with Docker:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/storagehub.git
+cd storagehub
+
+# Copy environment file
+cp .env.docker .env
+
+# (Optional) Edit .env to add your OpenAI API key for AI features
+# AI_PROVIDER=openai
+# OPENAI_API_KEY=sk-...
+
+# Start all services
+docker compose up -d
+
+# View logs
+docker compose logs -f
+```
+
+Access the application:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+
+To stop:
+```bash
+docker compose down
+```
+
+To reset everything (including data):
+```bash
+docker compose down -v
+```
+
+### Manual Setup (Development)
+
+#### Prerequisites
 
 - Python 3.11+
 - Node.js 18+
 - PostgreSQL 15+
 - Redis (for Celery)
 
-### Backend Setup
+#### Backend Setup
 
 ```bash
 cd backend
@@ -59,7 +99,7 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend Setup
+#### Frontend Setup
 
 ```bash
 cd frontend
@@ -71,7 +111,7 @@ npm install
 npm run dev
 ```
 
-### Access
+#### Access (Manual Setup)
 
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
