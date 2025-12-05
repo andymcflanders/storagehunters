@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api import (
     activity,
+    admin,
     auth,
     containers,
     export,
@@ -31,3 +32,4 @@ api_router.include_router(activity.router, prefix="/activity", tags=["Activity"]
 api_router.include_router(export.router, prefix="/export", tags=["Export"])
 api_router.include_router(shares.router, prefix="/shares", tags=["Shares"])
 api_router.include_router(reminders.router, prefix="/reminders", tags=["Reminders"])
+api_router.include_router(admin.router)

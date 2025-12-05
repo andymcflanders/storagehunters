@@ -3,12 +3,16 @@
  */
 
 // User types
+export type UserRole = 'admin' | 'user';
+
 export interface User {
 	id: string;
 	name: string;
 	email: string | null;
 	avatar_url: string | null;
 	requires_password: boolean;
+	role: UserRole;
+	is_active: boolean;
 	created_at: string;
 	updated_at: string;
 }

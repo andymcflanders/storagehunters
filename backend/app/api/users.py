@@ -37,12 +37,18 @@ async def create_user(
                 detail="Email already registered",
             )
 
+    from app.models.user import UserRole
+
     auth_service = AuthService(db)
+
+    # Convert role string to enum
+    role = UserRole.ADMIN if user_data.role.value == "admin" else UserRole.USER
 
     user = User(
         name=user_data.name,
         email=user_data.email,
         requires_password=user_data.requires_password,
+        role=role,
     )
 
     if user_data.password and user_data.requires_password:

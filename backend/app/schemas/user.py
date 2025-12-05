@@ -1,9 +1,17 @@
 """User and authentication schemas."""
 
 from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
+
+
+class UserRole(str, Enum):
+    """User role enumeration."""
+
+    ADMIN = "admin"
+    USER = "user"
 
 
 class UserBase(BaseModel):
@@ -18,6 +26,7 @@ class UserCreate(UserBase):
     """Schema for creating a user."""
 
     password: str | None = Field(None, min_length=4)
+    role: UserRole = UserRole.USER
 
 
 class UserUpdate(BaseModel):
@@ -27,6 +36,8 @@ class UserUpdate(BaseModel):
     email: EmailStr | None = None
     requires_password: bool | None = None
     password: str | None = Field(None, min_length=4)
+    role: UserRole | None = None
+    is_active: bool | None = None
 
 
 class UserResponse(BaseModel):
@@ -37,6 +48,8 @@ class UserResponse(BaseModel):
     email: str | None
     avatar_url: str | None
     requires_password: bool
+    role: UserRole
+    is_active: bool
     created_at: datetime
     updated_at: datetime
 

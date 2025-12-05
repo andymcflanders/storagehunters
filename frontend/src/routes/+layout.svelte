@@ -66,6 +66,11 @@
 
 						{#if menuOpen}
 							<div class="absolute right-0 mt-2 w-48 rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 dark:bg-slate-800 dark:ring-slate-700">
+								{#if $user.role === 'admin'}
+									<a href="/admin" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700">
+										Admin Panel
+									</a>
+								{/if}
 								<a href="/settings" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700">Settings</a>
 								<button
 									class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"

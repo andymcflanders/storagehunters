@@ -13,3 +13,4 @@ export * as tags from './tags';
 export * as activity from './activity';
 export * as shares from './shares';
 export * as reminders from './reminders';
+export * as admin from './admin';
