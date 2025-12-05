@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -29,7 +29,7 @@ COPY --from=builder /app/build ./build
 COPY --from=builder /app/package*.json ./
 
 # Install production dependencies only
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # Set ownership
 RUN chown -R sveltekit:nodejs /app

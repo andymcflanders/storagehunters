@@ -2,7 +2,7 @@
  * Share links API client.
  */
 
-import { apiClient } from './client';
+import { get, post, patch, del } from './client';
 
 export interface ShareLink {
 	id: string;
@@ -49,11 +49,7 @@ export interface PublicShareResponse {
 }
 
 export async function createShareLink(data: CreateShareLinkRequest): Promise<ShareLink> {
-	const response = await apiClient('/api/shares', {
-		method: 'POST',
-		body: JSON.stringify(data)
-	});
-	return response.json();
+	return post<ShareLink>('/shares', data);
 }
 
 export async function listShareLinks(containerId?: string): Promise<ShareLinkListResponse> {
@@ -61,29 +57,18 @@ export async function listShareLinks(containerId?: string): Promise<ShareLinkLis
 	if (containerId) {
 		params.set('container_id', containerId);
 	}
-	const url = params.toString() ? `/api/shares?${params}` : '/api/shares';
-	const response = await apiClient(url);
-	return response.json();
+	const url = params.toString() ? `/shares?${params}` : '/shares';
+	return get<ShareLinkListResponse>(url);
 }
 
 export async function deleteShareLink(shareId: string): Promise<void> {
-	await apiClient(`/api/shares/${shareId}`, {
-		method: 'DELETE'
-	});
+	return del(`/shares/${shareId}`);
 }
 
 export async function toggleShareLink(shareId: string): Promise<ShareLink> {
-	const response = await apiClient(`/api/shares/${shareId}/toggle`, {
-		method: 'PATCH'
-	});
-	return response.json();
+	return patch<ShareLink>(`/shares/${shareId}/toggle`, {});
 }
 
 export async function getPublicShare(token: string): Promise<PublicShareResponse> {
-	const response = await fetch(`/api/shares/public/${token}`);
-	if (!response.ok) {
-		const error = await response.json();
-		throw new Error(error.detail || 'Failed to load share');
-	}
-	return response.json();
+	return get<PublicShareResponse>(`/shares/public/${token}`);
 }

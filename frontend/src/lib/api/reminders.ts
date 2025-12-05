@@ -2,7 +2,7 @@
  * Reminders API client.
  */
 
-import { apiClient } from './client';
+import { get, post, patch, del } from './client';
 
 export type ReminderType = 'check_item' | 'expiration' | 'maintenance' | 'restock' | 'custom';
 
@@ -59,11 +59,7 @@ export interface ReminderFilters {
 }
 
 export async function createReminder(data: CreateReminderRequest): Promise<Reminder> {
-	const response = await apiClient('/api/reminders', {
-		method: 'POST',
-		body: JSON.stringify(data)
-	});
-	return response.json();
+	return post<Reminder>('/reminders', data);
 }
 
 export async function listReminders(filters: ReminderFilters = {}): Promise<ReminderListResponse> {
@@ -73,38 +69,26 @@ export async function listReminders(filters: ReminderFilters = {}): Promise<Remi
 	if (filters.container_id) params.set('container_id', filters.container_id);
 	if (filters.upcoming_days) params.set('upcoming_days', filters.upcoming_days.toString());
 
-	const url = params.toString() ? `/api/reminders?${params}` : '/api/reminders';
-	const response = await apiClient(url);
-	return response.json();
+	const url = params.toString() ? `/reminders?${params}` : '/reminders';
+	return get<ReminderListResponse>(url);
 }
 
 export async function getUpcomingReminders(days: number = 7): Promise<ReminderListResponse> {
-	const response = await apiClient(`/api/reminders/upcoming?days=${days}`);
-	return response.json();
+	return get<ReminderListResponse>(`/reminders/upcoming?days=${days}`);
 }
 
 export async function getReminder(id: string): Promise<Reminder> {
-	const response = await apiClient(`/api/reminders/${id}`);
-	return response.json();
+	return get<Reminder>(`/reminders/${id}`);
 }
 
 export async function updateReminder(id: string, data: UpdateReminderRequest): Promise<Reminder> {
-	const response = await apiClient(`/api/reminders/${id}`, {
-		method: 'PATCH',
-		body: JSON.stringify(data)
-	});
-	return response.json();
+	return patch<Reminder>(`/reminders/${id}`, data);
 }
 
 export async function completeReminder(id: string): Promise<Reminder> {
-	const response = await apiClient(`/api/reminders/${id}/complete`, {
-		method: 'POST'
-	});
-	return response.json();
+	return post<Reminder>(`/reminders/${id}/complete`);
 }
 
 export async function deleteReminder(id: string): Promise<void> {
-	await apiClient(`/api/reminders/${id}`, {
-		method: 'DELETE'
-	});
+	return del(`/reminders/${id}`);
 }

@@ -7,6 +7,11 @@
 	export let required = false;
 	export let disabled = false;
 	export let error = '';
+
+	function handleInput(e: Event) {
+		const target = e.target as HTMLInputElement;
+		value = target.value;
+	}
 </script>
 
 <div class="w-full">
@@ -19,18 +24,72 @@
 		</label>
 	{/if}
 
-	<input
-		{id}
-		{type}
-		{placeholder}
-		{required}
-		{disabled}
-		bind:value
-		class="input {error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}"
-		on:input
-		on:blur
-		on:focus
-	/>
+	{#if type === 'password'}
+		<input
+			{id}
+			type="password"
+			{placeholder}
+			{required}
+			{disabled}
+			{value}
+			on:input={handleInput}
+			class="input {error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}"
+			on:blur
+			on:focus
+		/>
+	{:else if type === 'email'}
+		<input
+			{id}
+			type="email"
+			{placeholder}
+			{required}
+			{disabled}
+			{value}
+			on:input={handleInput}
+			class="input {error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}"
+			on:blur
+			on:focus
+		/>
+	{:else if type === 'number'}
+		<input
+			{id}
+			type="number"
+			{placeholder}
+			{required}
+			{disabled}
+			{value}
+			on:input={handleInput}
+			class="input {error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}"
+			on:blur
+			on:focus
+		/>
+	{:else if type === 'search'}
+		<input
+			{id}
+			type="search"
+			{placeholder}
+			{required}
+			{disabled}
+			{value}
+			on:input={handleInput}
+			class="input {error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}"
+			on:blur
+			on:focus
+		/>
+	{:else}
+		<input
+			{id}
+			type="text"
+			{placeholder}
+			{required}
+			{disabled}
+			{value}
+			on:input={handleInput}
+			class="input {error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}"
+			on:blur
+			on:focus
+		/>
+	{/if}
 
 	{#if error}
 		<p class="mt-1 text-sm text-red-500">{error}</p>

@@ -125,15 +125,15 @@ def upgrade() -> None:
 
     # Create condition enum
     condition_enum = postgresql.ENUM(
-        "good", "fair", "damaged", "needs_repair", name="condition_enum"
+        "good", "fair", "damaged", "needs_repair", name="condition_enum", create_type=False
     )
-    condition_enum.create(op.get_bind())
+    condition_enum.create(op.get_bind(), checkfirst=True)
 
     # Create seasonal enum
     seasonal_enum = postgresql.ENUM(
-        "none", "spring", "summer", "fall", "winter", "holiday", name="seasonal_enum"
+        "none", "spring", "summer", "fall", "winter", "holiday", name="seasonal_enum", create_type=False
     )
-    seasonal_enum.create(op.get_bind())
+    seasonal_enum.create(op.get_bind(), checkfirst=True)
 
     # Create items table
     op.create_table(
@@ -242,13 +242,13 @@ def upgrade() -> None:
 
     # Create printer type enum
     printer_type_enum = postgresql.ENUM(
-        "zebra_zpl", "brother_ql", "generic_pdf", name="printer_type_enum"
+        "zebra_zpl", "brother_ql", "generic_pdf", name="printer_type_enum", create_type=False
     )
-    printer_type_enum.create(op.get_bind())
+    printer_type_enum.create(op.get_bind(), checkfirst=True)
 
     # Create connection type enum
-    connection_type_enum = postgresql.ENUM("network", "usb", name="connection_type_enum")
-    connection_type_enum.create(op.get_bind())
+    connection_type_enum = postgresql.ENUM("network", "usb", name="connection_type_enum", create_type=False)
+    connection_type_enum.create(op.get_bind(), checkfirst=True)
 
     # Create printers table
     op.create_table(
@@ -275,9 +275,9 @@ def upgrade() -> None:
 
     # Create action enum
     action_enum = postgresql.ENUM(
-        "created", "updated", "moved", "deleted", name="action_enum"
+        "created", "updated", "moved", "deleted", name="action_enum", create_type=False
     )
-    action_enum.create(op.get_bind())
+    action_enum.create(op.get_bind(), checkfirst=True)
 
     # Create activity_logs table
     op.create_table(

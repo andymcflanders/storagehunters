@@ -105,6 +105,14 @@
 		if (hours < 24) return `${hours}h ago`;
 		return `${days}d ago`;
 	}
+
+	function handleManualSubmit(e: Event) {
+		const form = e.target as HTMLFormElement;
+		const input = form.elements.namedItem('code') as HTMLInputElement;
+		if (input.value) {
+			goto(`/c/${input.value.toUpperCase()}`);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -126,13 +134,7 @@
 	<!-- Manual entry -->
 	<Card>
 		<form
-			on:submit|preventDefault={(e) => {
-				const form = e.target as HTMLFormElement;
-				const input = form.elements.namedItem('code') as HTMLInputElement;
-				if (input.value) {
-					goto(`/c/${input.value.toUpperCase()}`);
-				}
-			}}
+			on:submit|preventDefault={handleManualSubmit}
 			class="flex gap-2"
 		>
 			<input

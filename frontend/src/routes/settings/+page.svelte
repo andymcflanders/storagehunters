@@ -123,9 +123,13 @@
 		loadActivities();
 	}
 
-	function setTheme(newTheme: Theme) {
-		theme.set(newTheme);
-		toast.success(`Theme set to ${newTheme}`);
+	function setActiveTab(tabId: string) {
+		activeTab = tabId as Tab;
+	}
+
+	function setThemeOption(themeId: string) {
+		theme.set(themeId as Theme);
+		toast.success(`Theme set to ${themeId}`);
 	}
 
 	async function exportJson() {
@@ -224,7 +228,7 @@
 					class="border-b-2 pb-3 text-sm font-medium transition-colors {activeTab === tab.id
 						? 'border-primary-500 text-primary-600'
 						: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400'}"
-					on:click={() => (activeTab = tab.id as Tab)}
+					on:click={() => setActiveTab(tab.id)}
 				>
 					{tab.label}
 				</button>
@@ -347,7 +351,7 @@
 						class="flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all {$theme === option.id
 							? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
 							: 'border-slate-200 hover:border-slate-300 dark:border-slate-700'}"
-						on:click={() => setTheme(option.id as Theme)}
+						on:click={() => setThemeOption(option.id)}
 					>
 						<svg class="h-8 w-8 {$theme === option.id ? 'text-primary-600' : 'text-slate-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={option.icon} />
