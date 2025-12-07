@@ -38,6 +38,7 @@ class LocationResponse(BaseModel):
     description: str | None
     address: str | None
     sort_order: int
+    container_count: int = 0
     created_at: datetime
     updated_at: datetime
 

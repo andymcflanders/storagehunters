@@ -3,11 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { user } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
-	import { admin } from '$lib/api';
+	import { admin, ssl } from '$lib/api';
 	import { Card, Button } from '$lib/components';
-	import type { SystemStats, AdminUser, ActivityLogItem } from '$lib/api/admin';
+	import type { SystemStats, AdminUser, ActivityLogItem, SegmentationSettings, SegmentationHealth } from '$lib/api/admin';
+	import type { SSLStatus, SSLMode } from '$lib/api/ssl';
 
-	type Tab = 'dashboard' | 'users' | 'activity';
+	type Tab = 'dashboard' | 'users' | 'activity' | 'ssl' | 'ai';
 
 	let activeTab: Tab = 'dashboard';
 	let stats: SystemStats | null = null;
@@ -39,10 +40,36 @@
 	let userRoleFilter = '';
 	let userActiveFilter = '';
 
+	// SSL state
+	let sslStatus: SSLStatus | null = null;
+	let loadingSSL = false;
+	let generatingCert = false;
+	let sslFormData = {
+		mode: 'disabled' as SSLMode,
+		domain: '',
+		email: ''
+	};
+
+	// AI/Segmentation state
+	let segmentationSettings: SegmentationSettings | null = null;
+	let segmentationHealth: SegmentationHealth | null = null;
+	let loadingAI = false;
+	let savingAI = false;
+	let aiFormData = {
+		enabled: true,
+		provider: 'local' as 'local' | 'replicate',
+		replicate_api_token: '',
+		replicate_model: 'meta/sam-2-base',
+		confidence_threshold: 0.5,
+		min_area_ratio: 1.0
+	};
+
 	const tabs: { id: Tab; label: string; icon: string }[] = [
 		{ id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
 		{ id: 'users', label: 'Users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-		{ id: 'activity', label: 'Activity Logs', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' }
+		{ id: 'activity', label: 'Activity Logs', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+		{ id: 'ssl', label: 'SSL/HTTPS', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
+		{ id: 'ai', label: 'AI Settings', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' }
 	];
 
 	onMount(async () => {
@@ -115,6 +142,163 @@
 			loadUsers();
 		} else if (tabId === 'activity' && activityLogs.length === 0) {
 			loadActivity();
+		} else if (tabId === 'ssl' && !sslStatus) {
+			loadSSLStatus();
+		} else if (tabId === 'ai' && !segmentationSettings) {
+			loadAISettings();
+		}
+	}
+
+	async function loadSSLStatus() {
+		loadingSSL = true;
+		try {
+			sslStatus = await ssl.getSSLStatus();
+			sslFormData.mode = sslStatus.mode;
+			sslFormData.domain = sslStatus.domain || '';
+		} catch (error) {
+			toast.error('Failed to load SSL status');
+		} finally {
+			loadingSSL = false;
+		}
+	}
+
+	async function handleGenerateCertificate() {
+		if (sslFormData.mode === 'letsencrypt') {
+			if (!sslFormData.domain.trim()) {
+				toast.warning('Domain is required for Let\'s Encrypt');
+				return;
+			}
+			if (!sslFormData.email.trim()) {
+				toast.warning('Email is required for Let\'s Encrypt');
+				return;
+			}
+		}
+
+		generatingCert = true;
+		try {
+			const result = await ssl.generateCertificate({
+				mode: sslFormData.mode,
+				domain: sslFormData.domain || null,
+				email: sslFormData.email || null
+			});
+
+			if (result.success) {
+				toast.success(result.message);
+				await loadSSLStatus();
+				// Notify user to restart if enabling/disabling SSL
+				if (sslFormData.mode !== 'disabled') {
+					toast.info('HTTPS is now enabled. You may need to access the site via https://');
+				}
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to generate certificate';
+			toast.error(message);
+		} finally {
+			generatingCert = false;
+		}
+	}
+
+	async function handleRenewCertificate() {
+		generatingCert = true;
+		try {
+			const result = await ssl.renewCertificate();
+			if (result.success) {
+				toast.success(result.message);
+				await loadSSLStatus();
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to renew certificate';
+			toast.error(message);
+		} finally {
+			generatingCert = false;
+		}
+	}
+
+	async function handleTestCertificate() {
+		try {
+			const result = await ssl.testCertificate();
+			if (result.success) {
+				toast.success(result.message);
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to test certificate';
+			toast.error(message);
+		}
+	}
+
+	function getSSLModeLabel(mode: SSLMode): string {
+		switch (mode) {
+			case 'disabled':
+				return 'Disabled (HTTP only)';
+			case 'self_signed':
+				return 'Self-Signed Certificate';
+			case 'letsencrypt':
+				return "Let's Encrypt";
+			default:
+				return mode;
+		}
+	}
+
+	async function loadAISettings() {
+		loadingAI = true;
+		try {
+			segmentationSettings = await admin.getSegmentationSettings();
+			segmentationHealth = await admin.checkSegmentationHealth();
+			aiFormData = {
+				enabled: segmentationSettings.enabled,
+				provider: segmentationSettings.provider,
+				replicate_api_token: '',  // Don't show existing token
+				replicate_model: segmentationSettings.replicate_model,
+				confidence_threshold: segmentationSettings.confidence_threshold,
+				min_area_ratio: segmentationSettings.min_area_ratio
+			};
+		} catch (error) {
+			toast.error('Failed to load AI settings');
+		} finally {
+			loadingAI = false;
+		}
+	}
+
+	async function checkAIHealth() {
+		try {
+			segmentationHealth = await admin.checkSegmentationHealth();
+		} catch (error) {
+			toast.error('Failed to check AI service health');
+		}
+	}
+
+	async function handleSaveAISettings() {
+		savingAI = true;
+		try {
+			const updateData: admin.SegmentationSettingsUpdate = {
+				enabled: aiFormData.enabled,
+				provider: aiFormData.provider,
+				replicate_model: aiFormData.replicate_model,
+				confidence_threshold: aiFormData.confidence_threshold,
+				min_area_ratio: aiFormData.min_area_ratio
+			};
+
+			// Only include token if provided
+			if (aiFormData.replicate_api_token) {
+				updateData.replicate_api_token = aiFormData.replicate_api_token;
+			}
+
+			segmentationSettings = await admin.updateSegmentationSettings(updateData);
+			toast.success('AI settings saved');
+
+			// Refresh health status
+			await checkAIHealth();
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to save settings';
+			toast.error(message);
+		} finally {
+			savingAI = false;
 		}
 	}
 
@@ -596,6 +780,432 @@
 							</div>
 						</div>
 					{/if}
+				</Card>
+			{/if}
+		</div>
+	{/if}
+
+	<!-- SSL Tab -->
+	{#if activeTab === 'ssl'}
+		<div class="space-y-6">
+			{#if loadingSSL}
+				<div class="animate-pulse space-y-4">
+					<div class="h-32 rounded-xl bg-slate-200"></div>
+					<div class="h-64 rounded-xl bg-slate-200"></div>
+				</div>
+			{:else}
+				<!-- Current Status -->
+				<Card>
+					<h3 class="text-lg font-semibold text-slate-900">Current SSL Status</h3>
+					<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+						<div class="rounded-lg bg-slate-50 p-4">
+							<p class="text-sm text-slate-500">Mode</p>
+							<p class="mt-1 font-medium text-slate-900">
+								{sslStatus ? getSSLModeLabel(sslStatus.mode) : 'Unknown'}
+							</p>
+						</div>
+						<div class="rounded-lg bg-slate-50 p-4">
+							<p class="text-sm text-slate-500">Status</p>
+							<div class="mt-1 flex items-center gap-2">
+								{#if sslStatus?.enabled}
+									{#if sslStatus.certificate_valid}
+										<span class="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+										<span class="font-medium text-green-700">Active & Valid</span>
+									{:else}
+										<span class="inline-flex h-2 w-2 rounded-full bg-yellow-500"></span>
+										<span class="font-medium text-yellow-700">Certificate Invalid</span>
+									{/if}
+								{:else}
+									<span class="inline-flex h-2 w-2 rounded-full bg-slate-400"></span>
+									<span class="font-medium text-slate-600">Disabled</span>
+								{/if}
+							</div>
+						</div>
+						<div class="rounded-lg bg-slate-50 p-4">
+							<p class="text-sm text-slate-500">Domain</p>
+							<p class="mt-1 font-medium text-slate-900">
+								{sslStatus?.domain || 'Not configured'}
+							</p>
+						</div>
+						<div class="rounded-lg bg-slate-50 p-4">
+							<p class="text-sm text-slate-500">Certificate Expiry</p>
+							<p class="mt-1 font-medium text-slate-900">
+								{#if sslStatus?.certificate_expiry}
+									{new Date(sslStatus.certificate_expiry).toLocaleDateString()}
+									{#if sslStatus.days_until_expiry !== null}
+										<span class="text-sm text-slate-500">
+											({sslStatus.days_until_expiry} days)
+										</span>
+									{/if}
+								{:else}
+									N/A
+								{/if}
+							</p>
+						</div>
+					</div>
+
+					{#if sslStatus?.last_error}
+						<div class="mt-4 rounded-lg bg-red-50 p-4">
+							<p class="text-sm font-medium text-red-800">Last Error:</p>
+							<p class="mt-1 text-sm text-red-700">{sslStatus.last_error}</p>
+						</div>
+					{/if}
+
+					{#if sslStatus?.enabled && sslStatus?.certificate_valid}
+						<div class="mt-4 flex gap-2">
+							<Button variant="secondary" on:click={handleTestCertificate}>
+								Test Certificate
+							</Button>
+							{#if sslStatus.mode === 'letsencrypt'}
+								<Button variant="secondary" on:click={handleRenewCertificate} loading={generatingCert}>
+									Renew Certificate
+								</Button>
+							{/if}
+						</div>
+					{/if}
+				</Card>
+
+				<!-- Configure SSL -->
+				<Card>
+					<h3 class="text-lg font-semibold text-slate-900">Configure SSL/HTTPS</h3>
+					<p class="mt-1 text-sm text-slate-500">
+						Enable HTTPS to secure your connection and allow camera access on mobile devices.
+					</p>
+
+					<div class="mt-6 space-y-4">
+						<div>
+							<label for="ssl-mode" class="mb-1.5 block text-sm font-medium text-slate-700">SSL Mode</label>
+							<select
+								id="ssl-mode"
+								bind:value={sslFormData.mode}
+								class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+							>
+								<option value="disabled">Disabled (HTTP only)</option>
+								<option value="self_signed">Self-Signed Certificate (for local/testing)</option>
+								<option value="letsencrypt">Let's Encrypt (for production)</option>
+							</select>
+						</div>
+
+						{#if sslFormData.mode === 'self_signed'}
+							<div class="rounded-lg bg-amber-50 p-4">
+								<p class="text-sm text-amber-800">
+									<strong>Note:</strong> Self-signed certificates will show a browser warning.
+									Users will need to accept the certificate to proceed. This is suitable for
+									local networks and testing.
+								</p>
+							</div>
+
+							<div>
+								<label for="ssl-domain" class="mb-1.5 block text-sm font-medium text-slate-700">
+									Domain (optional)
+								</label>
+								<input
+									id="ssl-domain"
+									type="text"
+									bind:value={sslFormData.domain}
+									placeholder="e.g., storagehub.local or 192.168.1.100"
+									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								/>
+								<p class="mt-1 text-xs text-slate-500">
+									Leave blank to use 'storagehub.local' as the certificate name
+								</p>
+							</div>
+						{/if}
+
+						{#if sslFormData.mode === 'letsencrypt'}
+							<div class="rounded-lg bg-blue-50 p-4">
+								<p class="text-sm text-blue-800">
+									<strong>Requirements:</strong> Your server must be accessible from the internet
+									on port 80, and you need a valid domain name pointing to this server.
+								</p>
+							</div>
+
+							<div>
+								<label for="ssl-domain-le" class="mb-1.5 block text-sm font-medium text-slate-700">
+									Domain <span class="text-red-500">*</span>
+								</label>
+								<input
+									id="ssl-domain-le"
+									type="text"
+									bind:value={sslFormData.domain}
+									placeholder="e.g., storagehub.example.com"
+									required
+									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								/>
+							</div>
+
+							<div>
+								<label for="ssl-email" class="mb-1.5 block text-sm font-medium text-slate-700">
+									Email <span class="text-red-500">*</span>
+								</label>
+								<input
+									id="ssl-email"
+									type="email"
+									bind:value={sslFormData.email}
+									placeholder="admin@example.com"
+									required
+									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								/>
+								<p class="mt-1 text-xs text-slate-500">
+									Used for certificate expiry notifications from Let's Encrypt
+								</p>
+							</div>
+						{/if}
+
+						<div class="flex gap-2 pt-4">
+							<Button on:click={handleGenerateCertificate} loading={generatingCert}>
+								{#if sslFormData.mode === 'disabled'}
+									Disable HTTPS
+								{:else if sslFormData.mode === 'self_signed'}
+									Generate Self-Signed Certificate
+								{:else}
+									Request Let's Encrypt Certificate
+								{/if}
+							</Button>
+						</div>
+					</div>
+				</Card>
+
+				<!-- Help -->
+				<Card>
+					<h3 class="text-lg font-semibold text-slate-900">About HTTPS</h3>
+					<div class="mt-4 space-y-3 text-sm text-slate-600">
+						<p>
+							<strong>Why enable HTTPS?</strong> Modern browsers require HTTPS to access
+							device features like the camera. Without HTTPS, QR code scanning won't work
+							on mobile devices.
+						</p>
+						<p>
+							<strong>Self-Signed vs Let's Encrypt:</strong> Self-signed certificates are
+							quick to set up and work for local networks, but browsers will show a warning.
+							Let's Encrypt provides free, trusted certificates but requires a public domain.
+						</p>
+						<p>
+							<strong>After enabling HTTPS:</strong> Access your site using https:// instead
+							of http://. If using a self-signed certificate, you'll need to accept the
+							browser warning once.
+						</p>
+					</div>
+				</Card>
+			{/if}
+		</div>
+	{/if}
+
+	<!-- AI Settings Tab -->
+	{#if activeTab === 'ai'}
+		<div class="space-y-6">
+			{#if loadingAI}
+				<div class="flex justify-center py-12">
+					<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600"></div>
+				</div>
+			{:else}
+				<!-- Health Status -->
+				<Card>
+					<div class="flex items-center justify-between">
+						<div>
+							<h3 class="text-lg font-semibold text-slate-900">Segmentation Service Status</h3>
+							<p class="mt-1 text-sm text-slate-500">
+								AI-powered image segmentation for multi-item detection
+							</p>
+						</div>
+						<button
+							on:click={checkAIHealth}
+							class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+							title="Refresh status"
+						>
+							<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+							</svg>
+						</button>
+					</div>
+
+					{#if segmentationHealth}
+						<div class="mt-4 flex items-center gap-3">
+							{#if segmentationHealth.status === 'healthy'}
+								<span class="flex h-3 w-3 rounded-full bg-green-500"></span>
+								<span class="text-sm font-medium text-green-700">Service is healthy</span>
+							{:else if segmentationHealth.status === 'disabled'}
+								<span class="flex h-3 w-3 rounded-full bg-slate-400"></span>
+								<span class="text-sm font-medium text-slate-600">Service is disabled</span>
+							{:else if segmentationHealth.status === 'unhealthy'}
+								<span class="flex h-3 w-3 rounded-full bg-red-500"></span>
+								<span class="text-sm font-medium text-red-700">Service is unhealthy</span>
+							{:else}
+								<span class="flex h-3 w-3 rounded-full bg-amber-500"></span>
+								<span class="text-sm font-medium text-amber-700">
+									{segmentationHealth.error || 'Unknown status'}
+								</span>
+							{/if}
+						</div>
+
+						{#if segmentationHealth.provider && segmentationHealth.model}
+							<p class="mt-2 text-sm text-slate-500">
+								Provider: <span class="font-medium">{segmentationHealth.provider}</span> |
+								Model: <span class="font-medium">{segmentationHealth.model}</span>
+							</p>
+						{/if}
+					{/if}
+				</Card>
+
+				<!-- Settings Form -->
+				<Card>
+					<h3 class="text-lg font-semibold text-slate-900">Segmentation Settings</h3>
+					<p class="mt-1 text-sm text-slate-500">
+						Configure how image segmentation works for multi-item detection.
+					</p>
+
+					<div class="mt-6 space-y-6">
+						<!-- Enable Toggle -->
+						<div class="flex items-center justify-between">
+							<div>
+								<label class="text-sm font-medium text-slate-700">Enable Segmentation</label>
+								<p class="text-xs text-slate-500">Allow detecting multiple items per photo</p>
+							</div>
+							<label class="relative inline-flex cursor-pointer items-center">
+								<input type="checkbox" bind:checked={aiFormData.enabled} class="peer sr-only" />
+								<div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300"></div>
+							</label>
+						</div>
+
+						<!-- Provider Selection -->
+						<div>
+							<label for="ai-provider" class="mb-1.5 block text-sm font-medium text-slate-700">
+								Provider
+							</label>
+							<select
+								id="ai-provider"
+								bind:value={aiFormData.provider}
+								class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+							>
+								<option value="local">Local (FastSAM Docker container)</option>
+								<option value="replicate">Replicate (Cloud API)</option>
+							</select>
+							<p class="mt-1 text-xs text-slate-500">
+								{#if aiFormData.provider === 'local'}
+									Runs locally in Docker. Requires the fastsam container to be running.
+								{:else}
+									Uses Replicate's cloud API. Requires API token. Pay-per-use pricing.
+								{/if}
+							</p>
+						</div>
+
+						<!-- Replicate Settings -->
+						{#if aiFormData.provider === 'replicate'}
+							<div class="rounded-lg bg-blue-50 p-4">
+								<p class="text-sm text-blue-800">
+									<strong>Replicate</strong> provides cloud-based SAM models with GPU acceleration.
+									Get your API token at <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener" class="underline">replicate.com</a>.
+								</p>
+							</div>
+
+							<div>
+								<label for="replicate-token" class="mb-1.5 block text-sm font-medium text-slate-700">
+									API Token
+									{#if segmentationSettings?.replicate_api_token_set}
+										<span class="text-green-600">(configured)</span>
+									{/if}
+								</label>
+								<input
+									id="replicate-token"
+									type="password"
+									bind:value={aiFormData.replicate_api_token}
+									placeholder={segmentationSettings?.replicate_api_token_set ? '••••••••••••••••' : 'r8_...'}
+									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								/>
+								<p class="mt-1 text-xs text-slate-500">
+									Leave blank to keep existing token
+								</p>
+							</div>
+
+							<div>
+								<label for="replicate-model" class="mb-1.5 block text-sm font-medium text-slate-700">
+									SAM Model
+								</label>
+								<select
+									id="replicate-model"
+									bind:value={aiFormData.replicate_model}
+									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								>
+									<option value="meta/sam-2-base">SAM 2 Base (recommended)</option>
+									<option value="meta/sam-2-large">SAM 2 Large (higher quality)</option>
+									<option value="adirik/grounded-sam">Grounded SAM (text-guided)</option>
+								</select>
+							</div>
+						{/if}
+
+						<!-- Advanced Settings -->
+						<details class="group">
+							<summary class="cursor-pointer text-sm font-medium text-slate-700">
+								Advanced Settings
+								<svg class="ml-1 inline h-4 w-4 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+								</svg>
+							</summary>
+							<div class="mt-4 space-y-4">
+								<div>
+									<label for="confidence" class="mb-1.5 block text-sm font-medium text-slate-700">
+										Confidence Threshold: {aiFormData.confidence_threshold}
+									</label>
+									<input
+										id="confidence"
+										type="range"
+										min="0.1"
+										max="0.95"
+										step="0.05"
+										bind:value={aiFormData.confidence_threshold}
+										class="w-full"
+									/>
+									<p class="mt-1 text-xs text-slate-500">
+										Higher values = fewer but more confident detections
+									</p>
+								</div>
+
+								<div>
+									<label for="min-area" class="mb-1.5 block text-sm font-medium text-slate-700">
+										Min Area Ratio: {aiFormData.min_area_ratio}%
+									</label>
+									<input
+										id="min-area"
+										type="range"
+										min="0.5"
+										max="10"
+										step="0.5"
+										bind:value={aiFormData.min_area_ratio}
+										class="w-full"
+									/>
+									<p class="mt-1 text-xs text-slate-500">
+										Minimum object size as % of image. Filters out small objects.
+									</p>
+								</div>
+							</div>
+						</details>
+
+						<div class="flex justify-end pt-4">
+							<Button on:click={handleSaveAISettings} loading={savingAI}>
+								Save Settings
+							</Button>
+						</div>
+					</div>
+				</Card>
+
+				<!-- Help -->
+				<Card>
+					<h3 class="text-lg font-semibold text-slate-900">About Image Segmentation</h3>
+					<div class="mt-4 space-y-3 text-sm text-slate-600">
+						<p>
+							<strong>What is segmentation?</strong> AI segmentation detects objects in photos
+							and removes backgrounds, creating clean transparent images for each item.
+						</p>
+						<p>
+							<strong>Multi-item mode:</strong> When enabled during photo capture, the AI will
+							detect multiple items in a single photo and create separate inventory entries for each.
+						</p>
+						<p>
+							<strong>Local vs Cloud:</strong> Local processing (FastSAM) is free but requires
+							the Docker container to run. Cloud processing (Replicate) is faster with GPU
+							acceleration but has per-image costs.
+						</p>
+					</div>
 				</Card>
 			{/if}
 		</div>

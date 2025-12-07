@@ -56,3 +56,6 @@ class Container(Base):
     items: Mapped[list["Item"]] = relationship(  # type: ignore[name-defined]
         "Item", back_populates="container", cascade="all, delete-orphan"
     )
+    pending_uploads: Mapped[list["PendingUpload"]] = relationship(  # type: ignore[name-defined]
+        "PendingUpload", back_populates="container", cascade="all, delete-orphan"
+    )

@@ -6,7 +6,9 @@
 	import { theme, type Theme } from '$lib/stores/theme';
 	import { users, activity } from '$lib/api';
 	import { Card, Button, Input, Modal } from '$lib/components';
+	import { _, setLocale, locale } from '$lib/i18n';
 	import type { Activity, ActivityListResponse } from '$lib/api/activity';
+	import type { Language } from '$lib/types';
 
 	type Tab = 'profile' | 'activity' | 'appearance' | 'data';
 
@@ -50,7 +52,7 @@
 				name: profileName.trim(),
 				email: profileEmail.trim() || undefined
 			});
-			auth.updateUser(updated);
+			auth.setUser(updated);
 			toast.success('Profile updated');
 		} catch (error) {
 			toast.error('Failed to update profile');
@@ -92,8 +94,8 @@
 		if (!confirm('Remove password protection? Anyone will be able to access your account.')) return;
 
 		try {
-			await users.updateUser($user.id, { requires_password: false });
-			auth.updateUser({ ...$user, requires_password: false });
+			const updated = await users.updateUser($user.id, { requires_password: false });
+			auth.setUser(updated);
 			toast.success('Password protection removed');
 		} catch (error) {
 			toast.error('Failed to remove password');
@@ -129,7 +131,20 @@
 
 	function setThemeOption(themeId: string) {
 		theme.set(themeId as Theme);
-		toast.success(`Theme set to ${themeId}`);
+		toast.success($_('settings.theme.title') + ': ' + $_(`settings.theme.${themeId}`));
+	}
+
+	async function setLanguageOption(langId: string) {
+		if (!$user) return;
+
+		try {
+			const updated = await users.updateUser($user.id, { language: langId as Language });
+			auth.setUser(updated);
+			setLocale(langId);
+			toast.success($_('settings.language') + ': ' + $_(`settings.languageOptions.${langId}`));
+		} catch (error) {
+			toast.error($_('settings.failedToUpdate'));
+		}
 	}
 
 	async function exportJson() {
@@ -206,23 +221,23 @@
 </script>
 
 <svelte:head>
-	<title>Settings - StorageHub</title>
+	<title>{$_('settings.title')} - {$_('app.name')}</title>
 </svelte:head>
 
 <div class="space-y-6">
 	<div>
-		<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
-		<p class="mt-1 text-slate-500 dark:text-slate-400">Manage your account and preferences</p>
+		<h1 class="text-2xl font-bold text-slate-900 dark:text-white">{$_('settings.title')}</h1>
+		<p class="mt-1 text-slate-500 dark:text-slate-400">{$_('settings.subtitle')}</p>
 	</div>
 
 	<!-- Tabs -->
 	<div class="border-b border-slate-200 dark:border-slate-700">
 		<nav class="-mb-px flex gap-6">
 			{#each [
-				{ id: 'profile', label: 'Profile' },
-				{ id: 'activity', label: 'Activity' },
-				{ id: 'appearance', label: 'Appearance' },
-				{ id: 'data', label: 'Data' }
+				{ id: 'profile', labelKey: 'settings.profile' },
+				{ id: 'activity', labelKey: 'settings.activity' },
+				{ id: 'appearance', labelKey: 'settings.appearance' },
+				{ id: 'data', labelKey: 'settings.data' }
 			] as tab}
 				<button
 					class="border-b-2 pb-3 text-sm font-medium transition-colors {activeTab === tab.id
@@ -230,7 +245,7 @@
 						: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400'}"
 					on:click={() => setActiveTab(tab.id)}
 				>
-					{tab.label}
+					{$_(tab.labelKey)}
 				</button>
 			{/each}
 		</nav>
@@ -340,12 +355,12 @@
 	<!-- Appearance Tab -->
 	{#if activeTab === 'appearance'}
 		<Card>
-			<h2 class="mb-6 text-lg font-semibold text-slate-900 dark:text-white">Theme</h2>
+			<h2 class="mb-6 text-lg font-semibold text-slate-900 dark:text-white">{$_('settings.theme.title')}</h2>
 			<div class="grid gap-4 sm:grid-cols-3">
 				{#each [
-					{ id: 'light', label: 'Light', icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z' },
-					{ id: 'dark', label: 'Dark', icon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z' },
-					{ id: 'system', label: 'System', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' }
+					{ id: 'light', labelKey: 'settings.theme.light', icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z' },
+					{ id: 'dark', labelKey: 'settings.theme.dark', icon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z' },
+					{ id: 'system', labelKey: 'settings.theme.system', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' }
 				] as option}
 					<button
 						class="flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all {$theme === option.id
@@ -357,7 +372,29 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={option.icon} />
 						</svg>
 						<span class="text-sm font-medium {$theme === option.id ? 'text-primary-600' : 'text-slate-700 dark:text-slate-300'}">
-							{option.label}
+							{$_(option.labelKey)}
+						</span>
+					</button>
+				{/each}
+			</div>
+		</Card>
+
+		<Card>
+			<h2 class="mb-6 text-lg font-semibold text-slate-900 dark:text-white">{$_('settings.language')}</h2>
+			<div class="grid gap-4 sm:grid-cols-2">
+				{#each [
+					{ id: 'en', labelKey: 'settings.languageOptions.en', flag: '🇬🇧' },
+					{ id: 'no', labelKey: 'settings.languageOptions.no', flag: '🇳🇴' }
+				] as option}
+					<button
+						class="flex items-center gap-4 rounded-xl border-2 p-6 transition-all {$user?.language === option.id
+							? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+							: 'border-slate-200 hover:border-slate-300 dark:border-slate-700'}"
+						on:click={() => setLanguageOption(option.id)}
+					>
+						<span class="text-3xl">{option.flag}</span>
+						<span class="text-sm font-medium {$user?.language === option.id ? 'text-primary-600' : 'text-slate-700 dark:text-slate-300'}">
+							{$_(option.labelKey)}
 						</span>
 					</button>
 				{/each}

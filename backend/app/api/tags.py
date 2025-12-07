@@ -40,6 +40,7 @@ async def create_tag(
     tag = Tag(name=tag_data.name.lower(), user_created=True)
     db.add(tag)
     await db.flush()
+    await db.refresh(tag)
     return TagResponse.model_validate(tag)
 
 
@@ -70,6 +71,7 @@ async def rename_tag(
 
     tag.name = new_name.lower()
     await db.flush()
+    await db.refresh(tag)
     return TagResponse.model_validate(tag)
 
 
@@ -139,4 +141,5 @@ async def merge_tags(
         await db.delete(source_tag)
 
     await db.flush()
+    await db.refresh(target_tag)
     return TagResponse.model_validate(target_tag)

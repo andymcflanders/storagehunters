@@ -32,5 +32,16 @@ celery_app.conf.update(
 # Task routing
 celery_app.conf.task_routes = {
     "app.worker.tasks.process_image_ai": {"queue": "ai"},
+    "app.worker.tasks.process_item_ai": {"queue": "ai"},
+    "app.worker.tasks.batch_process_item_images": {"queue": "ai"},
+    "app.worker.tasks.segment_pending_upload": {"queue": "segmentation"},
     "app.worker.tasks.*": {"queue": "default"},
+}
+
+# Longer timeout for segmentation tasks (model inference can be slow)
+celery_app.conf.task_annotations = {
+    "app.worker.tasks.segment_pending_upload": {
+        "time_limit": 600,  # 10 minutes
+        "soft_time_limit": 540,  # 9 minutes
+    },
 }

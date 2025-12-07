@@ -4,6 +4,7 @@
 
 // User types
 export type UserRole = 'admin' | 'user';
+export type Language = 'en' | 'no';
 
 export interface User {
 	id: string;
@@ -12,6 +13,7 @@ export interface User {
 	avatar_url: string | null;
 	requires_password: boolean;
 	role: UserRole;
+	language: Language;
 	is_active: boolean;
 	created_at: string;
 	updated_at: string;
@@ -29,6 +31,7 @@ export interface UserUpdate {
 	email?: string;
 	requires_password?: boolean;
 	password?: string;
+	language?: Language;
 }
 
 export interface SessionResponse {
@@ -44,6 +47,7 @@ export interface Location {
 	description: string | null;
 	address: string | null;
 	sort_order: number;
+	container_count: number;
 	created_at: string;
 	updated_at: string;
 }
@@ -131,6 +135,14 @@ export interface Item {
 	condition: Condition;
 	seasonal: Seasonal;
 	value_estimate: number | null;
+	ai_name: string | null;
+	ai_name_no: string | null;
+	ai_description: string | null;
+	ai_description_no: string | null;
+	ai_processed: boolean;
+	needs_review: boolean;
+	source_upload_id: string | null;
+	primary_image_id: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -164,6 +176,7 @@ export interface ItemImage {
 	ai_tags: string[];
 	ai_description: string | null;
 	ai_processed: boolean;
+	is_segmented: boolean;
 	created_at: string;
 }
 
@@ -230,4 +243,85 @@ export interface PrintResult {
 
 export interface PrintPreviewResult {
 	preview_url: string;
+}
+
+// Upload types
+export type UploadStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface PendingUpload {
+	id: string;
+	container_id: string;
+	status: UploadStatus;
+	multi_item_mode: boolean;
+	items_created: number;
+	error_message: string | null;
+	created_at: string;
+	processed_at: string | null;
+}
+
+export interface PendingUploadWithItems extends PendingUpload {
+	item_ids: string[];
+}
+
+// God View types
+export interface GodViewUserInfo {
+	id: string;
+	name: string;
+}
+
+export interface GodViewItem {
+	id: string;
+	name: string;
+	description: string | null;
+	size: string | null;
+	condition: Condition;
+	seasonal: Seasonal;
+	owner_id: string | null;
+	owner_name: string | null;
+	thumbnail_url: string | null;
+	value_estimate: number | null;
+	ai_name: string | null;
+	ai_name_no: string | null;
+	ai_description: string | null;
+	ai_description_no: string | null;
+	ai_processed: boolean;
+	needs_review: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface GodViewContainer {
+	id: string;
+	name: string;
+	notes: string | null;
+	qr_code: string;
+	location_id: string;
+	parent_container_id: string | null;
+	items: GodViewItem[];
+	children: GodViewContainer[];
+	item_count: number;
+}
+
+export interface GodViewLocation {
+	id: string;
+	name: string;
+	description: string | null;
+	address: string | null;
+	sort_order: number;
+	containers: GodViewContainer[];
+	container_count: number;
+	item_count: number;
+}
+
+export interface GodViewResponse {
+	locations: GodViewLocation[];
+	users: GodViewUserInfo[];
+	total_locations: number;
+	total_containers: number;
+	total_items: number;
+}
+
+export interface ContainerMoveRequest {
+	location_id?: string;
+	parent_container_id?: string | null;
 }

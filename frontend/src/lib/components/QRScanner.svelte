@@ -12,6 +12,7 @@
 	let canvasElement: HTMLCanvasElement;
 	let stream: MediaStream | null = null;
 	let scanning = false;
+	let starting = false;
 	let errorMessage = '';
 	let hasCamera = true;
 
@@ -25,14 +26,15 @@
 		stopScanner();
 	});
 
-	$: if (active && !scanning) {
+	$: if (active && !scanning && !starting) {
 		startScanner();
-	} else if (!active && scanning) {
+	} else if (!active && (scanning || starting)) {
 		stopScanner();
 	}
 
 	async function startScanner() {
-		if (scanning) return;
+		if (scanning || starting) return;
+		starting = true;
 
 		try {
 			// Check for camera support
@@ -49,14 +51,62 @@
 				}
 			});
 
+			// Check if we were stopped while waiting for camera
+			if (!starting) {
+				stream.getTracks().forEach((track) => track.stop());
+				return;
+			}
+
 			videoElement.srcObject = stream;
-			await videoElement.play();
+
+			// Wait for video to be ready before playing
+			await new Promise<void>((resolve, reject) => {
+				const onCanPlay = () => {
+					videoElement.removeEventListener('canplay', onCanPlay);
+					videoElement.removeEventListener('error', onError);
+					resolve();
+				};
+				const onError = () => {
+					videoElement.removeEventListener('canplay', onCanPlay);
+					videoElement.removeEventListener('error', onError);
+					reject(new Error('Video failed to load'));
+				};
+				videoElement.addEventListener('canplay', onCanPlay);
+				videoElement.addEventListener('error', onError);
+
+				// If already ready, resolve immediately
+				if (videoElement.readyState >= 3) {
+					videoElement.removeEventListener('canplay', onCanPlay);
+					videoElement.removeEventListener('error', onError);
+					resolve();
+				}
+			});
+
+			// Check again if we were stopped
+			if (!starting) {
+				stream.getTracks().forEach((track) => track.stop());
+				return;
+			}
+
+			// Now safe to play
+			try {
+				await videoElement.play();
+			} catch (playError) {
+				// Ignore AbortError - happens when play is interrupted (e.g., component unmounted)
+				if ((playError as Error).name !== 'AbortError') {
+					throw playError;
+				}
+				return;
+			}
+
 			scanning = true;
+			starting = false;
 			errorMessage = '';
 
 			// Start scanning loop
 			requestAnimationFrame(scanFrame);
 		} catch (err) {
+			starting = false;
 			const error = err as Error;
 			errorMessage = error.message || 'Failed to access camera';
 			hasCamera = false;
@@ -66,9 +116,13 @@
 
 	function stopScanner() {
 		scanning = false;
+		starting = false;
 		if (stream) {
 			stream.getTracks().forEach((track) => track.stop());
 			stream = null;
+		}
+		if (videoElement) {
+			videoElement.srcObject = null;
 		}
 	}
 

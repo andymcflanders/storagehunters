@@ -209,6 +209,7 @@ async def toggle_share_link(
 
     share_link.is_active = not share_link.is_active
     await db.flush()
+    await db.refresh(share_link)
 
     return ShareLinkResponse(
         id=share_link.id,

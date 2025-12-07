@@ -20,6 +20,75 @@ from app.services.semantic_search import get_semantic_search_service
 router = APIRouter()
 
 
+@router.get("/autocomplete", response_model=SearchResult)
+async def autocomplete_items(
+    db: DbSession,
+    q: str = Query(..., min_length=1, description="Search query"),
+    limit: int = Query(8, le=20, description="Max results"),
+) -> SearchResult:
+    """
+    Fast autocomplete search for instant suggestions.
+
+    Skips AI semantic parsing for speed - uses only local matching.
+    Optimized for low latency autocomplete dropdowns.
+    """
+    search_term = f"%{q.lower()}%"
+
+    # Simple query with minimal joins for speed
+    query = (
+        select(Item)
+        .options(selectinload(Item.images))
+        .where(
+            or_(
+                func.lower(Item.name).like(search_term),
+                func.lower(Item.description).like(search_term),
+            )
+        )
+        .limit(limit)
+    )
+
+    result = await db.execute(query)
+    items = result.scalars().all()
+
+    # Build response with minimal processing
+    storage = ImageStorageService()
+    search_results = []
+
+    for item in items:
+        # Get path efficiently
+        path = await build_item_search_path(item, db)
+
+        # Get thumbnail
+        thumbnail_url = None
+        if item.images:
+            thumbnail_url = storage.get_url(item.images[0].filepath)
+
+        search_results.append(
+            SearchResultItem(
+                id=item.id,
+                name=item.name,
+                description=item.description,
+                container_id=item.container_id,
+                owner_id=item.owner_id,
+                size=item.size,
+                condition=item.condition,
+                seasonal=item.seasonal,
+                value_estimate=item.value_estimate,
+                created_at=item.created_at,
+                updated_at=item.updated_at,
+                path=path,
+                thumbnail_url=thumbnail_url,
+                matching_tags=[],
+            )
+        )
+
+    return SearchResult(
+        query=q,
+        total=len(search_results),
+        items=search_results,
+    )
+
+
 @dataclass
 class ScoredItem:
     """Item with relevance score."""

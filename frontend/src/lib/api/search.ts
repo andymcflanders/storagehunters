@@ -47,3 +47,8 @@ export async function searchItems(filters: SearchFilters): Promise<SearchResult>
 	const queryString = params.toString();
 	return get<SearchResult>(`/search${queryString ? `?${queryString}` : ''}`);
 }
+
+export async function autocomplete(query: string, limit = 8): Promise<SearchResult> {
+	const params = new URLSearchParams({ q: query, limit: limit.toString() });
+	return get<SearchResult>(`/search/autocomplete?${params.toString()}`);
+}

@@ -34,30 +34,37 @@ class MockClassifier(BaseClassifier):
         """
         self.delay = delay
 
-    async def classify(self, image_bytes: bytes) -> ClassificationResult:
-        """Generate mock classification based on image hash."""
+    async def classify(self, images: list[bytes]) -> ClassificationResult:
+        """Generate mock classification based on combined image hashes."""
         import asyncio
         await asyncio.sleep(self.delay)
 
-        # Use image hash for deterministic results
-        image_hash = hashlib.md5(image_bytes).hexdigest()
-        random.seed(image_hash)
+        if not images:
+            return ClassificationResult()
+
+        # Combine all image hashes for deterministic results
+        combined_hash = hashlib.md5(b"".join(images)).hexdigest()
+        random.seed(combined_hash)
 
         # Generate tags
         tags = []
 
         # Always add a color
-        tags.append(random.choice(SAMPLE_COLORS))
+        color = random.choice(SAMPLE_COLORS)
+        tags.append(color)
         if random.random() > 0.5:
             tags.append(random.choice(SAMPLE_COLORS))
 
         # Add category and item type
         tags.append(random.choice(SAMPLE_CATEGORIES))
-        tags.append(random.choice(SAMPLE_ITEMS))
+        item_type = random.choice(SAMPLE_ITEMS)
+        tags.append(item_type)
 
         # Maybe add material
+        material = None
         if random.random() > 0.3:
-            tags.append(random.choice(SAMPLE_MATERIALS))
+            material = random.choice(SAMPLE_MATERIALS)
+            tags.append(material)
 
         # Maybe add pattern
         if random.random() > 0.5:
@@ -68,20 +75,35 @@ class MockClassifier(BaseClassifier):
             tags.append(random.choice(SAMPLE_SEASONS))
 
         # Maybe add size
+        size = None
         if random.random() > 0.7:
-            tags.append(random.choice(SAMPLE_SIZES))
+            size = random.choice(SAMPLE_SIZES)
+            tags.append(size)
 
         # Normalize and dedupe
         tags = self._normalize_tags(tags)
 
+        # Generate name (2-5 words)
+        name_parts = [color.title()]
+        if material:
+            name_parts.append(material.title())
+        name_parts.append(item_type.title())
+        if size:
+            name_parts.append(f"({size.title()})")
+        name = " ".join(name_parts)
+
         # Generate description
-        color = tags[0] if tags else "unknown"
-        item = next((t for t in tags if t in SAMPLE_ITEMS), "item")
-        description = f"A {color} {item} in good condition."
+        description = f"A {color} {item_type}"
+        if material:
+            description += f" made of {material}"
+        description += " in good condition."
+        if len(images) > 1:
+            description += f" (Analyzed from {len(images)} photos)"
 
         return ClassificationResult(
+            name=name,
             tags=tags,
             description=description,
             confidence=0.85,
-            raw_response={"mock": True, "hash": image_hash},
+            raw_response={"mock": True, "hash": combined_hash, "image_count": len(images)},
         )

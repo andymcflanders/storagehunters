@@ -48,3 +48,15 @@ export async function removeItemTag(itemId: string, tagId: string): Promise<void
 export async function moveItem(itemId: string, containerId: string): Promise<Item> {
 	return post<Item>(`/items/${itemId}/move?container_id=${containerId}`);
 }
+
+export async function getPendingReviewItems(): Promise<ItemWithDetails[]> {
+	return get<ItemWithDetails[]>('/items/pending-review');
+}
+
+export async function confirmItemReview(itemId: string): Promise<Item> {
+	return post<Item>(`/items/${itemId}/confirm-review`);
+}
+
+export async function setPrimaryImage(itemId: string, imageId: string): Promise<Item> {
+	return post<Item>(`/items/${itemId}/images/${imageId}/set-primary`);
+}

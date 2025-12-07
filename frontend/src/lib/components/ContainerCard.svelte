@@ -12,15 +12,15 @@
 	<Card hover>
 		<div class="flex items-start justify-between">
 			<div class="flex-1">
-				<h3 class="text-lg font-semibold text-slate-900">{container.name}</h3>
+				<h3 class="text-lg font-semibold text-slate-900 dark:text-white">{container.name}</h3>
 				{#if 'notes' in container && container.notes}
-					<p class="mt-1 line-clamp-2 text-sm text-slate-500">{container.notes}</p>
+					<p class="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{container.notes}</p>
 				{/if}
 			</div>
 
 			<!-- QR Code Preview -->
 			{#if showQR}
-				<div class="ml-4 flex h-12 w-12 items-center justify-center rounded bg-slate-100">
+				<div class="ml-4 flex h-12 w-12 items-center justify-center rounded bg-slate-100 dark:bg-slate-700">
 					<svg class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path
 							stroke-linecap="round"
@@ -32,7 +32,7 @@
 				</div>
 			{:else}
 				<div
-					class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600"
+					class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
 				>
 					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path
@@ -46,8 +46,8 @@
 			{/if}
 		</div>
 
-		<div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-			<span class="text-sm text-slate-500">
+		<div class="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-4">
+			<span class="text-sm text-slate-500 dark:text-slate-400">
 				{itemCount}
 				{itemCount === 1 ? 'item' : 'items'}
 			</span>

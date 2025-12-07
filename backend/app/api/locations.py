@@ -6,10 +6,12 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from pydantic import BaseModel
+
 from app.api.deps import CurrentUser, DbSession
 from app.models.activity import ActionEnum
 from app.models.container import Container
-from app.models.item import Item
+from app.models.item import Item, ItemImage
 from app.models.location import Location
 from app.schemas.location import (
     ContainerSummary,
@@ -23,12 +25,55 @@ from app.services.activity_logger import ActivityLogger
 router = APIRouter()
 
 
+class DashboardStats(BaseModel):
+    """Dashboard statistics."""
+    locations: int
+    containers: int
+    items: int
+    photos: int
+
+
+@router.get("/stats", response_model=DashboardStats)
+async def get_dashboard_stats(db: DbSession) -> DashboardStats:
+    """Get dashboard statistics."""
+    locations_count = await db.scalar(select(func.count(Location.id))) or 0
+    containers_count = await db.scalar(select(func.count(Container.id))) or 0
+    items_count = await db.scalar(select(func.count(Item.id))) or 0
+    photos_count = await db.scalar(select(func.count(ItemImage.id))) or 0
+
+    return DashboardStats(
+        locations=locations_count,
+        containers=containers_count,
+        items=items_count,
+        photos=photos_count,
+    )
+
+
 @router.get("", response_model=list[LocationResponse])
 async def list_locations(db: DbSession) -> list[LocationResponse]:
-    """List all locations."""
+    """List all locations with container counts."""
     result = await db.execute(select(Location).order_by(Location.sort_order, Location.name))
-    locations = result.scalars().all()
-    return [LocationResponse.model_validate(loc) for loc in locations]
+    locations_list = result.scalars().all()
+
+    # Get container counts for all locations
+    location_ids = [loc.id for loc in locations_list]
+    container_counts: dict[UUID, int] = {}
+    if location_ids:
+        count_result = await db.execute(
+            select(Container.location_id, func.count(Container.id))
+            .where(Container.location_id.in_(location_ids))
+            .where(Container.parent_container_id.is_(None))  # Only top-level containers
+            .group_by(Container.location_id)
+        )
+        container_counts = dict(count_result.all())
+
+    return [
+        LocationResponse(
+            **LocationResponse.model_validate(loc).model_dump(exclude={"container_count"}),
+            container_count=container_counts.get(loc.id, 0),
+        )
+        for loc in locations_list
+    ]
 
 
 @router.post("", response_model=LocationResponse, status_code=status.HTTP_201_CREATED)
@@ -41,6 +86,7 @@ async def create_location(
     location = Location(**location_data.model_dump())
     db.add(location)
     await db.flush()
+    await db.refresh(location)
 
     # Log activity
     logger = ActivityLogger(db)
@@ -136,6 +182,7 @@ async def update_location(
         )
 
     await db.flush()
+    await db.refresh(location)
     return LocationResponse.model_validate(location)
 
 

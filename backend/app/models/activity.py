@@ -33,7 +33,10 @@ class ActivityLog(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    action: Mapped[ActionEnum] = mapped_column(Enum(ActionEnum), nullable=False)
+    action: Mapped[ActionEnum] = mapped_column(
+        Enum(ActionEnum, name="action_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
+        nullable=False
+    )
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     entity_name: Mapped[str] = mapped_column(String(255), nullable=False)

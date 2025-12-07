@@ -14,6 +14,13 @@ class UserRole(str, Enum):
     USER = "user"
 
 
+class Language(str, Enum):
+    """Supported languages."""
+
+    EN = "en"
+    NO = "no"
+
+
 class UserBase(BaseModel):
     """Base user schema."""
 
@@ -27,6 +34,7 @@ class UserCreate(UserBase):
 
     password: str | None = Field(None, min_length=4)
     role: UserRole = UserRole.USER
+    language: Language = Language.EN
 
 
 class UserUpdate(BaseModel):
@@ -37,6 +45,7 @@ class UserUpdate(BaseModel):
     requires_password: bool | None = None
     password: str | None = Field(None, min_length=4)
     role: UserRole | None = None
+    language: Language | None = None
     is_active: bool | None = None
 
 
@@ -49,6 +58,7 @@ class UserResponse(BaseModel):
     avatar_url: str | None
     requires_password: bool
     role: UserRole
+    language: Language
     is_active: bool
     created_at: datetime
     updated_at: datetime

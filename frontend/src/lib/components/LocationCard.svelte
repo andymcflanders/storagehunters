@@ -10,14 +10,14 @@
 	<Card hover>
 		<div class="flex items-start justify-between">
 			<div>
-				<h3 class="text-lg font-semibold text-slate-900">{location.name}</h3>
+				<h3 class="text-lg font-semibold text-slate-900 dark:text-white">{location.name}</h3>
 				{#if location.description}
-					<p class="mt-1 text-sm text-slate-500">{location.description}</p>
+					<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{location.description}</p>
 				{/if}
 			</div>
 
 			<!-- Icon -->
-			<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 text-primary-600">
+			<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
 				<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path
 						stroke-linecap="round"
@@ -36,7 +36,7 @@
 		</div>
 
 		{#if location.address}
-			<p class="mt-3 flex items-center gap-1 text-sm text-slate-500">
+			<p class="mt-3 flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
 				<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path
 						stroke-linecap="round"
@@ -49,8 +49,8 @@
 			</p>
 		{/if}
 
-		<div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-			<span class="text-sm text-slate-500">
+		<div class="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-4">
+			<span class="text-sm text-slate-500 dark:text-slate-400">
 				{containerCount}
 				{containerCount === 1 ? 'container' : 'containers'}
 			</span>

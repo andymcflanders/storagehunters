@@ -8,13 +8,16 @@ from app.api import (
     auth,
     containers,
     export,
+    inventory,
     items,
     locations,
     printers,
     reminders,
     search,
     shares,
+    ssl,
     tags,
+    uploads,
     users,
 )
 
@@ -32,4 +35,7 @@ api_router.include_router(activity.router, prefix="/activity", tags=["Activity"]
 api_router.include_router(export.router, prefix="/export", tags=["Export"])
 api_router.include_router(shares.router, prefix="/shares", tags=["Shares"])
 api_router.include_router(reminders.router, prefix="/reminders", tags=["Reminders"])
+api_router.include_router(ssl.router, prefix="/ssl", tags=["SSL"])
+api_router.include_router(uploads.router, prefix="/uploads", tags=["Uploads"])
+api_router.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
 api_router.include_router(admin.router)

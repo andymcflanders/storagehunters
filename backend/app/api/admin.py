@@ -105,6 +105,38 @@ class ActivityLogResponse(BaseModel):
     page_size: int
 
 
+class SegmentationSettings(BaseModel):
+    """Segmentation service settings."""
+
+    enabled: bool
+    provider: str  # "local" or "replicate"
+    replicate_api_token_set: bool  # Don't expose actual token
+    replicate_model: str
+    confidence_threshold: float
+    min_area_ratio: float
+
+
+class SegmentationSettingsUpdate(BaseModel):
+    """Schema for updating segmentation settings."""
+
+    enabled: bool | None = None
+    provider: str | None = None
+    replicate_api_token: str | None = None
+    replicate_model: str | None = None
+    confidence_threshold: float | None = None
+    min_area_ratio: float | None = None
+
+
+class SegmentationHealth(BaseModel):
+    """Segmentation service health status."""
+
+    enabled: bool
+    provider: str | None
+    status: str
+    model: str | None = None
+    error: str | None = None
+
+
 # ============== Endpoints ==============
 
 
@@ -464,4 +496,94 @@ async def list_activity_admin(
         total=total,
         page=page,
         page_size=page_size,
+    )
+
+
+# ============== Segmentation Settings ==============
+
+
+@router.get("/segmentation", response_model=SegmentationSettings)
+async def get_segmentation_settings(
+    admin: AdminUser,
+) -> SegmentationSettings:
+    """Get segmentation service settings (admin only)."""
+    from app.config import get_settings
+
+    settings = get_settings()
+
+    return SegmentationSettings(
+        enabled=settings.segmentation_enabled,
+        provider=settings.segmentation_provider,
+        replicate_api_token_set=bool(settings.replicate_api_token),
+        replicate_model=settings.replicate_sam_model,
+        confidence_threshold=settings.segmentation_confidence_threshold,
+        min_area_ratio=settings.segmentation_min_area_ratio,
+    )
+
+
+@router.put("/segmentation", response_model=SegmentationSettings)
+async def update_segmentation_settings(
+    admin: AdminUser,
+    data: SegmentationSettingsUpdate,
+) -> SegmentationSettings:
+    """Update segmentation service settings (admin only).
+
+    Note: Settings are stored in environment variables.
+    This endpoint updates the runtime settings but changes won't persist
+    after a restart unless the .env file is also updated.
+    """
+    import os
+    from app.config import get_settings, Settings
+
+    # Update environment variables
+    if data.enabled is not None:
+        os.environ["SEGMENTATION_ENABLED"] = str(data.enabled).lower()
+    if data.provider is not None:
+        if data.provider not in ("local", "replicate"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Provider must be 'local' or 'replicate'",
+            )
+        os.environ["SEGMENTATION_PROVIDER"] = data.provider
+    if data.replicate_api_token is not None:
+        os.environ["REPLICATE_API_TOKEN"] = data.replicate_api_token
+    if data.replicate_model is not None:
+        os.environ["REPLICATE_SAM_MODEL"] = data.replicate_model
+    if data.confidence_threshold is not None:
+        os.environ["SEGMENTATION_CONFIDENCE_THRESHOLD"] = str(data.confidence_threshold)
+    if data.min_area_ratio is not None:
+        os.environ["SEGMENTATION_MIN_AREA_RATIO"] = str(data.min_area_ratio)
+
+    # Clear the cached settings to force reload
+    get_settings.cache_clear()
+
+    # Get the updated settings
+    settings = get_settings()
+
+    return SegmentationSettings(
+        enabled=settings.segmentation_enabled,
+        provider=settings.segmentation_provider,
+        replicate_api_token_set=bool(settings.replicate_api_token),
+        replicate_model=settings.replicate_sam_model,
+        confidence_threshold=settings.segmentation_confidence_threshold,
+        min_area_ratio=settings.segmentation_min_area_ratio,
+    )
+
+
+@router.get("/segmentation/health", response_model=SegmentationHealth)
+async def check_segmentation_health(
+    admin: AdminUser,
+) -> SegmentationHealth:
+    """Check the health of the segmentation service (admin only)."""
+    from app.services.segmentation import get_segmentation_service
+
+    service = get_segmentation_service()
+    health = await service.health_check()
+
+    return SegmentationHealth(
+        enabled=health.get("enabled", False),
+        provider=health.get("provider"),
+        status=health.get("status", "unknown"),
+        model=health.get("model"),
+        error=health.get("error"),
     )

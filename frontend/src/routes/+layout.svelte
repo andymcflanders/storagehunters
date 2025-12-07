@@ -2,13 +2,34 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { auth, user } from '$lib/stores/auth';
-	import { Toast, SearchBar } from '$lib/components';
+	import { Toast, SearchBar, QuickAdd } from '$lib/components';
+	import { setupI18n, setLocale, getStoredLocale, _, locale } from '$lib/i18n';
+	import { isLoading } from 'svelte-i18n';
 	import '../app.css';
 
 	let menuOpen = false;
+	let showQuickAdd = false;
+
+	// Initialize i18n
+	setupI18n();
 
 	onMount(() => {
 		auth.initialize();
+
+		// After auth is initialized, sync language from user preference
+		const unsubscribe = user.subscribe((u) => {
+			if (u?.language) {
+				setLocale(u.language);
+			} else {
+				// Fall back to stored locale or browser default
+				const stored = getStoredLocale();
+				if (stored) {
+					setLocale(stored);
+				}
+			}
+		});
+
+		return unsubscribe;
 	});
 
 	$: isLoginPage = $page.url.pathname === '/login';
@@ -37,7 +58,7 @@
 							/>
 						</svg>
 					</div>
-					<span class="text-xl font-bold text-slate-900 dark:text-white">StorageHub</span>
+					<span class="text-xl font-bold text-slate-900 dark:text-white">{$_('app.name')}</span>
 				</a>
 
 				<!-- Search (desktop) -->
@@ -68,15 +89,15 @@
 							<div class="absolute right-0 mt-2 w-48 rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 dark:bg-slate-800 dark:ring-slate-700">
 								{#if $user.role === 'admin'}
 									<a href="/admin" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700">
-										Admin Panel
+										{$_('nav.admin')}
 									</a>
 								{/if}
-								<a href="/settings" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700">Settings</a>
+								<a href="/settings" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700">{$_('nav.settings')}</a>
 								<button
 									class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
 									on:click={() => auth.logout()}
 								>
-									Sign out
+									{$_('nav.signOut')}
 								</button>
 							</div>
 						{/if}
@@ -95,7 +116,7 @@
 							? 'border-primary-500 text-primary-600'
 							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}"
 					>
-						Dashboard
+						{$_('nav.dashboard')}
 					</a>
 					<a
 						href="/locations"
@@ -103,7 +124,7 @@
 							? 'border-primary-500 text-primary-600'
 							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}"
 					>
-						Locations
+						{$_('nav.locations')}
 					</a>
 					<a
 						href="/tags"
@@ -111,7 +132,7 @@
 							? 'border-primary-500 text-primary-600'
 							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}"
 					>
-						Tags
+						{$_('nav.tags')}
 					</a>
 					<a
 						href="/reminders"
@@ -119,7 +140,7 @@
 							? 'border-primary-500 text-primary-600'
 							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}"
 					>
-						Reminders
+						{$_('nav.reminders')}
 					</a>
 					<a
 						href="/printers"
@@ -127,7 +148,15 @@
 							? 'border-primary-500 text-primary-600'
 							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}"
 					>
-						Printers
+						{$_('nav.printers')}
+					</a>
+					<a
+						href="/godview"
+						class="flex items-center border-b-2 px-1 text-sm font-medium {$page.url.pathname.startsWith('/godview')
+							? 'border-primary-500 text-primary-600'
+							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}"
+					>
+						{$_('nav.godView')}
 					</a>
 				</div>
 			</div>
@@ -143,6 +172,7 @@
 	{#if $user && !isLoginPage}
 		<nav class="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white pb-safe dark:border-slate-700 dark:bg-slate-900 md:hidden">
 			<div class="flex h-16 items-stretch justify-around">
+				<!-- Home -->
 				<a
 					href="/"
 					class="flex flex-1 flex-col items-center justify-center gap-1 {$page.url.pathname === '/'
@@ -157,9 +187,10 @@
 							d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
 						/>
 					</svg>
-					<span class="text-xs font-medium">Home</span>
+					<span class="text-xs font-medium">{$_('nav.home')}</span>
 				</a>
 
+				<!-- Browse (Locations) -->
 				<a
 					href="/locations"
 					class="flex flex-1 flex-col items-center justify-center gap-1 {$page.url.pathname.startsWith('/locations') ||
@@ -168,40 +199,43 @@
 						: 'text-slate-500 dark:text-slate-400'}"
 				>
 					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-						/>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
 					</svg>
-					<span class="text-xs font-medium">Locations</span>
+					<span class="text-xs font-medium">{$_('nav.browse')}</span>
 				</a>
 
+				<!-- Add (prominent center button) -->
+				<button
+					class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-500 dark:text-slate-400"
+					on:click={() => (showQuickAdd = true)}
+				>
+					<div class="flex h-12 w-12 -translate-y-2 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg shadow-primary-600/30">
+						<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+						</svg>
+					</div>
+					<span class="text-xs font-medium">{$_('nav.add')}</span>
+				</button>
+
+				<!-- Scan -->
 				<a
 					href="/scan"
 					class="flex flex-1 flex-col items-center justify-center gap-1 {$page.url.pathname === '/scan'
 						? 'text-primary-600'
 						: 'text-slate-500 dark:text-slate-400'}"
 				>
-					<div
-						class="flex h-12 w-12 -translate-y-2 items-center justify-center rounded-full {$page.url.pathname === '/scan'
-							? 'bg-primary-600 text-white'
-							: 'bg-primary-100 text-primary-600 dark:bg-primary-900'} shadow-lg"
-					>
-						<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-							/>
-						</svg>
-					</div>
-					<span class="text-xs font-medium">Scan</span>
+					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+						/>
+					</svg>
+					<span class="text-xs font-medium">{$_('nav.scan')}</span>
 				</a>
 
+				<!-- Search -->
 				<a
 					href="/search"
 					class="flex flex-1 flex-col items-center justify-center gap-1 {$page.url.pathname === '/search'
@@ -211,26 +245,12 @@
 					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 					</svg>
-					<span class="text-xs font-medium">Search</span>
-				</a>
-
-				<a
-					href="/printers"
-					class="flex flex-1 flex-col items-center justify-center gap-1 {$page.url.pathname.startsWith('/printers')
-						? 'text-primary-600'
-						: 'text-slate-500 dark:text-slate-400'}"
-				>
-					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-						/>
-					</svg>
-					<span class="text-xs font-medium">Print</span>
+					<span class="text-xs font-medium">{$_('nav.search')}</span>
 				</a>
 			</div>
 		</nav>
 	{/if}
 </div>
+
+<!-- QuickAdd Modal (mobile) -->
+<QuickAdd bind:open={showQuickAdd} />

@@ -94,7 +94,7 @@
 	{:else}
 		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			{#each locationList as location}
-				<LocationCard {location} />
+				<LocationCard {location} containerCount={location.container_count} />
 			{/each}
 		</div>
 	{/if}

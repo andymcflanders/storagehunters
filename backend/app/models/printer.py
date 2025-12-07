@@ -25,6 +25,7 @@ class ConnectionTypeEnum(str, enum.Enum):
 
     NETWORK = "network"
     USB = "usb"
+    FILE = "file"
 
 
 class Printer(Base):
@@ -37,10 +38,12 @@ class Printer(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     printer_type: Mapped[PrinterTypeEnum] = mapped_column(
-        Enum(PrinterTypeEnum), nullable=False
+        Enum(PrinterTypeEnum, name="printer_type_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
+        nullable=False
     )
     connection_type: Mapped[ConnectionTypeEnum] = mapped_column(
-        Enum(ConnectionTypeEnum), nullable=False
+        Enum(ConnectionTypeEnum, name="connection_type_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
+        nullable=False
     )
     address: Mapped[str] = mapped_column(String(255), nullable=False)
     label_width_mm: Mapped[float] = mapped_column(Float, nullable=False)

@@ -19,6 +19,13 @@ class UserRole(str, enum.Enum):
     USER = "user"
 
 
+class Language(str, enum.Enum):
+    """Supported languages."""
+
+    EN = "en"
+    NO = "no"
+
+
 class User(Base):
     """User model for household members."""
 
@@ -37,6 +44,11 @@ class User(Base):
         default=UserRole.USER,
         nullable=False,
     )
+    language: Mapped[Language] = mapped_column(
+        Enum(Language, name="language_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
+        default=Language.EN,
+        nullable=False,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -51,6 +63,9 @@ class User(Base):
     )
     items: Mapped[list["Item"]] = relationship(  # type: ignore[name-defined]
         "Item", back_populates="owner", foreign_keys="Item.owner_id"
+    )
+    pending_uploads: Mapped[list["PendingUpload"]] = relationship(  # type: ignore[name-defined]
+        "PendingUpload", back_populates="uploader"
     )
 
 

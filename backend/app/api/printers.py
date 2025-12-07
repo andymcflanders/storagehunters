@@ -36,6 +36,7 @@ async def create_printer(
     printer = Printer(**printer_data.model_dump())
     db.add(printer)
     await db.flush()
+    await db.refresh(printer)
     return PrinterResponse.model_validate(printer)
 
 
@@ -82,6 +83,7 @@ async def update_printer(
         setattr(printer, field, value)
 
     await db.flush()
+    await db.refresh(printer)
     return PrinterResponse.model_validate(printer)
 
 

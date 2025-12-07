@@ -9,8 +9,13 @@ from typing import Any, Protocol, runtime_checkable
 class ClassificationResult:
     """Result of image classification."""
 
+    name: str = ""  # Short, descriptive name for the item (English)
+    name_no: str = ""  # Norwegian name for the item
     tags: list[str] = field(default_factory=list)
     description: str = ""
+    description_no: str = ""  # Norwegian description
+    size: str = ""  # Size in EU format (e.g., "46", "M", "104")
+    seasonal: str = ""  # Season: none, spring, summer, fall, winter, holiday
     confidence: float = 0.0
     raw_response: dict[str, Any] = field(default_factory=dict)
 
@@ -19,15 +24,15 @@ class ClassificationResult:
 class ImageClassifier(Protocol):
     """Protocol for image classifiers."""
 
-    async def classify(self, image_bytes: bytes) -> ClassificationResult:
+    async def classify(self, images: list[bytes]) -> ClassificationResult:
         """
-        Classify an image and return tags and description.
+        Classify one or more images of the same item and return name, tags, and description.
 
         Args:
-            image_bytes: The image file contents as bytes
+            images: List of image file contents as bytes (all images of the same item)
 
         Returns:
-            ClassificationResult with tags, description, and confidence
+            ClassificationResult with name, tags, description, and confidence
         """
         ...
 
@@ -36,8 +41,8 @@ class BaseClassifier(ABC):
     """Abstract base class for image classifiers."""
 
     @abstractmethod
-    async def classify(self, image_bytes: bytes) -> ClassificationResult:
-        """Classify an image."""
+    async def classify(self, images: list[bytes]) -> ClassificationResult:
+        """Classify one or more images of the same item."""
         pass
 
     def _normalize_tags(self, tags: list[str]) -> list[str]:

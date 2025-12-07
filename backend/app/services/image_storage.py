@@ -18,6 +18,9 @@ class ImageStorageService:
     def __init__(self):
         self.upload_dir = Path(settings.upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
+        # Temp directory for pending uploads
+        self.temp_dir = self.upload_dir / "temp"
+        self.temp_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_storage_path(self, item_id: UUID) -> Path:
         """Get the storage path for an item's images."""
@@ -66,3 +69,63 @@ class ImageStorageService:
     def get_url(self, filepath: str) -> str:
         """Get the URL for accessing an image."""
         return f"/uploads/{filepath}"
+
+    async def save_temp_upload(
+        self, content: bytes, original_filename: str
+    ) -> tuple[UUID, str]:
+        """
+        Save an image to temporary storage for pending segmentation.
+
+        Args:
+            content: Raw image bytes
+            original_filename: Original filename (used for extension)
+
+        Returns:
+            Tuple of (upload_id, temp_filepath relative to upload_dir)
+        """
+        upload_id = uuid4()
+        ext = Path(original_filename).suffix.lower() or ".jpg"
+        filename = f"{upload_id}{ext}"
+        file_path = self.temp_dir / filename
+
+        async with aiofiles.open(file_path, "wb") as f:
+            await f.write(content)
+
+        # Return relative path from upload_dir
+        relative_path = str(file_path.relative_to(self.upload_dir))
+        return upload_id, relative_path
+
+    async def delete_temp_upload(self, filepath: str) -> bool:
+        """Delete a temporary upload file."""
+        full_path = self.upload_dir / filepath
+        if full_path.exists():
+            full_path.unlink()
+            return True
+        return False
+
+    def get_temp_path(self, filepath: str) -> Path:
+        """Get the full filesystem path for a temp file."""
+        return self.upload_dir / filepath
+
+    async def save_segmented_image(
+        self, item_id: UUID, png_bytes: bytes
+    ) -> tuple[str, str]:
+        """
+        Save a segmented PNG image with transparency.
+
+        Args:
+            item_id: The item this image belongs to
+            png_bytes: PNG image bytes (with transparency)
+
+        Returns:
+            Tuple of (filename, relative_filepath)
+        """
+        storage_path = self._get_storage_path(item_id)
+        filename = f"{uuid4()}.png"
+        file_path = storage_path / filename
+
+        async with aiofiles.open(file_path, "wb") as f:
+            await f.write(png_bytes)
+
+        relative_path = str(file_path.relative_to(self.upload_dir))
+        return filename, relative_path

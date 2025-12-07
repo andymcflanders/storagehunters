@@ -58,12 +58,29 @@ class Item(Base):
     )
     size: Mapped[str | None] = mapped_column(String(50), nullable=True)
     condition: Mapped[ConditionEnum] = mapped_column(
-        Enum(ConditionEnum), default=ConditionEnum.GOOD
+        Enum(ConditionEnum, name="condition_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
+        default=ConditionEnum.GOOD
     )
     seasonal: Mapped[SeasonalEnum] = mapped_column(
-        Enum(SeasonalEnum), default=SeasonalEnum.NONE
+        Enum(SeasonalEnum, name="seasonal_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
+        default=SeasonalEnum.NONE
     )
     value_estimate: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    ai_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ai_name_no: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ai_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_description_no: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_processed: Mapped[bool] = mapped_column(Boolean, default=False)
+    needs_review: Mapped[bool] = mapped_column(Boolean, default=False)
+    source_upload_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("pending_uploads.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    primary_image_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -79,7 +96,8 @@ class Item(Base):
         "User", back_populates="items", foreign_keys=[owner_id]
     )
     images: Mapped[list["ItemImage"]] = relationship(
-        "ItemImage", back_populates="item", cascade="all, delete-orphan"
+        "ItemImage", back_populates="item", cascade="all, delete-orphan",
+        order_by="ItemImage.created_at"  # Order by oldest first
     )
     item_tags: Mapped[list["ItemTag"]] = relationship(
         "ItemTag", back_populates="item", cascade="all, delete-orphan"
@@ -95,6 +113,11 @@ class Item(Base):
         foreign_keys="RelatedItems.item_b_id",
         back_populates="item_b",
         cascade="all, delete-orphan",
+    )
+    source_upload: Mapped["PendingUpload | None"] = relationship(  # type: ignore[name-defined]
+        "PendingUpload",
+        back_populates="created_items",
+        foreign_keys=[source_upload_id],
     )
 
 
@@ -114,6 +137,7 @@ class ItemImage(Base):
     ai_tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     ai_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     ai_processed: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_segmented: Mapped[bool] = mapped_column(Boolean, default=False)
     uploaded_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

@@ -96,6 +96,7 @@ async def create_item(
     item = Item(**item_data.model_dump())
     db.add(item)
     await db.flush()
+    await db.refresh(item)
 
     logger = ActivityLogger(db)
     await logger.log_created(
@@ -200,6 +201,7 @@ async def update_item(
         )
 
     await db.flush()
+    await db.refresh(item)
     return ItemResponse.model_validate(item)
 
 
@@ -263,7 +265,7 @@ async def upload_image(
         uploaded_by=current_user.id,
     )
     db.add(image)
-    await db.flush()
+    await db.commit()  # Commit before queuing task so worker can find the image
 
     # Queue background AI processing
     from app.worker.tasks import process_image_ai
@@ -443,6 +445,7 @@ async def move_item(
     old_container_id = item.container_id
     item.container_id = container_id
     await db.flush()
+    await db.refresh(item)
 
     logger = ActivityLogger(db)
     await logger.log_moved(
@@ -453,5 +456,121 @@ async def move_item(
         from_location=old_container.name,
         to_location=target.name,
     )
+
+    return ItemResponse.model_validate(item)
+
+
+@router.get("/pending-review", response_model=list[ItemWithDetails])
+async def get_pending_review_items(
+    db: DbSession,
+    current_user: CurrentUser,
+) -> list[ItemWithDetails]:
+    """Get all items that need review (created by segmentation)."""
+    result = await db.execute(
+        select(Item)
+        .where(Item.needs_review == True)
+        .options(
+            selectinload(Item.images),
+            selectinload(Item.item_tags).selectinload(ItemTag.tag),
+            selectinload(Item.owner),
+        )
+        .order_by(Item.created_at.desc())
+    )
+    items = result.scalars().all()
+
+    storage = ImageStorageService()
+    response_items = []
+
+    for item in items:
+        path = await build_item_path(item, db)
+
+        images = [
+            ItemImageResponse(
+                id=img.id,
+                filename=img.filename,
+                filepath=storage.get_url(img.filepath),
+                ai_tags=img.ai_tags or [],
+                ai_description=img.ai_description,
+                ai_processed=img.ai_processed,
+                created_at=img.created_at,
+            )
+            for img in item.images
+        ]
+
+        tags = [TagInfo(id=it.tag.id, name=it.tag.name) for it in item.item_tags]
+
+        owner = None
+        if item.owner:
+            owner = OwnerInfo(
+                id=item.owner.id, name=item.owner.name, avatar_url=item.owner.avatar_url
+            )
+
+        response_items.append(
+            ItemWithDetails(
+                **ItemResponse.model_validate(item).model_dump(),
+                images=images,
+                tags=tags,
+                owner=owner,
+                path=path,
+                related_items=[],
+            )
+        )
+
+    return response_items
+
+
+@router.post("/{item_id}/confirm-review", response_model=ItemResponse)
+async def confirm_item_review(
+    item_id: UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> ItemResponse:
+    """Confirm review of an item (marks needs_review as False)."""
+    result = await db.execute(select(Item).where(Item.id == item_id))
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found",
+        )
+
+    item.needs_review = False
+    await db.flush()
+    await db.refresh(item)
+
+    return ItemResponse.model_validate(item)
+
+
+@router.post("/{item_id}/images/{image_id}/set-primary", response_model=ItemResponse)
+async def set_primary_image(
+    item_id: UUID,
+    image_id: UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> ItemResponse:
+    """Set an image as the primary (hero) image for an item."""
+    # Verify image belongs to item
+    result = await db.execute(
+        select(ItemImage).where(ItemImage.id == image_id, ItemImage.item_id == item_id)
+    )
+    image = result.scalar_one_or_none()
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found",
+        )
+
+    # Get the item
+    result = await db.execute(select(Item).where(Item.id == item_id))
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found",
+        )
+
+    item.primary_image_id = image_id
+    await db.flush()
+    await db.refresh(item)
 
     return ItemResponse.model_validate(item)

@@ -5,6 +5,17 @@
 import { get, post, patch, del } from './client';
 import type { Location, LocationWithContainers, LocationCreate, LocationUpdate } from '$lib/types';
 
+export interface DashboardStats {
+	locations: number;
+	containers: number;
+	items: number;
+	photos: number;
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+	return get<DashboardStats>('/locations/stats');
+}
+
 export async function listLocations(): Promise<Location[]> {
 	return get<Location[]>('/locations');
 }

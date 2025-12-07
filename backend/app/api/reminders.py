@@ -285,6 +285,7 @@ async def update_reminder(
         setattr(reminder, field, value)
 
     await db.flush()
+    await db.refresh(reminder)
 
     return reminder_to_response(reminder)
 
@@ -332,6 +333,7 @@ async def complete_reminder(
         db.add(next_reminder)
 
     await db.flush()
+    await db.refresh(reminder)
 
     return reminder_to_response(reminder)
 

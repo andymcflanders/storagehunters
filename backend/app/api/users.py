@@ -37,18 +37,21 @@ async def create_user(
                 detail="Email already registered",
             )
 
-    from app.models.user import UserRole
+    from app.models.user import Language, UserRole
 
     auth_service = AuthService(db)
 
     # Convert role string to enum
     role = UserRole.ADMIN if user_data.role.value == "admin" else UserRole.USER
+    # Convert language string to enum
+    language = Language.NO if user_data.language.value == "no" else Language.EN
 
     user = User(
         name=user_data.name,
         email=user_data.email,
         requires_password=user_data.requires_password,
         role=role,
+        language=language,
     )
 
     if user_data.password and user_data.requires_password:
@@ -56,6 +59,7 @@ async def create_user(
 
     db.add(user)
     await db.flush()
+    await db.refresh(user)
     return UserResponse.model_validate(user)
 
 
@@ -106,8 +110,12 @@ async def update_user(
         user.requires_password = user_data.requires_password
     if user_data.password is not None:
         user.password_hash = auth_service.hash_password(user_data.password)
+    if user_data.language is not None:
+        from app.models.user import Language
+        user.language = Language.NO if user_data.language.value == "no" else Language.EN
 
     await db.flush()
+    await db.refresh(user)
     return UserResponse.model_validate(user)
 
 
@@ -158,4 +166,5 @@ async def upload_avatar(
 
     user.avatar_url = storage.get_url(filepath)
     await db.flush()
+    await db.refresh(user)
     return UserResponse.model_validate(user)
