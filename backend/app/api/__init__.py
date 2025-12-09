@@ -5,9 +5,11 @@ from fastapi import APIRouter
 from app.api import (
     activity,
     admin,
+    api_keys,
     auth,
     containers,
     export,
+    homeassistant,
     inventory,
     items,
     locations,
@@ -19,6 +21,7 @@ from app.api import (
     tags,
     uploads,
     users,
+    webhooks,
 )
 
 api_router = APIRouter()
@@ -39,3 +42,12 @@ api_router.include_router(ssl.router, prefix="/ssl", tags=["SSL"])
 api_router.include_router(uploads.router, prefix="/uploads", tags=["Uploads"])
 api_router.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
 api_router.include_router(admin.router)
+
+# API Key management
+api_router.include_router(api_keys.router, prefix="/api-keys", tags=["API Keys"])
+
+# Webhook management
+api_router.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
+
+# Home Assistant Integration API (uses API key auth)
+api_router.include_router(homeassistant.router, prefix="/ha", tags=["Home Assistant"])

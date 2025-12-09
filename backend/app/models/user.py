@@ -67,6 +67,12 @@ class User(Base):
     pending_uploads: Mapped[list["PendingUpload"]] = relationship(  # type: ignore[name-defined]
         "PendingUpload", back_populates="uploader"
     )
+    api_keys: Mapped[list["APIKey"]] = relationship(  # type: ignore[name-defined]
+        "APIKey", back_populates="user", cascade="all, delete-orphan"
+    )
+    webhooks: Mapped[list["Webhook"]] = relationship(  # type: ignore[name-defined]
+        "Webhook", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Session(Base):
