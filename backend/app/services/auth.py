@@ -1,5 +1,6 @@
 """Authentication service."""
 
+import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -10,10 +11,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.models.api_key import APIKey
 from app.models.user import Session, User
 
 settings = get_settings()
 ph = PasswordHasher()
+
+
+def hash_api_key(key: str) -> str:
+    """Hash an API key using SHA-256."""
+    return hashlib.sha256(key.encode()).hexdigest()
 
 
 class AuthService:
@@ -81,3 +88,60 @@ class AuthService:
                 return None
 
         return await self.create_session(user)
+
+    # API Key methods
+
+    async def create_api_key(
+        self,
+        user_id: UUID,
+        name: str,
+        scopes: list[str],
+        description: str | None = None,
+        expires_at: datetime | None = None,
+    ) -> tuple[APIKey, str]:
+        """Create a new API key. Returns the key object and the raw key (only available once)."""
+        raw_key = APIKey.generate_key()
+        key_hash = hash_api_key(raw_key)
+        key_prefix = APIKey.get_prefix(raw_key)
+
+        api_key = APIKey(
+            user_id=user_id,
+            name=name,
+            description=description,
+            key_hash=key_hash,
+            key_prefix=key_prefix,
+            scopes=scopes,
+            expires_at=expires_at,
+        )
+        self.db.add(api_key)
+        await self.db.flush()
+        await self.db.refresh(api_key)
+        return api_key, raw_key
+
+    async def get_api_key_by_key(self, raw_key: str) -> APIKey | None:
+        """Get an API key by its raw key value."""
+        key_hash = hash_api_key(raw_key)
+        result = await self.db.execute(
+            select(APIKey).where(APIKey.key_hash == key_hash)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_api_key_by_id(self, key_id: UUID) -> APIKey | None:
+        """Get an API key by its ID."""
+        result = await self.db.execute(
+            select(APIKey).where(APIKey.id == key_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def list_api_keys(self, user_id: UUID) -> list[APIKey]:
+        """List all API keys for a user."""
+        result = await self.db.execute(
+            select(APIKey)
+            .where(APIKey.user_id == user_id)
+            .order_by(APIKey.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def delete_api_key(self, api_key: APIKey) -> None:
+        """Delete an API key."""
+        await self.db.delete(api_key)

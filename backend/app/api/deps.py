@@ -1,13 +1,16 @@
 """API dependencies."""
 
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.models.api_key import APIKey, APIKeyScope
 from app.models.user import Session, User
 from app.services.auth import AuthService
 
@@ -32,6 +35,49 @@ async def get_current_session(
         )
 
     return session
+
+
+async def get_api_key(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    x_api_key: Annotated[str | None, Header()] = None,
+    authorization: Annotated[str | None, Header()] = None,
+) -> APIKey | None:
+    """Extract and validate API key from header."""
+    # Check X-API-Key header first, then Authorization: Bearer
+    api_key_value = x_api_key
+    if not api_key_value and authorization:
+        if authorization.startswith("Bearer "):
+            api_key_value = authorization[7:]
+
+    if not api_key_value:
+        return None
+
+    auth_service = AuthService(db)
+    api_key = await auth_service.get_api_key_by_key(api_key_value)
+
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
+        )
+
+    if not api_key.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key is disabled",
+        )
+
+    if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key has expired",
+        )
+
+    # Update last used timestamp
+    api_key.last_used_at = datetime.now(timezone.utc)
+    await db.flush()
+
+    return api_key
 
 
 async def get_current_user(
@@ -89,8 +135,84 @@ async def get_optional_current_user(
     return result.scalar_one_or_none()
 
 
+async def get_api_user(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    x_api_key: Annotated[str | None, Header()] = None,
+    authorization: Annotated[str | None, Header()] = None,
+) -> tuple[User, APIKey]:
+    """Get user from API key authentication."""
+    api_key = await get_api_key(db, x_api_key, authorization)
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key required",
+        )
+
+    result = await db.execute(select(User).where(User.id == api_key.user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated",
+        )
+    return user, api_key
+
+
+def require_scope(required_scope: APIKeyScope):
+    """Dependency factory to check API key scope."""
+    async def check_scope(
+        api_user_and_key: Annotated[tuple[User, APIKey], Depends(get_api_user)],
+    ) -> tuple[User, APIKey]:
+        user, api_key = api_user_and_key
+        if not api_key.has_scope(required_scope):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"API key missing required scope: {required_scope.value}",
+            )
+        return user, api_key
+    return check_scope
+
+
+async def get_user_any_auth(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    session_token: Annotated[str | None, Cookie()] = None,
+    x_api_key: Annotated[str | None, Header()] = None,
+    authorization: Annotated[str | None, Header()] = None,
+) -> User:
+    """Get user from either session cookie or API key."""
+    # Try API key first
+    api_key = await get_api_key(db, x_api_key, authorization)
+    if api_key:
+        result = await db.execute(select(User).where(User.id == api_key.user_id))
+        user = result.scalar_one_or_none()
+        if user and user.is_active:
+            return user
+
+    # Fall back to session
+    if session_token:
+        auth_service = AuthService(db)
+        session = await auth_service.get_session_by_token(session_token)
+        if session:
+            result = await db.execute(select(User).where(User.id == session.user_id))
+            user = result.scalar_one_or_none()
+            if user and user.is_active:
+                return user
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+    )
+
+
 # Type aliases for common dependencies
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 AdminUser = Annotated[User, Depends(get_admin_user)]
 OptionalUser = Annotated[User | None, Depends(get_optional_current_user)]
+APIUser = Annotated[tuple[User, APIKey], Depends(get_api_user)]
+AnyAuthUser = Annotated[User, Depends(get_user_any_auth)]
