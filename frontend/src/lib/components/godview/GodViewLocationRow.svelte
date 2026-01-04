@@ -9,6 +9,7 @@
 	export let expanded = true;
 	export let expandedContainers: Set<string> = new Set();
 	export let expandedItems: Set<string> = new Set();
+	export let selectedForPrint: Set<string> = new Set();
 
 	const dispatch = createEventDispatcher<{
 		updateLocation: { id: string; field: string; value: string };
@@ -22,6 +23,8 @@
 		toggleContainerExpand: { id: string };
 		toggleLocationExpand: { id: string };
 		moveItem: { itemId: string; targetContainerId: string };
+		printContainer: { id: string; name: string };
+		togglePrintSelection: { id: string; name: string };
 	}>();
 
 	function handleCreateContainer() {
@@ -154,6 +157,7 @@
 			depth={0}
 			expanded={expandedContainers.has(container.id) || expandedContainers.size === 0}
 			{expandedItems}
+			{selectedForPrint}
 			on:updateContainer
 			on:deleteContainer
 			on:updateItem
@@ -161,6 +165,8 @@
 			on:toggleItemExpand
 			on:toggleContainerExpand
 			on:moveItem
+			on:printContainer
+			on:togglePrintSelection
 		/>
 	{/each}
 {/if}

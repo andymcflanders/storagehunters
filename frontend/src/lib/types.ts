@@ -200,8 +200,10 @@ export interface ItemWithDetails extends Item {
 }
 
 // Printer types
-export type PrinterType = 'zebra_zpl' | 'brother_ql' | 'generic_pdf';
+export type PrinterType = 'zebra_zpl' | 'brother_ql' | 'generic_pdf' | 'network_ipp';
 export type ConnectionType = 'network' | 'usb' | 'file';
+export type LabelTemplate = 'qr_only' | 'qr_ai_summary' | 'qr_full_contents' | 'a4_full_details';
+export type MediaType = 'continuous' | 'die_cut' | 'unknown';
 
 export interface Printer {
 	id: string;
@@ -243,6 +245,38 @@ export interface PrintResult {
 
 export interface PrintPreviewResult {
 	preview_url: string;
+}
+
+// Media detection
+export interface DetectedMedia {
+	supported: boolean;
+	width_mm: number | null;
+	height_mm: number | null;
+	media_type: MediaType;
+	printer_status: string;
+	error_message: string | null;
+}
+
+export interface MediaSuggestion {
+	detected: DetectedMedia;
+	suggested_template: LabelTemplate;
+	suggested_width_mm: number;
+	suggested_height_mm: number;
+	confidence: 'high' | 'medium' | 'low';
+	reason: string;
+}
+
+// Batch printing
+export interface BatchPrintResult {
+	total: number;
+	success: number;
+	failed: number;
+	results: Array<{
+		container_id: string;
+		container_name?: string;
+		success: boolean;
+		message: string;
+	}>;
 }
 
 // Upload types

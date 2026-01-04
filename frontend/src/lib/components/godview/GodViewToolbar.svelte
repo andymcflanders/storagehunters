@@ -21,6 +21,9 @@
 	export let allLocationsExpanded = true;
 	export let allContainersExpanded = true;
 
+	// Print selection state (checkbox-based)
+	export let selectedForPrint: Set<string> = new Set();
+
 	// Dropdown state
 	let showLocationDropdown = false;
 	let showContainerDropdown = false;
@@ -38,6 +41,9 @@
 		expandAllContainers: void;
 		collapseAllContainers: void;
 		refresh: void;
+		batchPrint: void;
+		printSelected: void;
+		clearSelection: void;
 	}>();
 
 	const conditionOptions: { value: Condition | ''; label: string }[] = [
@@ -241,6 +247,38 @@
 				</svg>
 				Refresh
 			</button>
+			{#if selectedForPrint.size > 0}
+				<!-- Checkbox-based selection print button -->
+				<button
+					class="flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700"
+					on:click={() => dispatch('printSelected')}
+					title="Print labels for checked containers"
+				>
+					<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+					</svg>
+					Print {selectedForPrint.size} Labels
+				</button>
+				<button
+					class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+					on:click={() => dispatch('clearSelection')}
+					title="Clear selection"
+				>
+					Clear
+				</button>
+			{:else if filterContainerIds.size > 0}
+				<!-- Filter-based selection print button -->
+				<button
+					class="flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700"
+					on:click={() => dispatch('batchPrint')}
+					title="Print labels for filtered containers"
+				>
+					<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+					</svg>
+					Print {filterContainerIds.size} Filtered
+				</button>
+			{/if}
 		</div>
 	</div>
 

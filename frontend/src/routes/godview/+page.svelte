@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { inventory, locations, containers, items } from '$lib/api';
+	import { toast } from '$lib/stores/toast';
 	import GodViewToolbar from '$lib/components/godview/GodViewToolbar.svelte';
 	import GodViewLocationRow from '$lib/components/godview/GodViewLocationRow.svelte';
 	import DeleteContainerModal from '$lib/components/godview/DeleteContainerModal.svelte';
+	import { BatchPrintModal, PrintModal } from '$lib/components/print';
 	import type { DeleteMode } from '$lib/api/containers';
+	import type { PrintResult } from '$lib/types';
 	import type {
 		GodViewResponse,
 		GodViewLocation,
@@ -12,7 +15,8 @@
 		GodViewItem,
 		GodViewUserInfo,
 		Condition,
-		Seasonal
+		Seasonal,
+		BatchPrintResult
 	} from '$lib/types';
 
 	let data: GodViewResponse | null = null;
@@ -40,6 +44,108 @@
 
 	// Delete container modal state
 	let deleteModalContainer: { id: string; name: string; itemCount: number; childCount: number } | null = null;
+
+	// Batch print modal state
+	let showBatchPrintModal = false;
+	let batchPrintContainerIds: string[] = [];
+	let batchPrintContainerNames: string[] = [];
+
+	// Single print modal state
+	let showSinglePrintModal = false;
+	let singlePrintContainerId = '';
+	let singlePrintContainerName = '';
+
+	// Print selection state (checkbox-based selection)
+	let selectedForPrint: Set<string> = new Set();
+	let selectedForPrintNames: Map<string, string> = new Map();
+
+	// Get container names from IDs using the data structure
+	function getContainerNamesFromIds(containerIds: Set<string>): string[] {
+		if (!data) return [];
+
+		const names: string[] = [];
+
+		function findContainerNames(containers: GodViewContainer[]) {
+			for (const container of containers) {
+				if (containerIds.has(container.id)) {
+					names.push(container.name);
+				}
+				findContainerNames(container.children);
+			}
+		}
+
+		for (const location of data.locations) {
+			findContainerNames(location.containers);
+		}
+
+		return names;
+	}
+
+	function handleBatchPrint() {
+		if (filterContainerIds.size === 0) return;
+
+		batchPrintContainerIds = Array.from(filterContainerIds);
+		batchPrintContainerNames = getContainerNamesFromIds(filterContainerIds);
+		showBatchPrintModal = true;
+	}
+
+	function handleBatchPrintComplete(event: CustomEvent<BatchPrintResult>) {
+		const result = event.detail;
+		if (result.failed === 0) {
+			toast.success(`Successfully printed ${result.success} labels`);
+		} else if (result.success === 0) {
+			toast.error(`Failed to print ${result.failed} labels`);
+		} else {
+			toast.warning(`Printed ${result.success} labels, ${result.failed} failed`);
+		}
+	}
+
+	// Handle single container print (from row button)
+	function handlePrintContainer(event: CustomEvent<{ id: string; name: string }>) {
+		singlePrintContainerId = event.detail.id;
+		singlePrintContainerName = event.detail.name;
+		showSinglePrintModal = true;
+	}
+
+	function handleSinglePrintComplete(event: CustomEvent<PrintResult>) {
+		const result = event.detail;
+		if (result.success) {
+			toast.success(result.message || 'Label sent to printer');
+		}
+	}
+
+	// Handle checkbox selection for batch printing
+	function handleTogglePrintSelection(event: CustomEvent<{ id: string; name: string }>) {
+		const { id, name } = event.detail;
+		const newSet = new Set(selectedForPrint);
+		const newNames = new Map(selectedForPrintNames);
+
+		if (newSet.has(id)) {
+			newSet.delete(id);
+			newNames.delete(id);
+		} else {
+			newSet.add(id);
+			newNames.set(id, name);
+		}
+
+		selectedForPrint = newSet;
+		selectedForPrintNames = newNames;
+	}
+
+	// Print selected containers (from checkbox selection)
+	function handlePrintSelected() {
+		if (selectedForPrint.size === 0) return;
+
+		batchPrintContainerIds = Array.from(selectedForPrint);
+		batchPrintContainerNames = Array.from(selectedForPrintNames.values());
+		showBatchPrintModal = true;
+	}
+
+	// Clear selection after printing
+	function clearPrintSelection() {
+		selectedForPrint = new Set();
+		selectedForPrintNames = new Map();
+	}
 
 	async function loadData(preserveExpandState = false) {
 		loading = true;
@@ -519,6 +625,7 @@
 				{filterContainerIds}
 				{allLocationsExpanded}
 				{allContainersExpanded}
+				{selectedForPrint}
 				on:search={(e) => (searchQuery = e.detail)}
 				on:filterCondition={(e) => (filterCondition = e.detail)}
 				on:filterSeasonal={(e) => (filterSeasonal = e.detail)}
@@ -531,6 +638,9 @@
 				on:expandAllContainers={expandAllContainers}
 				on:collapseAllContainers={collapseAllContainers}
 				on:refresh={loadData}
+				on:batchPrint={handleBatchPrint}
+				on:printSelected={handlePrintSelected}
+				on:clearSelection={clearPrintSelection}
 			/>
 
 			<!-- Table -->
@@ -568,6 +678,7 @@
 									expanded={expandedLocations.has(location.id)}
 									{expandedContainers}
 									{expandedItems}
+									{selectedForPrint}
 									on:updateLocation={handleUpdateLocation}
 									on:deleteLocation={handleDeleteLocation}
 									on:updateContainer={handleUpdateContainer}
@@ -579,6 +690,8 @@
 									on:toggleContainerExpand={handleToggleContainerExpand}
 									on:toggleLocationExpand={handleToggleLocationExpand}
 									on:moveItem={handleMoveItem}
+									on:printContainer={handlePrintContainer}
+									on:togglePrintSelection={handleTogglePrintSelection}
 								/>
 							{/each}
 						{/if}
@@ -600,3 +713,21 @@
 		on:cancel={handleDeleteContainerCancel}
 	/>
 {/if}
+
+<!-- Batch Print Modal -->
+<BatchPrintModal
+	open={showBatchPrintModal}
+	containerIds={batchPrintContainerIds}
+	containerNames={batchPrintContainerNames}
+	on:close={() => (showBatchPrintModal = false)}
+	on:printed={handleBatchPrintComplete}
+/>
+
+<!-- Single Print Modal -->
+<PrintModal
+	open={showSinglePrintModal}
+	containerId={singlePrintContainerId}
+	containerName={singlePrintContainerName}
+	on:close={() => (showSinglePrintModal = false)}
+	on:printed={handleSinglePrintComplete}
+/>

@@ -11,6 +11,7 @@
 	export let depth = 0;
 	export let expanded = true;
 	export let expandedItems: Set<string> = new Set();
+	export let selectedForPrint: Set<string> = new Set();
 
 	const dispatch = createEventDispatcher<{
 		updateContainer: { id: string; field: string; value: string };
@@ -20,7 +21,19 @@
 		toggleItemExpand: { id: string };
 		toggleContainerExpand: { id: string };
 		moveItem: { itemId: string; targetContainerId: string };
+		printContainer: { id: string; name: string };
+		togglePrintSelection: { id: string; name: string };
 	}>();
+
+	$: isSelectedForPrint = selectedForPrint.has(container.id);
+
+	function handlePrintContainer() {
+		dispatch('printContainer', { id: container.id, name: container.name });
+	}
+
+	function handleTogglePrintSelection() {
+		dispatch('togglePrintSelection', { id: container.id, name: container.name });
+	}
 
 	// Local items for drag and drop
 	let localItems: GodViewItem[] = [];
@@ -113,10 +126,18 @@
 </script>
 
 <!-- Container Header Row -->
-<tr class="group border-b border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-750">
-	<!-- Drag handle + Expand -->
+<tr class="group border-b border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-750 {isSelectedForPrint ? 'ring-2 ring-inset ring-primary-400' : ''}">
+	<!-- Checkbox + Expand -->
 	<td class="w-16 px-2 py-2" style="padding-left: {paddingLeft}px">
 		<div class="flex items-center gap-1">
+			<!-- Checkbox for print selection -->
+			<input
+				type="checkbox"
+				checked={isSelectedForPrint}
+				on:change={handleTogglePrintSelection}
+				class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+				title="Select for batch printing"
+			/>
 			<!-- Expand button -->
 			<button
 				class="rounded p-0.5 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-600 dark:hover:text-slate-300"
@@ -172,6 +193,16 @@
 	<!-- Actions -->
 	<td class="w-16 px-2 py-2">
 		<div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+			<!-- Print single label -->
+			<button
+				class="rounded p-1 text-slate-400 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30"
+				on:click={handlePrintContainer}
+				title="Print label for this container"
+			>
+				<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+				</svg>
+			</button>
 			<a
 				href="/containers/{container.id}"
 				class="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-primary-600 dark:hover:bg-slate-700"
@@ -204,6 +235,7 @@
 			depth={depth + 1}
 			{expanded}
 			{expandedItems}
+			{selectedForPrint}
 			on:updateContainer={handleNestedContainerUpdate}
 			on:deleteContainer={handleNestedContainerDelete}
 			on:updateItem={handleItemUpdate}
@@ -211,6 +243,8 @@
 			on:toggleItemExpand={handleItemToggleExpand}
 			on:toggleContainerExpand
 			on:moveItem={handleNestedMoveItem}
+			on:printContainer
+			on:togglePrintSelection
 		/>
 	{/each}
 

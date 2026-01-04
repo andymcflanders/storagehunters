@@ -3,12 +3,13 @@
 	import { goto } from '$app/navigation';
 	import { user } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
-	import { admin, ssl } from '$lib/api';
+	import { admin, ssl, backup } from '$lib/api';
 	import { Card, Button } from '$lib/components';
 	import type { SystemStats, AdminUser, ActivityLogItem, SegmentationSettings, SegmentationHealth } from '$lib/api/admin';
 	import type { SSLStatus, SSLMode } from '$lib/api/ssl';
+	import type { BackupHistory, BackupPreview, ProviderStatus, RemoteBackup, BackupSchedule } from '$lib/api/backup';
 
-	type Tab = 'dashboard' | 'users' | 'activity' | 'ssl' | 'ai';
+	type Tab = 'dashboard' | 'users' | 'activity' | 'ssl' | 'ai' | 'backups';
 
 	let activeTab: Tab = 'dashboard';
 	let stats: SystemStats | null = null;
@@ -64,12 +65,66 @@
 		min_area_ratio: 1.0
 	};
 
+	// Backup state
+	let backups: BackupHistory[] = [];
+	let backupsTotal = 0;
+	let backupsPage = 1;
+	let loadingBackups = false;
+	let creatingBackup = false;
+	let restoringBackup = false;
+	let showRestoreModal = false;
+	let restorePreview: BackupPreview | null = null;
+	let restoreFile: File | null = null;
+	let backupOptions = {
+		include_images: false,
+		include_users: false
+	};
+	let restoreOptions = {
+		restore_images: true
+	};
+
+	// Google Drive state
+	let providerStatus: ProviderStatus | null = null;
+	let googleDriveCredentials = '';
+	let googleDriveEmail = '';
+	let googleDriveConnected = false;
+	let testingGoogleDrive = false;
+	let loadingRemoteBackups = false;
+	let remoteBackups: RemoteBackup[] = [];
+	let uploadingToGoogleDrive = false;
+
+	// Dropbox state
+	let dropboxAccessToken = '';
+	let dropboxEmail = '';
+	let dropboxAccountName = '';
+	let dropboxConnected = false;
+	let testingDropbox = false;
+	let loadingDropboxBackups = false;
+	let dropboxBackups: RemoteBackup[] = [];
+	let uploadingToDropbox = false;
+
+	// Schedule state
+	let schedules: BackupSchedule[] = [];
+	let loadingSchedules = false;
+	let showScheduleModal = false;
+	let editingSchedule: BackupSchedule | null = null;
+	let savingSchedule = false;
+	let scheduleFormData = {
+		name: '',
+		frequency: 'daily' as 'daily' | 'weekly' | 'monthly',
+		time_of_day: '02:00',
+		day_of_week: 0,
+		day_of_month: 1,
+		is_active: true
+	};
+
 	const tabs: { id: Tab; label: string; icon: string }[] = [
 		{ id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
 		{ id: 'users', label: 'Users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
 		{ id: 'activity', label: 'Activity Logs', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
 		{ id: 'ssl', label: 'SSL/HTTPS', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
-		{ id: 'ai', label: 'AI Settings', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' }
+		{ id: 'ai', label: 'AI Settings', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
+		{ id: 'backups', label: 'Backups', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' }
 	];
 
 	onMount(async () => {
@@ -146,6 +201,8 @@
 			loadSSLStatus();
 		} else if (tabId === 'ai' && !segmentationSettings) {
 			loadAISettings();
+		} else if (tabId === 'backups' && backups.length === 0) {
+			loadBackups();
 		}
 	}
 
@@ -428,6 +485,479 @@
 				return 'bg-yellow-100 text-yellow-800';
 			default:
 				return 'bg-slate-100 text-slate-800';
+		}
+	}
+
+	// Backup functions
+	async function loadBackups() {
+		loadingBackups = true;
+		try {
+			const [historyResponse] = await Promise.all([
+				backup.listBackupHistory({
+					page: backupsPage,
+					page_size: 20
+				}),
+				loadProviderStatus(),
+				loadSchedules()
+			]);
+			backups = historyResponse.items;
+			backupsTotal = historyResponse.total;
+		} catch (error) {
+			toast.error('Failed to load backups');
+		} finally {
+			loadingBackups = false;
+		}
+	}
+
+	async function handleCreateBackup() {
+		creatingBackup = true;
+		try {
+			const result = await backup.triggerBackup({
+				include_images: backupOptions.include_images,
+				include_users: backupOptions.include_users
+			});
+			toast.success(result.message);
+			// Poll for completion
+			setTimeout(loadBackups, 2000);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to create backup';
+			toast.error(message);
+		} finally {
+			creatingBackup = false;
+		}
+	}
+
+	function handleQuickDownload() {
+		const url = backup.getQuickDownloadUrl(backupOptions.include_images);
+		window.location.href = url;
+	}
+
+	function handleDownloadBackup(b: BackupHistory) {
+		window.location.href = backup.getDownloadUrl(b.id);
+	}
+
+	async function handleDeleteBackup(b: BackupHistory) {
+		if (!confirm(`Delete backup "${b.filename}"? This cannot be undone.`)) return;
+
+		try {
+			await backup.deleteBackup(b.id);
+			toast.success('Backup deleted');
+			await loadBackups();
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to delete backup';
+			toast.error(message);
+		}
+	}
+
+	async function handleRestoreFromHistory(b: BackupHistory) {
+		if (!confirm(`Restore from "${b.filename}"? This will merge data from this backup into your current database.`)) return;
+
+		restoringBackup = true;
+		try {
+			const result = await backup.restoreFromHistory(b.id, {
+				restore_images: restoreOptions.restore_images
+			});
+			if (result.success) {
+				toast.success(result.message);
+				if (result.statistics) {
+					const stats = result.statistics;
+					toast.info(`Restored: ${stats.locations_restored || 0} locations, ${stats.containers_restored || 0} containers, ${stats.items_restored || 0} items`);
+				}
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Restore failed';
+			toast.error(message);
+		} finally {
+			restoringBackup = false;
+		}
+	}
+
+	async function handleFileUpload(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		if (!file.name.endsWith('.zip')) {
+			toast.warning('Please select a .zip backup file');
+			return;
+		}
+
+		restoreFile = file;
+		restoringBackup = true;
+
+		try {
+			restorePreview = await backup.uploadForRestore(file);
+			if (restorePreview.valid) {
+				showRestoreModal = true;
+			} else {
+				toast.error(restorePreview.error_message || 'Invalid backup file');
+				restorePreview = null;
+				restoreFile = null;
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to process backup file';
+			toast.error(message);
+			restoreFile = null;
+		} finally {
+			restoringBackup = false;
+			// Reset file input
+			input.value = '';
+		}
+	}
+
+	async function handleExecuteRestore() {
+		if (!restorePreview) return;
+
+		restoringBackup = true;
+		try {
+			const result = await backup.executeRestore({
+				restore_images: restoreOptions.restore_images
+			});
+
+			if (result.success) {
+				toast.success(result.message);
+				if (result.statistics) {
+					const stats = result.statistics;
+					toast.info(`Restored: ${stats.locations_restored || 0} locations, ${stats.containers_restored || 0} containers, ${stats.items_restored || 0} items`);
+				}
+				showRestoreModal = false;
+				restorePreview = null;
+				restoreFile = null;
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Restore failed';
+			toast.error(message);
+		} finally {
+			restoringBackup = false;
+		}
+	}
+
+	function cancelRestore() {
+		showRestoreModal = false;
+		restorePreview = null;
+		restoreFile = null;
+	}
+
+	// Google Drive functions
+	async function loadProviderStatus() {
+		try {
+			providerStatus = await backup.getProviderStatus();
+		} catch (error) {
+			console.error('Failed to load provider status:', error);
+		}
+	}
+
+	let googleDriveWarning = '';
+	let googleDriveSharedDrives: backup.SharedDriveInfo[] = [];
+
+	async function handleTestGoogleDrive() {
+		if (!googleDriveCredentials.trim()) {
+			toast.warning('Please paste your service account JSON credentials');
+			return;
+		}
+
+		testingGoogleDrive = true;
+		googleDriveWarning = '';
+		googleDriveSharedDrives = [];
+		try {
+			const result = await backup.testGoogleDriveCredentials(googleDriveCredentials);
+			if (result.success) {
+				googleDriveEmail = result.email || '';
+				googleDriveConnected = true;
+				googleDriveSharedDrives = result.shared_drives || [];
+
+				// Check if we have Shared Drives (required for uploads)
+				if (!result.has_shared_drives) {
+					googleDriveWarning = result.message;
+					toast.warning('No Shared Drives found - uploads will not work');
+				} else {
+					toast.success(result.message);
+					// Load remote backups
+					await loadRemoteBackups();
+				}
+			} else {
+				toast.error(result.message);
+				googleDriveConnected = false;
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to test credentials';
+			toast.error(message);
+			googleDriveConnected = false;
+		} finally {
+			testingGoogleDrive = false;
+		}
+	}
+
+	async function loadRemoteBackups() {
+		if (!googleDriveCredentials || !googleDriveConnected) return;
+
+		loadingRemoteBackups = true;
+		try {
+			const result = await backup.listGoogleDriveBackups(googleDriveCredentials);
+			if (result.success) {
+				remoteBackups = result.backups;
+			} else {
+				toast.error(result.error_message || 'Failed to list remote backups');
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to load remote backups';
+			toast.error(message);
+		} finally {
+			loadingRemoteBackups = false;
+		}
+	}
+
+	async function handleUploadToGoogleDrive(b: BackupHistory) {
+		if (!googleDriveCredentials || !googleDriveConnected) {
+			toast.warning('Please connect to Google Drive first');
+			return;
+		}
+
+		uploadingToGoogleDrive = true;
+		try {
+			const result = await backup.uploadToGoogleDrive(b.id, googleDriveCredentials);
+			if (result.success) {
+				toast.success(result.message);
+				await loadRemoteBackups();
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Upload failed';
+			toast.error(message);
+		} finally {
+			uploadingToGoogleDrive = false;
+		}
+	}
+
+	async function handleDeleteFromGoogleDrive(remoteId: string, filename: string) {
+		if (!confirm(`Delete "${filename}" from Google Drive? This cannot be undone.`)) return;
+
+		try {
+			const result = await backup.deleteFromGoogleDrive(remoteId, googleDriveCredentials);
+			if (result.success) {
+				toast.success('Deleted from Google Drive');
+				await loadRemoteBackups();
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Delete failed';
+			toast.error(message);
+		}
+	}
+
+	function disconnectGoogleDrive() {
+		googleDriveCredentials = '';
+		googleDriveEmail = '';
+		googleDriveConnected = false;
+		googleDriveWarning = '';
+		googleDriveSharedDrives = [];
+		remoteBackups = [];
+	}
+
+	// Dropbox functions
+	async function handleTestDropbox() {
+		if (!dropboxAccessToken.trim()) {
+			toast.warning('Please enter your Dropbox access token');
+			return;
+		}
+
+		testingDropbox = true;
+		try {
+			const result = await backup.testDropboxCredentials(dropboxAccessToken);
+			if (result.success) {
+				dropboxEmail = result.email || '';
+				dropboxAccountName = result.account_name || '';
+				dropboxConnected = true;
+				toast.success(result.message);
+				await loadDropboxBackups();
+			} else {
+				toast.error(result.message);
+				dropboxConnected = false;
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to test credentials';
+			toast.error(message);
+			dropboxConnected = false;
+		} finally {
+			testingDropbox = false;
+		}
+	}
+
+	async function loadDropboxBackups() {
+		if (!dropboxAccessToken || !dropboxConnected) return;
+
+		loadingDropboxBackups = true;
+		try {
+			const result = await backup.listDropboxBackups(dropboxAccessToken);
+			if (result.success) {
+				dropboxBackups = result.backups;
+			} else {
+				toast.error(result.error_message || 'Failed to list backups');
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to load backups';
+			toast.error(message);
+		} finally {
+			loadingDropboxBackups = false;
+		}
+	}
+
+	async function handleUploadToDropbox(b: BackupHistory) {
+		if (!dropboxAccessToken || !dropboxConnected) {
+			toast.error('Please connect to Dropbox first');
+			return;
+		}
+
+		uploadingToDropbox = true;
+		try {
+			const result = await backup.uploadToDropbox(b.id, dropboxAccessToken);
+			if (result.success) {
+				toast.success('Backup uploaded to Dropbox');
+				await loadDropboxBackups();
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Upload failed';
+			toast.error(message);
+		} finally {
+			uploadingToDropbox = false;
+		}
+	}
+
+	async function handleDeleteFromDropbox(remoteId: string) {
+		try {
+			const result = await backup.deleteFromDropbox(remoteId, dropboxAccessToken);
+			if (result.success) {
+				toast.success('Backup deleted from Dropbox');
+				await loadDropboxBackups();
+			} else {
+				toast.error(result.message);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Delete failed';
+			toast.error(message);
+		}
+	}
+
+	function disconnectDropbox() {
+		dropboxAccessToken = '';
+		dropboxEmail = '';
+		dropboxAccountName = '';
+		dropboxConnected = false;
+		dropboxBackups = [];
+	}
+
+	// Schedule functions
+	async function loadSchedules() {
+		loadingSchedules = true;
+		try {
+			schedules = await backup.listSchedules();
+		} catch (error) {
+			console.error('Failed to load schedules:', error);
+		} finally {
+			loadingSchedules = false;
+		}
+	}
+
+	function openNewScheduleModal() {
+		editingSchedule = null;
+		scheduleFormData = {
+			name: 'Daily Backup',
+			frequency: 'daily',
+			time_of_day: '02:00',
+			day_of_week: 0,
+			day_of_month: 1,
+			is_active: true
+		};
+		showScheduleModal = true;
+	}
+
+	function openEditScheduleModal(schedule: BackupSchedule) {
+		editingSchedule = schedule;
+		scheduleFormData = {
+			name: schedule.name,
+			frequency: schedule.frequency,
+			time_of_day: schedule.time_of_day,
+			day_of_week: schedule.day_of_week ?? 0,
+			day_of_month: schedule.day_of_month ?? 1,
+			is_active: schedule.is_active
+		};
+		showScheduleModal = true;
+	}
+
+	async function handleSaveSchedule() {
+		savingSchedule = true;
+		try {
+			if (editingSchedule) {
+				// Update existing
+				await backup.updateSchedule(editingSchedule.id, {
+					name: scheduleFormData.name,
+					frequency: scheduleFormData.frequency,
+					time_of_day: scheduleFormData.time_of_day,
+					day_of_week: scheduleFormData.frequency === 'weekly' ? scheduleFormData.day_of_week : undefined,
+					day_of_month: scheduleFormData.frequency === 'monthly' ? scheduleFormData.day_of_month : undefined,
+					is_active: scheduleFormData.is_active
+				});
+				toast.success('Schedule updated');
+			} else {
+				// Create new - need a config_id, we'll create a default local config
+				// For simplicity, create schedule without config for now
+				toast.error('Creating schedules requires a backup configuration. Please create one first.');
+				savingSchedule = false;
+				return;
+			}
+			showScheduleModal = false;
+			await loadSchedules();
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to save schedule';
+			toast.error(message);
+		} finally {
+			savingSchedule = false;
+		}
+	}
+
+	async function handleDeleteSchedule(schedule: BackupSchedule) {
+		if (!confirm(`Delete schedule "${schedule.name}"? This cannot be undone.`)) return;
+
+		try {
+			await backup.deleteSchedule(schedule.id);
+			toast.success('Schedule deleted');
+			await loadSchedules();
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Delete failed';
+			toast.error(message);
+		}
+	}
+
+	async function handleToggleSchedule(schedule: BackupSchedule) {
+		try {
+			await backup.updateSchedule(schedule.id, {
+				is_active: !schedule.is_active
+			});
+			toast.success(schedule.is_active ? 'Schedule paused' : 'Schedule activated');
+			await loadSchedules();
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Update failed';
+			toast.error(message);
+		}
+	}
+
+	async function handleRunScheduleNow(schedule: BackupSchedule) {
+		try {
+			await backup.triggerSchedule(schedule.id);
+			toast.success('Backup triggered');
+			// Refresh history after a short delay
+			setTimeout(() => loadBackups(), 2000);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Trigger failed';
+			toast.error(message);
 		}
 	}
 </script>
@@ -1210,6 +1740,647 @@
 			{/if}
 		</div>
 	{/if}
+
+	<!-- Backups Tab -->
+	{#if activeTab === 'backups'}
+		<div class="space-y-6">
+			<!-- Quick Actions -->
+			<Card>
+				<h3 class="text-lg font-semibold text-slate-900">Create Backup</h3>
+				<p class="mt-1 text-sm text-slate-500">
+					Create a backup of your database. Backups include all locations, containers, items, and tags.
+				</p>
+
+				<div class="mt-4 space-y-4">
+					<div class="flex flex-wrap gap-4">
+						<label class="flex items-center gap-2">
+							<input
+								type="checkbox"
+								bind:checked={backupOptions.include_images}
+								class="h-4 w-4 rounded border-slate-300 text-primary-600"
+							/>
+							<span class="text-sm text-slate-700">Include images</span>
+						</label>
+					</div>
+
+					<div class="flex flex-wrap gap-3">
+						<Button on:click={handleQuickDownload} variant="primary">
+							<svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+							</svg>
+							Download Backup Now
+						</Button>
+						<Button on:click={handleCreateBackup} variant="secondary" loading={creatingBackup}>
+							<svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+							</svg>
+							Save to History
+						</Button>
+					</div>
+				</div>
+			</Card>
+
+			<!-- Restore from File -->
+			<Card>
+				<h3 class="text-lg font-semibold text-slate-900">Restore from File</h3>
+				<p class="mt-1 text-sm text-slate-500">
+					Upload a backup file to restore data. New items will be added; existing items won't be overwritten.
+				</p>
+
+				<div class="mt-4">
+					<label class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 p-6 hover:border-primary-400 hover:bg-slate-50">
+						<svg class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+						</svg>
+						<span class="text-sm text-slate-600">Click to select a backup file (.zip)</span>
+						<input
+							type="file"
+							accept=".zip"
+							class="hidden"
+							on:change={handleFileUpload}
+							disabled={restoringBackup}
+						/>
+					</label>
+				</div>
+			</Card>
+
+			<!-- Backup History -->
+			<Card>
+				<div class="flex items-center justify-between">
+					<div>
+						<h3 class="text-lg font-semibold text-slate-900">Backup History</h3>
+						<p class="mt-1 text-sm text-slate-500">Previous backups stored on the server</p>
+					</div>
+					<button
+						on:click={loadBackups}
+						class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+						title="Refresh"
+					>
+						<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+						</svg>
+					</button>
+				</div>
+
+				{#if loadingBackups}
+					<div class="mt-4 animate-pulse space-y-2">
+						{#each [1, 2, 3] as _}
+							<div class="h-16 rounded-lg bg-slate-200"></div>
+						{/each}
+					</div>
+				{:else if backups.length === 0}
+					<div class="mt-4 py-8 text-center text-slate-500">
+						No backups found. Create your first backup above.
+					</div>
+				{:else}
+					<div class="mt-4 divide-y divide-slate-100">
+						{#each backups as b}
+							<div class="flex items-center justify-between py-3">
+								<div class="flex-1 min-w-0">
+									<div class="flex items-center gap-2">
+										<p class="truncate font-medium text-slate-900">{b.filename || 'Unknown'}</p>
+										<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {backup.getStatusColor(b.status)}">
+											{b.status}
+										</span>
+									</div>
+									<div class="mt-1 flex items-center gap-3 text-xs text-slate-500">
+										<span>{backup.formatBytes(b.size_bytes)}</span>
+										{#if b.completed_at}
+											<span>{formatDateTime(b.completed_at)}</span>
+										{/if}
+										{#if b.statistics}
+											<span>
+												{b.statistics.items_count || 0} items
+											</span>
+										{/if}
+									</div>
+								</div>
+								<div class="flex items-center gap-1 ml-4">
+									{#if b.status === 'completed'}
+										<button
+											class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+											title="Download"
+											on:click={() => handleDownloadBackup(b)}
+										>
+											<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+											</svg>
+										</button>
+										{#if googleDriveConnected}
+											<button
+												class="rounded p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
+												title="Upload to Google Drive"
+												on:click={() => handleUploadToGoogleDrive(b)}
+												disabled={uploadingToGoogleDrive}
+											>
+												<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+												</svg>
+											</button>
+										{/if}
+										{#if dropboxConnected}
+											<button
+												class="rounded p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600"
+												title="Upload to Dropbox"
+												on:click={() => handleUploadToDropbox(b)}
+												disabled={uploadingToDropbox}
+											>
+												<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+												</svg>
+											</button>
+										{/if}
+										<button
+											class="rounded p-1.5 text-slate-400 hover:bg-green-50 hover:text-green-600"
+											title="Restore"
+											on:click={() => handleRestoreFromHistory(b)}
+											disabled={restoringBackup}
+										>
+											<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+											</svg>
+										</button>
+									{/if}
+									<button
+										class="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+										title="Delete"
+										on:click={() => handleDeleteBackup(b)}
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+										</svg>
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+
+					<!-- Pagination -->
+					{#if backupsTotal > 20}
+						<div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+							<p class="text-sm text-slate-500">
+								Showing {(backupsPage - 1) * 20 + 1} to {Math.min(backupsPage * 20, backupsTotal)} of {backupsTotal}
+							</p>
+							<div class="flex gap-2">
+								<Button
+									variant="secondary"
+									size="sm"
+									disabled={backupsPage === 1}
+									on:click={() => { backupsPage--; loadBackups(); }}
+								>
+									Previous
+								</Button>
+								<Button
+									variant="secondary"
+									size="sm"
+									disabled={backupsPage * 20 >= backupsTotal}
+									on:click={() => { backupsPage++; loadBackups(); }}
+								>
+									Next
+								</Button>
+							</div>
+						</div>
+					{/if}
+				{/if}
+			</Card>
+
+			<!-- Scheduled Backups -->
+			<Card>
+				<div class="flex items-center justify-between">
+					<div>
+						<h3 class="text-lg font-semibold text-slate-900">Scheduled Backups</h3>
+						<p class="mt-1 text-sm text-slate-500">
+							Configure automatic backups to run on a schedule.
+						</p>
+					</div>
+				</div>
+
+				{#if loadingSchedules}
+					<div class="mt-4 animate-pulse space-y-2">
+						<div class="h-12 rounded bg-slate-200"></div>
+					</div>
+				{:else if schedules.length === 0}
+					<div class="mt-4 rounded-lg border-2 border-dashed border-slate-200 p-6 text-center">
+						<svg class="mx-auto h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<p class="mt-2 text-sm text-slate-500">No scheduled backups configured.</p>
+						<p class="mt-1 text-xs text-slate-400">
+							Create a backup configuration first, then add schedules via the API.
+						</p>
+					</div>
+				{:else}
+					<div class="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200">
+						{#each schedules as schedule}
+							<div class="flex items-center justify-between p-4">
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center gap-2">
+										<p class="font-medium text-slate-900">{schedule.name}</p>
+										<span class="rounded-full px-2 py-0.5 text-xs font-medium {schedule.is_active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}">
+											{schedule.is_active ? 'Active' : 'Paused'}
+										</span>
+									</div>
+									<p class="mt-1 text-sm text-slate-500">
+										{backup.formatScheduleDescription(schedule)}
+									</p>
+									{#if schedule.next_run_at}
+										<p class="mt-0.5 text-xs text-slate-400">
+											Next run: {formatDateTime(schedule.next_run_at)}
+										</p>
+									{/if}
+								</div>
+								<div class="flex items-center gap-1 ml-4">
+									<button
+										class="rounded p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
+										title="Run Now"
+										on:click={() => handleRunScheduleNow(schedule)}
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+										</svg>
+									</button>
+									<button
+										class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+										title={schedule.is_active ? 'Pause' : 'Activate'}
+										on:click={() => handleToggleSchedule(schedule)}
+									>
+										{#if schedule.is_active}
+											<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+											</svg>
+										{:else}
+											<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+											</svg>
+										{/if}
+									</button>
+									<button
+										class="rounded p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600"
+										title="Edit"
+										on:click={() => openEditScheduleModal(schedule)}
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+										</svg>
+									</button>
+									<button
+										class="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+										title="Delete"
+										on:click={() => handleDeleteSchedule(schedule)}
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+										</svg>
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</Card>
+
+			<!-- Google Drive Integration -->
+			{#if providerStatus?.google_drive_available}
+				<Card>
+					<div class="flex items-start justify-between">
+						<div>
+							<h3 class="text-lg font-semibold text-slate-900">Google Drive Integration</h3>
+							<p class="mt-1 text-sm text-slate-500">
+								Store backups in Google Drive for offsite protection.
+							</p>
+						</div>
+						<span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">
+							Workspace Only
+						</span>
+					</div>
+
+					<!-- Workspace Requirement Notice -->
+					<div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+						<p class="text-xs font-medium text-amber-800">Requires Google Workspace</p>
+						<p class="mt-1 text-xs text-amber-700">
+							Google Drive with service accounts requires a <strong>Google Workspace</strong> account (Business, Education, etc.) with <strong>Shared Drives</strong>.
+							Personal Gmail accounts cannot use this feature due to storage quota limitations.
+							<a href="/admin/google-drive-setup" class="font-medium underline">Learn more</a>
+						</p>
+					</div>
+
+					{#if googleDriveConnected}
+						<!-- Connected State -->
+						<div class="mt-4">
+							<div class="flex items-center gap-3 rounded-lg {googleDriveWarning ? 'bg-amber-50' : 'bg-green-50'} p-4">
+								{#if googleDriveWarning}
+									<svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+									</svg>
+								{:else}
+									<svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+									</svg>
+								{/if}
+								<div class="flex-1">
+									<p class="text-sm font-medium {googleDriveWarning ? 'text-amber-800' : 'text-green-800'}">
+										{googleDriveWarning ? 'Connected - Action Required' : 'Connected to Google Drive'}
+									</p>
+									{#if googleDriveEmail}
+										<p class="text-xs {googleDriveWarning ? 'text-amber-600' : 'text-green-600'}">{googleDriveEmail}</p>
+									{/if}
+								</div>
+								<Button variant="secondary" size="sm" on:click={disconnectGoogleDrive}>
+									Disconnect
+								</Button>
+							</div>
+
+							{#if googleDriveWarning}
+								<div class="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
+									<p class="text-sm font-medium text-red-800">Shared Drive Required</p>
+									<p class="mt-1 text-sm text-red-700">
+										Service accounts cannot upload to regular Google Drive due to storage quota limitations.
+										You need a <strong>Google Workspace account</strong> with a <strong>Shared Drive</strong> (Team Drive).
+									</p>
+									<div class="mt-3 rounded bg-red-100 p-3 text-xs text-red-800">
+										<p class="font-medium">Why won't regular shared folders work?</p>
+										<p class="mt-1">When a service account uploads a file, it owns that file. Storage quota is based on ownership, not file location. Service accounts have zero storage quota, so uploads always fail - even to shared folders.</p>
+									</div>
+									<div class="mt-3 space-y-2 text-sm text-red-700">
+										<p class="font-medium">Options:</p>
+										<ol class="ml-4 list-decimal space-y-1">
+											<li>Use a Google Workspace account and create a Shared Drive</li>
+											<li>Add the service account as a member of the Shared Drive</li>
+											<li>Or use a different backup method (local storage)</li>
+										</ol>
+									</div>
+									<a
+										href="/admin/google-drive-setup"
+										class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-700 hover:text-red-900 hover:underline"
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+										</svg>
+										View setup guide
+									</a>
+								</div>
+							{:else if googleDriveSharedDrives.length > 0}
+								<div class="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
+									<p class="text-sm font-medium text-green-800">Available Shared Drives:</p>
+									<ul class="mt-1 space-y-1">
+										{#each googleDriveSharedDrives as drive}
+											<li class="text-sm text-green-700">• {drive.name}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+
+							<!-- Remote Backups -->
+							<div class="mt-4">
+								<div class="flex items-center justify-between">
+									<h4 class="text-sm font-medium text-slate-700">Backups in Google Drive</h4>
+									<button
+										on:click={loadRemoteBackups}
+										class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+										title="Refresh"
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+										</svg>
+									</button>
+								</div>
+
+								{#if loadingRemoteBackups}
+									<div class="mt-2 animate-pulse space-y-2">
+										{#each [1, 2] as _}
+											<div class="h-12 rounded bg-slate-200"></div>
+										{/each}
+									</div>
+								{:else if remoteBackups.length === 0}
+									<p class="mt-2 text-sm text-slate-500">No backups in Google Drive yet.</p>
+								{:else}
+									<div class="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200">
+										{#each remoteBackups as rb}
+											<div class="flex items-center justify-between p-3">
+												<div class="min-w-0 flex-1">
+													<p class="truncate text-sm font-medium text-slate-900">{rb.filename}</p>
+													<p class="text-xs text-slate-500">
+														{backup.formatBytes(rb.size_bytes)} - {formatDateTime(rb.created_at)}
+													</p>
+												</div>
+												<button
+													class="ml-2 rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+													title="Delete from Google Drive"
+													on:click={() => handleDeleteFromGoogleDrive(rb.remote_id, rb.filename)}
+												>
+													<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+													</svg>
+												</button>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						</div>
+					{:else}
+						<!-- Setup State -->
+						<div class="mt-4 space-y-4">
+							<div class="rounded-lg bg-blue-50 p-4">
+								<p class="text-sm text-blue-800">
+									<strong>Setup:</strong> Create a Service Account in Google Cloud Console,
+									enable the Drive API, and download the JSON key file. Paste the contents below.
+								</p>
+								<a
+									href="/admin/google-drive-setup"
+									class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:text-blue-900 hover:underline"
+								>
+									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+									</svg>
+									View step-by-step setup guide
+								</a>
+							</div>
+
+							<div>
+								<label for="gdrive-creds" class="mb-1.5 block text-sm font-medium text-slate-700">
+									Service Account JSON
+								</label>
+								<textarea
+									id="gdrive-creds"
+									bind:value={googleDriveCredentials}
+									rows="4"
+									placeholder="Paste service account JSON here..."
+									class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								></textarea>
+							</div>
+
+							<Button on:click={handleTestGoogleDrive} loading={testingGoogleDrive}>
+								Connect to Google Drive
+							</Button>
+						</div>
+					{/if}
+				</Card>
+			{/if}
+
+			<!-- Dropbox Integration -->
+			{#if providerStatus?.dropbox_available}
+				<Card>
+					<div class="flex items-start justify-between">
+						<div>
+							<h3 class="text-lg font-semibold text-slate-900">Dropbox Integration</h3>
+							<p class="mt-1 text-sm text-slate-500">
+								Store backups in Dropbox for offsite protection.
+							</p>
+						</div>
+						<span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+							Personal & Business
+						</span>
+					</div>
+
+					<!-- Personal Account Notice -->
+					<div class="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
+						<p class="text-xs font-medium text-green-800">Works with personal accounts</p>
+						<p class="mt-1 text-xs text-green-700">
+							Dropbox works with both <strong>personal</strong> and <strong>business</strong> accounts.
+							Simply generate an access token from the Dropbox App Console.
+						</p>
+					</div>
+
+					{#if dropboxConnected}
+						<!-- Connected State -->
+						<div class="mt-4">
+							<div class="flex items-center gap-3 rounded-lg bg-green-50 p-4">
+								<svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								<div class="flex-1">
+									<p class="text-sm font-medium text-green-800">Connected to Dropbox</p>
+									{#if dropboxAccountName}
+										<p class="text-xs text-green-600">{dropboxAccountName} ({dropboxEmail})</p>
+									{/if}
+								</div>
+								<Button variant="secondary" size="sm" on:click={disconnectDropbox}>
+									Disconnect
+								</Button>
+							</div>
+
+							<!-- Dropbox Backups -->
+							<div class="mt-4">
+								<div class="flex items-center justify-between">
+									<h4 class="text-sm font-medium text-slate-700">Backups in Dropbox</h4>
+									<button
+										on:click={loadDropboxBackups}
+										class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+										title="Refresh"
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+										</svg>
+									</button>
+								</div>
+
+								{#if loadingDropboxBackups}
+									<div class="mt-2 animate-pulse space-y-2">
+										{#each [1, 2] as _}
+											<div class="h-12 rounded bg-slate-200"></div>
+										{/each}
+									</div>
+								{:else if dropboxBackups.length === 0}
+									<p class="mt-2 text-sm text-slate-500">No backups in Dropbox yet.</p>
+								{:else}
+									<div class="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200">
+										{#each dropboxBackups as rb}
+											<div class="flex items-center justify-between p-3">
+												<div class="min-w-0 flex-1">
+													<p class="truncate text-sm font-medium text-slate-900">{rb.filename}</p>
+													<p class="text-xs text-slate-500">
+														{backup.formatBytes(rb.size_bytes)} •
+														{new Date(rb.created_at).toLocaleDateString()}
+													</p>
+												</div>
+												<button
+													class="ml-2 rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+													title="Delete from Dropbox"
+													on:click={() => handleDeleteFromDropbox(rb.remote_id)}
+												>
+													<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+													</svg>
+												</button>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						</div>
+					{:else}
+						<!-- Setup State -->
+						<div class="mt-4 space-y-4">
+							<div class="rounded-lg bg-blue-50 p-4">
+								<p class="text-sm text-blue-800">
+									<strong>Setup:</strong> Create a Dropbox App at <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener noreferrer" class="underline">dropbox.com/developers/apps</a>,
+									generate an access token, and paste it below.
+								</p>
+								<ol class="mt-2 ml-4 list-decimal text-xs text-blue-700 space-y-1">
+									<li>Go to <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener noreferrer" class="underline">Dropbox App Console</a></li>
+									<li>Click "Create app" → Choose "Scoped access" → "Full Dropbox"</li>
+									<li>Name your app (e.g., "StorageHub Backups")</li>
+									<li>In the app settings, go to "Permissions" tab and enable files.content.write and files.content.read</li>
+									<li>Go to "Settings" tab and click "Generate access token"</li>
+								</ol>
+							</div>
+
+							<div>
+								<label for="dropbox-token" class="mb-1.5 block text-sm font-medium text-slate-700">
+									Access Token
+								</label>
+								<input
+									id="dropbox-token"
+									type="password"
+									bind:value={dropboxAccessToken}
+									placeholder="Enter your Dropbox access token"
+									class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								/>
+							</div>
+
+							<Button on:click={handleTestDropbox} loading={testingDropbox}>
+								Connect to Dropbox
+							</Button>
+						</div>
+					{/if}
+				</Card>
+			{/if}
+
+			<!-- Help -->
+			<Card>
+				<h3 class="text-lg font-semibold text-slate-900">About Backups</h3>
+				<div class="mt-4 space-y-3 text-sm text-slate-600">
+					<p>
+						<strong>What's included?</strong> Backups contain all your locations, containers,
+						items, tags, and optionally images. User accounts are not included in backups.
+					</p>
+					<p>
+						<strong>Restore behavior:</strong> Restoring a backup adds new data without overwriting
+						existing records. Items with matching QR codes or names are skipped.
+					</p>
+					<p>
+						<strong>Storage:</strong> Backups are saved as ZIP files. Include images for a complete
+						backup, or exclude them for a smaller file size.
+					</p>
+					{#if providerStatus?.google_drive_available}
+						<p>
+							<strong>Google Drive:</strong> Requires a Google Workspace account with Shared Drives.
+							Personal Gmail accounts cannot use this feature.
+						</p>
+					{/if}
+					{#if providerStatus?.dropbox_available}
+						<p>
+							<strong>Dropbox:</strong> Works with both personal and business accounts.
+							Simply generate an access token to connect.
+						</p>
+					{/if}
+				</div>
+			</Card>
+		</div>
+	{/if}
 </div>
 
 <!-- User Modal -->
@@ -1300,6 +2471,63 @@
 				</Button>
 				<Button loading={savingUser} on:click={handleSaveUser}>
 					{editingUser ? 'Save Changes' : 'Create User'}
+				</Button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Restore Preview Modal -->
+{#if showRestoreModal && restorePreview}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+		<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+			<h2 class="text-xl font-bold text-slate-900">Restore Backup</h2>
+
+			<div class="mt-4 space-y-4">
+				<div class="rounded-lg bg-slate-50 p-4">
+					<p class="text-sm font-medium text-slate-700">Backup Details</p>
+					<div class="mt-2 space-y-1 text-sm text-slate-600">
+						<p>Version: {restorePreview.version || 'Unknown'}</p>
+						{#if restorePreview.created_at}
+							<p>Created: {formatDateTime(restorePreview.created_at)}</p>
+						{/if}
+						{#if restorePreview.statistics}
+							<p>Locations: {restorePreview.statistics.locations_count || 0}</p>
+							<p>Containers: {restorePreview.statistics.containers_count || 0}</p>
+							<p>Items: {restorePreview.statistics.items_count || 0}</p>
+							<p>Tags: {restorePreview.statistics.tags_count || 0}</p>
+							{#if restorePreview.statistics.images_count}
+								<p>Images: {restorePreview.statistics.images_count}</p>
+							{/if}
+						{/if}
+					</div>
+				</div>
+
+				<div class="rounded-lg bg-amber-50 p-4">
+					<p class="text-sm text-amber-800">
+						<strong>Note:</strong> Restore will add new items. Existing records with matching
+						QR codes or names will be skipped.
+					</p>
+				</div>
+
+				<div>
+					<label class="flex items-center gap-2">
+						<input
+							type="checkbox"
+							bind:checked={restoreOptions.restore_images}
+							class="h-4 w-4 rounded border-slate-300 text-primary-600"
+						/>
+						<span class="text-sm text-slate-700">Restore images (if included in backup)</span>
+					</label>
+				</div>
+			</div>
+
+			<div class="mt-6 flex justify-end gap-3">
+				<Button variant="secondary" on:click={cancelRestore}>
+					Cancel
+				</Button>
+				<Button loading={restoringBackup} on:click={handleExecuteRestore}>
+					Restore
 				</Button>
 			</div>
 		</div>

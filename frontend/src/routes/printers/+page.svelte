@@ -29,6 +29,7 @@
 	const printerTypes: { value: PrinterType; label: string; description: string }[] = [
 		{ value: 'zebra_zpl', label: 'Zebra (ZPL)', description: 'Zebra printers using ZPL language' },
 		{ value: 'brother_ql', label: 'Brother QL', description: 'Brother QL series label printers' },
+		{ value: 'network_ipp', label: 'Network Printer', description: 'Epson, HP, Canon via network/IPP' },
 		{ value: 'generic_pdf', label: 'PDF (Download)', description: 'Generate PDF for any printer' }
 	];
 
@@ -165,6 +166,11 @@
 
 	function getAddressPlaceholder(connType: ConnectionType, printerType: PrinterType): string {
 		if (printerType === 'generic_pdf') return 'download';
+		if (printerType === 'network_ipp') {
+			return connType === 'network'
+				? '192.168.1.100 or ipp://printer.local/ipp/print'
+				: 'EPSON_ET-2750';  // CUPS queue name
+		}
 		switch (connType) {
 			case 'network':
 				return '192.168.1.100:9100';
@@ -234,7 +240,9 @@
 										? 'bg-blue-100 text-blue-600'
 										: printer.printer_type === 'brother_ql'
 											? 'bg-green-100 text-green-600'
-											: 'bg-purple-100 text-purple-600'}"
+											: printer.printer_type === 'network_ipp'
+												? 'bg-orange-100 text-orange-600'
+												: 'bg-purple-100 text-purple-600'}"
 								>
 									<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
