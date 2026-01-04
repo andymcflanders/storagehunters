@@ -1,10 +1,11 @@
 """Background tasks for StorageHub."""
 
 import asyncio
-from datetime import datetime
+import logging
+from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import selectinload
 
@@ -13,6 +14,8 @@ from app.models.item import Item, ItemImage, ItemTag, SeasonalEnum
 from app.models.pending_upload import PendingUpload, UploadStatus
 from app.models.tag import Tag
 from app.worker.celery_app import celery_app
+
+logger = logging.getLogger(__name__)
 
 
 def get_ai_classifier():
@@ -376,4 +379,226 @@ def segment_pending_upload(self, pending_upload_id: str) -> dict:
     try:
         return _segment_pending_upload_sync(UUID(pending_upload_id))
     except Exception as exc:
+        raise self.retry(exc=exc)
+
+
+# ============== Backup Tasks ==============
+
+
+def _calculate_next_run(schedule) -> datetime:
+    """Calculate the next run time for a schedule."""
+    from app.models.backup import ScheduleFrequency
+
+    now = datetime.utcnow()
+    schedule_time = schedule.time_of_day
+
+    # Create a datetime with today's date and the schedule time
+    next_run = now.replace(
+        hour=schedule_time.hour,
+        minute=schedule_time.minute,
+        second=0,
+        microsecond=0,
+    )
+
+    if schedule.frequency == ScheduleFrequency.DAILY:
+        # If time has passed today, schedule for tomorrow
+        if next_run <= now:
+            next_run += timedelta(days=1)
+
+    elif schedule.frequency == ScheduleFrequency.WEEKLY:
+        # Find the next occurrence of the specified day
+        target_day = schedule.day_of_week or 0  # 0 = Monday
+        days_ahead = target_day - now.weekday()
+        if days_ahead < 0 or (days_ahead == 0 and next_run <= now):
+            days_ahead += 7
+        next_run += timedelta(days=days_ahead)
+
+    elif schedule.frequency == ScheduleFrequency.MONTHLY:
+        # Schedule for the specified day of month
+        target_day = schedule.day_of_month or 1
+        try:
+            next_run = next_run.replace(day=target_day)
+        except ValueError:
+            # Day doesn't exist in this month, use last day
+            import calendar
+            last_day = calendar.monthrange(next_run.year, next_run.month)[1]
+            next_run = next_run.replace(day=min(target_day, last_day))
+
+        if next_run <= now:
+            # Move to next month
+            if next_run.month == 12:
+                next_run = next_run.replace(year=next_run.year + 1, month=1)
+            else:
+                next_run = next_run.replace(month=next_run.month + 1)
+            try:
+                next_run = next_run.replace(day=target_day)
+            except ValueError:
+                import calendar
+                last_day = calendar.monthrange(next_run.year, next_run.month)[1]
+                next_run = next_run.replace(day=min(target_day, last_day))
+
+    return next_run
+
+
+@celery_app.task
+def check_scheduled_backups() -> dict:
+    """
+    Periodic task to check for scheduled backups that need to run.
+
+    This task runs every minute and checks if any schedules are due.
+    """
+    from app.models.backup import BackupSchedule
+
+    now = datetime.utcnow()
+    triggered = []
+
+    with get_sync_db() as db:
+        # Find active schedules that are due
+        result = db.execute(
+            select(BackupSchedule)
+            .where(
+                and_(
+                    BackupSchedule.is_active == True,
+                    BackupSchedule.next_run_at <= now,
+                )
+            )
+        )
+        schedules = result.scalars().all()
+
+        for schedule in schedules:
+            # Trigger the backup
+            run_scheduled_backup.delay(str(schedule.id))
+            triggered.append(str(schedule.id))
+
+            # Update next_run_at
+            schedule.next_run_at = _calculate_next_run(schedule)
+            logger.info(
+                f"Triggered backup for schedule {schedule.id}, "
+                f"next run at {schedule.next_run_at}"
+            )
+
+        db.commit()
+
+    return {"checked_at": now.isoformat(), "triggered": triggered}
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def run_scheduled_backup(self, schedule_id: str) -> dict:
+    """
+    Run a scheduled backup.
+
+    This task creates a backup based on the schedule's configuration.
+    """
+    from app.backup.backup_service import BackupOptions, BackupService
+    from app.models.backup import (
+        BackupConfig,
+        BackupHistory,
+        BackupSchedule,
+        BackupStatus,
+    )
+
+    try:
+        with get_sync_db() as db:
+            # Get the schedule with its config
+            result = db.execute(
+                select(BackupSchedule)
+                .where(BackupSchedule.id == UUID(schedule_id))
+                .options(selectinload(BackupSchedule.config))
+            )
+            schedule = result.scalar_one_or_none()
+
+            if not schedule:
+                return {"status": "error", "message": "Schedule not found"}
+
+            if not schedule.is_active:
+                return {"status": "skipped", "message": "Schedule is not active"}
+
+            config = schedule.config
+            if not config or not config.is_active:
+                return {"status": "skipped", "message": "Config is not active"}
+
+            # Create history record
+            history = BackupHistory(
+                config_id=config.id,
+                schedule_id=schedule.id,
+                filename="",
+                status=BackupStatus.IN_PROGRESS,
+                include_images=config.include_images,
+                is_encrypted=config.encryption_enabled,
+                is_scheduled=True,
+                started_at=datetime.utcnow(),
+            )
+            db.add(history)
+            db.commit()
+            db.refresh(history)
+            history_id = history.id
+
+        # Run the backup (outside transaction for long-running operation)
+        service = BackupService()
+        options = BackupOptions(
+            include_images=config.include_images,
+            include_users=False,
+            compression_level=config.compression_level,
+        )
+
+        result = service.create_backup(options)
+
+        # Update history with results
+        with get_sync_db() as db:
+            history = db.get(BackupHistory, history_id)
+            schedule = db.get(BackupSchedule, UUID(schedule_id))
+
+            if history:
+                if result.success:
+                    history.status = BackupStatus.COMPLETED
+                    history.filename = result.filename or ""
+                    history.file_path = result.file_path
+                    history.size_bytes = result.size_bytes
+                    history.checksum = result.checksum
+                    history.statistics = result.statistics
+                else:
+                    history.status = BackupStatus.FAILED
+                    history.error_message = result.error_message
+                history.completed_at = datetime.utcnow()
+
+            if schedule:
+                schedule.last_run_at = datetime.utcnow()
+
+            db.commit()
+
+        if result.success:
+            logger.info(f"Scheduled backup completed: {result.filename}")
+            return {
+                "status": "success",
+                "filename": result.filename,
+                "size_bytes": result.size_bytes,
+            }
+        else:
+            logger.error(f"Scheduled backup failed: {result.error_message}")
+            return {"status": "failed", "error": result.error_message}
+
+    except Exception as exc:
+        logger.error(f"Scheduled backup error: {exc}")
+        # Update history as failed
+        try:
+            with get_sync_db() as db:
+                result = db.execute(
+                    select(BackupHistory)
+                    .where(
+                        and_(
+                            BackupHistory.schedule_id == UUID(schedule_id),
+                            BackupHistory.status == BackupStatus.IN_PROGRESS,
+                        )
+                    )
+                    .order_by(BackupHistory.created_at.desc())
+                    .limit(1)
+                )
+                history = result.scalar_one_or_none()
+                if history:
+                    history.status = BackupStatus.FAILED
+                    history.error_message = str(exc)
+                    history.completed_at = datetime.utcnow()
+                    db.commit()
+        except Exception:
+            pass
         raise self.retry(exc=exc)

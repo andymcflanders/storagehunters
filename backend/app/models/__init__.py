@@ -2,6 +2,14 @@
 
 from app.models.activity import ActivityLog
 from app.models.api_key import APIKey, APIKeyScope
+from app.models.backup import (
+    BackupConfig,
+    BackupHistory,
+    BackupProviderType,
+    BackupSchedule,
+    BackupStatus,
+    ScheduleFrequency,
+)
 from app.models.container import Container
 from app.models.item import Item, ItemImage, ItemTag, RelatedItems
 from app.models.location import Location
@@ -38,4 +46,10 @@ __all__ = [
     "Webhook",
     "WebhookDelivery",
     "WebhookEvent",
+    "BackupConfig",
+    "BackupSchedule",
+    "BackupHistory",
+    "BackupProviderType",
+    "BackupStatus",
+    "ScheduleFrequency",
 ]

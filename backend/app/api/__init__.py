@@ -7,6 +7,7 @@ from app.api import (
     admin,
     api_keys,
     auth,
+    backup,
     containers,
     export,
     homeassistant,
@@ -42,6 +43,7 @@ api_router.include_router(ssl.router, prefix="/ssl", tags=["SSL"])
 api_router.include_router(uploads.router, prefix="/uploads", tags=["Uploads"])
 api_router.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
 api_router.include_router(admin.router)
+api_router.include_router(backup.router)
 
 # API Key management
 api_router.include_router(api_keys.router, prefix="/api-keys", tags=["API Keys"])
