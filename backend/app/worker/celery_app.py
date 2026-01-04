@@ -1,6 +1,7 @@
 """Celery application configuration."""
 
 from celery import Celery
+from celery.schedules import crontab
 
 from app.config import get_settings
 
@@ -43,5 +44,17 @@ celery_app.conf.task_annotations = {
     "app.worker.tasks.segment_pending_upload": {
         "time_limit": 600,  # 10 minutes
         "soft_time_limit": 540,  # 9 minutes
+    },
+    "app.worker.tasks.run_scheduled_backup": {
+        "time_limit": 1800,  # 30 minutes for backups
+        "soft_time_limit": 1740,  # 29 minutes
+    },
+}
+
+# Celery Beat schedule - check for scheduled backups every minute
+celery_app.conf.beat_schedule = {
+    "check-scheduled-backups": {
+        "task": "app.worker.tasks.check_scheduled_backups",
+        "schedule": crontab(minute="*"),  # Every minute
     },
 }
