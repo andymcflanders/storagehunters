@@ -3,7 +3,7 @@
 # Backup production database
 #
 SERVER_HOST="${STORAGEHUB_SERVER:-192.168.200.13}"
-SERVER_USER="${STORAGEHUB_USER:-john}"
+SERVER_USER="${STORAGEHUB_USER:-user}"
 PROJECT_DIR="/opt/storagehub"
 BACKUP_DIR="./backups"
 

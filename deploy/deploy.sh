@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 SERVER_HOST="${STORAGEHUB_SERVER:-192.168.200.13}"
-SERVER_USER="${STORAGEHUB_USER:-john}"
+SERVER_USER="${STORAGEHUB_USER:-user}"
 PROJECT_DIR="/opt/storagehub"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
