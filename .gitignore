@@ -38,6 +38,10 @@ build/
 .env
 .env.local
 .env.*.local
+deploy/.env.production
+
+# Local backups
+backups/
 
 # IDE
 .idea/
