@@ -3,7 +3,15 @@
  */
 
 import { get, post, patch, del } from './client';
-import type { Printer, PrinterCreate, PrinterUpdate, PrintResult } from '$lib/types';
+import type {
+	Printer,
+	PrinterCreate,
+	PrinterUpdate,
+	PrintResult,
+	LabelTemplate,
+	MediaSuggestion,
+	BatchPrintResult
+} from '$lib/types';
 
 /**
  * Get all printers.
@@ -53,10 +61,12 @@ export async function testPrinter(id: string): Promise<PrintResult> {
 export async function printLabel(
 	printerId: string,
 	containerId: string,
+	template: LabelTemplate = 'qr_only',
 	includeContents: boolean = false
 ): Promise<PrintResult> {
 	return post<PrintResult>(`/printers/${printerId}/print`, {
 		container_id: containerId,
+		template,
 		include_contents: includeContents
 	});
 }
@@ -67,13 +77,36 @@ export async function printLabel(
 export function getPreviewUrl(
 	printerId: string,
 	containerId: string,
+	template: LabelTemplate = 'qr_only',
 	includeContents: boolean = false
 ): string {
 	const params = new URLSearchParams({
 		container_id: containerId,
+		template,
 		include_contents: String(includeContents)
 	});
 	return `/api/printers/${printerId}/preview?${params.toString()}`;
+}
+
+/**
+ * Detect media loaded in printer and get template suggestion.
+ */
+export async function detectMedia(printerId: string): Promise<MediaSuggestion> {
+	return get<MediaSuggestion>(`/printers/${printerId}/media`);
+}
+
+/**
+ * Print labels for multiple containers.
+ */
+export async function printBatch(
+	printerId: string,
+	containerIds: string[],
+	template: LabelTemplate = 'qr_only'
+): Promise<BatchPrintResult> {
+	return post<BatchPrintResult>(`/printers/${printerId}/print-batch`, {
+		container_ids: containerIds,
+		template
+	});
 }
 
 /**
@@ -84,4 +117,19 @@ export function getBatchPdfUrl(containerIds: string[], layout: string = 'avery_5
 	containerIds.forEach((id) => params.append('container_ids', id));
 	params.append('layout', layout);
 	return `/api/printers/batch-pdf?${params.toString()}`;
+}
+
+/**
+ * Get download URL for a single label PDF.
+ */
+export function getDownloadUrl(
+	printerId: string,
+	containerId: string,
+	template: LabelTemplate = 'qr_only'
+): string {
+	const params = new URLSearchParams({
+		container_id: containerId,
+		template
+	});
+	return `/api/printers/${printerId}/download?${params.toString()}`;
 }

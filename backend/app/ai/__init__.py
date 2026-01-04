@@ -3,6 +3,12 @@
 from app.ai.base import BaseClassifier, ClassificationResult, ImageClassifier
 from app.ai.mock_classifier import MockClassifier
 from app.ai.openai_vision import OpenAIVisionClassifier
+from app.ai.summary_generator import (
+    ContainerItem,
+    SummaryGenerator,
+    SummaryResult,
+    get_summary_generator,
+)
 from app.config import get_settings
 
 __all__ = [
@@ -12,6 +18,10 @@ __all__ = [
     "OpenAIVisionClassifier",
     "MockClassifier",
     "get_classifier",
+    "ContainerItem",
+    "SummaryGenerator",
+    "SummaryResult",
+    "get_summary_generator",
 ]
 
 

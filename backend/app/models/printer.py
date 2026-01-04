@@ -18,6 +18,7 @@ class PrinterTypeEnum(str, enum.Enum):
     ZEBRA_ZPL = "zebra_zpl"
     BROTHER_QL = "brother_ql"
     GENERIC_PDF = "generic_pdf"
+    NETWORK_IPP = "network_ipp"  # Network printers via IPP (e.g., Epson, HP, Canon)
 
 
 class ConnectionTypeEnum(str, enum.Enum):
