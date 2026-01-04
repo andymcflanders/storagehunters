@@ -120,6 +120,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Celery Beat Scheduler (scheduled tasks)
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: storagehub-celery-beat
+    command: celery -A app.worker.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://storagehub:storagehub_secret@postgres:5432/storagehub
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-min-32-chars-long}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   # FastSAM Segmentation Service
   fastsam:
     build:

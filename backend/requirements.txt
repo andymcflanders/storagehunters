@@ -36,6 +36,13 @@ httpx>=0.25.2
 brother_ql>=0.9.4
 reportlab>=4.0.7
 
+# Google Drive API
+google-auth>=2.25.0
+google-api-python-client>=2.111.0
+
+# Dropbox API
+dropbox>=11.36.0
+
 # Utilities
 python-dotenv>=1.0.0
 aiofiles>=23.2.1
