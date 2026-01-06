@@ -149,7 +149,7 @@
 		transition:scale={{ duration: 200, start: 0.95 }}
 	>
 		<div
-			class="w-full max-w-2xl rounded-xl bg-white shadow-xl max-h-[90vh] overflow-y-auto"
+			class="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 shadow-xl max-h-[90vh] overflow-y-auto"
 			on:click|stopPropagation
 			on:keypress|stopPropagation
 			role="dialog"
@@ -157,13 +157,13 @@
 			aria-labelledby="modal-title"
 		>
 			<!-- Header -->
-			<div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-				<h2 id="modal-title" class="text-lg font-semibold text-slate-900">
+			<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+				<h2 id="modal-title" class="text-lg font-semibold text-slate-900 dark:text-white">
 					Print Label {containerName ? `- ${containerName}` : ''}
 				</h2>
 				<button
 					type="button"
-					class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+					class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
 					on:click={close}
 				>
 					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -198,22 +198,22 @@
 								d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
 							/>
 						</svg>
-						<h3 class="mt-2 text-sm font-medium text-slate-900">No printers configured</h3>
-						<p class="mt-1 text-sm text-slate-500">
+						<h3 class="mt-2 text-sm font-medium text-slate-900 dark:text-white">No printers configured</h3>
+						<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 							Add a printer in Settings to start printing labels.
 						</p>
 					</div>
 				{:else}
 					<!-- Printer Selection -->
 					<div>
-						<label for="printer" class="block text-sm font-medium text-slate-700 mb-2">
+						<label for="printer" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
 							Printer
 						</label>
 						<select
 							id="printer"
 							bind:value={selectedPrinter}
 							on:change={handlePrinterChange}
-							class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+							class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
 						>
 							{#each printers as printer}
 								<option value={printer}>
@@ -232,7 +232,7 @@
 
 					<!-- Template Selection -->
 					<div>
-						<label class="block text-sm font-medium text-slate-700 mb-2"> Label Template </label>
+						<label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"> Label Template </label>
 						<TemplateSelector
 							bind:selected={selectedTemplate}
 							{suggestedTemplate}
@@ -241,8 +241,8 @@
 
 					<!-- Preview -->
 					<div>
-						<label class="block text-sm font-medium text-slate-700 mb-2"> Preview </label>
-						<div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+						<label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"> Preview </label>
+						<div class="border border-slate-200 dark:border-slate-700 rounded-lg p-4 bg-slate-50 dark:bg-slate-900">
 							{#key previewKey}
 								{#if previewUrl}
 									<img
@@ -251,21 +251,21 @@
 										class="mx-auto max-h-48 object-contain"
 									/>
 								{:else}
-									<div class="text-center text-slate-500 py-8">
+									<div class="text-center text-slate-500 dark:text-slate-400 py-8">
 										Select a printer to see preview
 									</div>
 								{/if}
 							{/key}
 						</div>
 						{#if selectedPrinter}
-							<p class="mt-2 text-xs text-slate-500 text-center">
+							<p class="mt-2 text-xs text-slate-500 dark:text-slate-400 text-center">
 								Actual size: {selectedPrinter.label_width_mm}mm x {selectedPrinter.label_height_mm}mm
 							</p>
 						{/if}
 					</div>
 
 					{#if error}
-						<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+						<div class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
 							{error}
 						</div>
 					{/if}
@@ -273,10 +273,10 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+			<div class="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-700 px-6 py-4">
 				<button
 					type="button"
-					class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+					class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
 					on:click={close}
 				>
 					Cancel

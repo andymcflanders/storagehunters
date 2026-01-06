@@ -37,7 +37,7 @@
 		transition:scale={{ duration: 200, start: 0.95 }}
 	>
 		<div
-			class="w-full max-w-lg rounded-xl bg-white shadow-xl"
+			class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-800 shadow-xl"
 			on:click|stopPropagation
 			on:keypress|stopPropagation
 			role="dialog"
@@ -46,11 +46,11 @@
 		>
 			<!-- Header -->
 			{#if title}
-				<div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-					<h2 id="modal-title" class="text-lg font-semibold text-slate-900">{title}</h2>
+				<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+					<h2 id="modal-title" class="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
 					<button
 						type="button"
-						class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+						class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
 						on:click={close}
 					>
 						<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -72,7 +72,7 @@
 
 			<!-- Footer -->
 			{#if $$slots.footer}
-				<div class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+				<div class="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-700 px-6 py-4">
 					<slot name="footer" />
 				</div>
 			{/if}

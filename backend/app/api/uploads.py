@@ -1,5 +1,6 @@
-"""Upload API endpoints for segmentation-based item creation."""
+"""Upload API endpoints for item creation with optional segmentation."""
 
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -10,10 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user
+from app.config import get_settings
 from app.database import get_db
-from app.models import Container, PendingUpload, User
+from app.models import Container, Item, ItemImage, PendingUpload, User
+from app.models.pending_upload import UploadStatus
 from app.services.image_storage import ImageStorageService
-from app.worker.tasks import segment_pending_upload
+from app.worker.tasks import process_item_ai, segment_pending_upload
 
 router = APIRouter()
 
@@ -55,16 +58,21 @@ async def upload_to_container(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Upload images to a container for segmentation processing.
+    Upload images to a container for processing.
 
-    The images are saved to temporary storage and queued for FastSAM
-    segmentation. Each detected object becomes a separate Item.
+    If segmentation is enabled, images are queued for FastSAM segmentation
+    where each detected object becomes a separate Item.
+
+    If segmentation is disabled, each image creates one Item directly
+    and is sent to AI for classification.
 
     Args:
         container_id: Target container for created items
         files: Image files to process
-        multi_item_mode: If True, detect multiple objects per image
+        multi_item_mode: If True and segmentation enabled, detect multiple objects per image
     """
+    settings = get_settings()
+
     # Verify container exists
     result = await db.execute(
         select(Container).where(Container.id == container_id)
@@ -88,26 +96,69 @@ async def upload_to_container(
     for file in files:
         content = await file.read()
 
-        # Save to temporary storage
-        upload_id, temp_filepath = await storage.save_temp_upload(
-            content, file.filename or "image.jpg"
-        )
+        if settings.segmentation_enabled:
+            # Segmentation enabled: use PendingUpload + segmentation pipeline
+            upload_id, temp_filepath = await storage.save_temp_upload(
+                content, file.filename or "image.jpg"
+            )
 
-        # Create PendingUpload record
-        pending = PendingUpload(
-            id=upload_id,
-            container_id=container_id,
-            uploaded_by=current_user.id,
-            temp_filepath=temp_filepath,
-            multi_item_mode=multi_item_mode,
-        )
-        db.add(pending)
-        await db.flush()
+            pending = PendingUpload(
+                id=upload_id,
+                container_id=container_id,
+                uploaded_by=current_user.id,
+                temp_filepath=temp_filepath,
+                multi_item_mode=multi_item_mode,
+            )
+            db.add(pending)
+            await db.flush()
+            pending_uploads.append(pending)
 
-        pending_uploads.append(pending)
+            # Queue segmentation task
+            segment_pending_upload.delay(str(pending.id))
+        else:
+            # Segmentation disabled: create Item directly with original image
+            item = Item(
+                name="Processing...",
+                container_id=container_id,
+                needs_review=True,
+            )
+            db.add(item)
+            await db.flush()
 
-        # Queue segmentation task
-        segment_pending_upload.delay(str(pending.id))
+            # Save image directly to item storage
+            filename, filepath = await storage.save_image(
+                item.id,
+                file.filename or "image.jpg",
+                content,
+            )
+
+            # Create ItemImage record
+            image = ItemImage(
+                item_id=item.id,
+                filename=filename,
+                filepath=filepath,
+                is_segmented=False,
+                uploaded_by=current_user.id,
+            )
+            db.add(image)
+            await db.flush()
+
+            # Create a PendingUpload record for tracking (already completed)
+            pending = PendingUpload(
+                container_id=container_id,
+                uploaded_by=current_user.id,
+                temp_filepath="",
+                multi_item_mode=False,
+                status=UploadStatus.COMPLETED.value,
+                items_created=1,
+                processed_at=datetime.utcnow(),
+            )
+            db.add(pending)
+            await db.flush()
+            pending_uploads.append(pending)
+
+            # Queue AI classification
+            process_item_ai.delay(str(item.id))
 
     await db.commit()
 

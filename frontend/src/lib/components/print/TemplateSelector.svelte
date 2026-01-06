@@ -45,8 +45,8 @@
 			type="button"
 			class="relative flex flex-col items-center p-4 border-2 rounded-lg transition-all {selected ===
 			template.value
-				? 'border-blue-500 bg-blue-50'
-				: 'border-slate-200 hover:border-slate-300 bg-white'}"
+				? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+				: 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 bg-white dark:bg-slate-700'}"
 			on:click={() => (selected = template.value)}
 		>
 			<!-- Suggested badge -->
@@ -62,8 +62,8 @@
 			<div
 				class="w-12 h-12 rounded-lg flex items-center justify-center mb-2 {selected ===
 				template.value
-					? 'bg-blue-100 text-blue-600'
-					: 'bg-slate-100 text-slate-500'}"
+					? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+					: 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400'}"
 			>
 				{#if template.icon === 'qr'}
 					<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -113,14 +113,14 @@
 			<!-- Name -->
 			<span
 				class="text-sm font-medium {selected === template.value
-					? 'text-blue-700'
-					: 'text-slate-700'}"
+					? 'text-blue-700 dark:text-blue-400'
+					: 'text-slate-700 dark:text-slate-300'}"
 			>
 				{template.name}
 			</span>
 
 			<!-- Description -->
-			<span class="text-xs text-slate-500 text-center mt-1">
+			<span class="text-xs text-slate-500 dark:text-slate-400 text-center mt-1">
 				{template.description}
 			</span>
 

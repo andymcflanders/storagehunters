@@ -9,9 +9,9 @@
 	$: isNonDetectingPrinter = printerType === 'generic_pdf' || printerType === 'network_ipp';
 </script>
 
-<div class="bg-slate-50 rounded-lg p-3 text-sm">
+<div class="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-sm">
 	{#if loading}
-		<div class="flex items-center gap-2 text-slate-500">
+		<div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
 			<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-400"></div>
 			Detecting media...
 		</div>
@@ -31,9 +31,9 @@
 				<div class="flex-1">
 					<!-- Detected dimensions -->
 					<div class="flex items-center gap-2 flex-wrap">
-						<span class="font-medium text-slate-700">Detected:</span>
+						<span class="font-medium text-slate-700 dark:text-slate-300">Detected:</span>
 						{#if suggestion.detected.width_mm}
-							<span class="text-slate-600">
+							<span class="text-slate-600 dark:text-slate-400">
 								{suggestion.detected.width_mm.toFixed(1)}mm
 								{#if suggestion.detected.height_mm}
 									x {suggestion.detected.height_mm.toFixed(1)}mm
@@ -42,7 +42,7 @@
 								{/if}
 							</span>
 						{:else}
-							<span class="text-slate-500 italic">Unknown dimensions</span>
+							<span class="text-slate-500 dark:text-slate-400 italic">Unknown dimensions</span>
 						{/if}
 
 						{#if suggestion.detected.media_type !== 'unknown'}
@@ -58,7 +58,7 @@
 
 					<!-- Suggestion reason -->
 					{#if suggestion.reason}
-						<p class="mt-1 text-slate-500 text-xs">
+						<p class="mt-1 text-slate-500 dark:text-slate-400 text-xs">
 							{suggestion.reason}
 						</p>
 					{/if}
@@ -66,7 +66,7 @@
 					<!-- Confidence indicator -->
 					{#if suggestion.confidence}
 						<div class="mt-1 flex items-center gap-1">
-							<span class="text-xs text-slate-400">Confidence:</span>
+							<span class="text-xs text-slate-400 dark:text-slate-500">Confidence:</span>
 							<div class="flex gap-0.5">
 								<div
 									class="w-2 h-2 rounded-full {suggestion.confidence === 'low'
@@ -92,7 +92,7 @@
 		{:else if suggestion.detected.error_message}
 			{#if isNonDetectingPrinter}
 				<!-- Friendly message for PDF/Network printers -->
-				<div class="flex items-center gap-2 text-slate-500">
+				<div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
 					<svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path
 							stroke-linecap="round"
@@ -104,7 +104,7 @@
 					<span>Select a template below based on your paper size</span>
 				</div>
 			{:else}
-				<div class="flex items-center gap-2 text-amber-600">
+				<div class="flex items-center gap-2 text-amber-600 dark:text-amber-500">
 					<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path
 							stroke-linecap="round"
@@ -118,7 +118,7 @@
 			{/if}
 		{:else}
 			{#if isNonDetectingPrinter}
-				<div class="flex items-center gap-2 text-slate-500">
+				<div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
 					<svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path
 							stroke-linecap="round"
@@ -130,12 +130,12 @@
 					<span>Select a template below based on your paper size</span>
 				</div>
 			{:else}
-				<div class="text-slate-500">
+				<div class="text-slate-500 dark:text-slate-400">
 					Media detection not supported for this printer type
 				</div>
 			{/if}
 		{/if}
 	{:else}
-		<div class="text-slate-500">Select a printer to detect media</div>
+		<div class="text-slate-500 dark:text-slate-400">Select a printer to detect media</div>
 	{/if}
 </div>

@@ -124,7 +124,7 @@ class OpenAIVisionClassifier(BaseClassifier):
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-4o",
         max_tokens: int = 500,
     ):
         self.api_key = api_key or settings.openai_api_key
@@ -166,7 +166,7 @@ class OpenAIVisionClassifier(BaseClassifier):
                 "type": "image_url",
                 "image_url": {
                     "url": f"data:{image_type};base64,{image_b64}",
-                    "detail": "low",  # Use low detail for cost efficiency
+                    "detail": "auto",  # Let OpenAI choose based on image complexity
                 },
             })
 
