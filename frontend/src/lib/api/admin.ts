@@ -187,3 +187,70 @@ export async function updateSegmentationSettings(
 export async function checkSegmentationHealth(): Promise<SegmentationHealth> {
 	return get<SegmentationHealth>('/admin/segmentation/health');
 }
+
+// OpenAI settings
+
+export interface ModelOption {
+	id: string;
+	name: string;
+	description: string;
+}
+
+export interface CostEstimate {
+	model: string;
+	estimated_input_tokens: number;
+	estimated_output_tokens: number;
+	estimated_cost_usd: number;
+	cost_per_image_usd?: number;
+}
+
+export interface OpenAISettings {
+	vision_enabled: boolean;
+	vision_model: string;
+	vision_max_tokens: number;
+	vision_temperature: number;
+	vision_cost_estimate: CostEstimate;
+
+	summary_enabled: boolean;
+	summary_model: string;
+	summary_max_tokens: number;
+	summary_temperature: number;
+	summary_cost_estimate: CostEstimate;
+
+	vision_models: ModelOption[];
+	text_models: ModelOption[];
+
+	api_key_set: boolean;
+}
+
+export interface OpenAISettingsUpdate {
+	vision_enabled?: boolean;
+	vision_model?: string;
+	vision_max_tokens?: number;
+	vision_temperature?: number;
+
+	summary_enabled?: boolean;
+	summary_model?: string;
+	summary_max_tokens?: number;
+	summary_temperature?: number;
+}
+
+export async function getOpenAISettings(): Promise<OpenAISettings> {
+	return get<OpenAISettings>('/admin/openai');
+}
+
+export async function updateOpenAISettings(data: OpenAISettingsUpdate): Promise<OpenAISettings> {
+	const response = await fetch('/api/admin/openai', {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data),
+		credentials: 'include'
+	});
+
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({ detail: 'Update failed' }));
+		throw new Error(error.detail || 'Update failed');
+	}
+
+	return response.json();
+}

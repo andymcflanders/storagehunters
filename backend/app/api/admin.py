@@ -137,6 +137,63 @@ class SegmentationHealth(BaseModel):
     error: str | None = None
 
 
+class ModelOption(BaseModel):
+    """Model option for dropdown selection."""
+
+    id: str
+    name: str
+    description: str
+
+
+class CostEstimate(BaseModel):
+    """Cost estimate for an API call."""
+
+    model: str
+    estimated_input_tokens: int
+    estimated_output_tokens: int
+    estimated_cost_usd: float
+    cost_per_image_usd: float | None = None
+
+
+class OpenAISettings(BaseModel):
+    """OpenAI configuration settings."""
+
+    # Vision classification settings
+    vision_enabled: bool
+    vision_model: str
+    vision_max_tokens: int
+    vision_temperature: float
+    vision_cost_estimate: CostEstimate
+
+    # Summary generation settings
+    summary_enabled: bool
+    summary_model: str
+    summary_max_tokens: int
+    summary_temperature: float
+    summary_cost_estimate: CostEstimate
+
+    # Available model options
+    vision_models: list[ModelOption]
+    text_models: list[ModelOption]
+
+    # API key status
+    api_key_set: bool
+
+
+class OpenAISettingsUpdate(BaseModel):
+    """Schema for updating OpenAI settings."""
+
+    vision_enabled: bool | None = None
+    vision_model: str | None = None
+    vision_max_tokens: int | None = None
+    vision_temperature: float | None = None
+
+    summary_enabled: bool | None = None
+    summary_model: str | None = None
+    summary_max_tokens: int | None = None
+    summary_temperature: float | None = None
+
+
 # ============== Endpoints ==============
 
 
@@ -586,4 +643,181 @@ async def check_segmentation_health(
         status=health.get("status", "unknown"),
         model=health.get("model"),
         error=health.get("error"),
+    )
+
+
+# ============== OpenAI Settings ==============
+
+
+async def get_or_create_ai_settings(db: DbSession):
+    """Get or create the singleton AI settings record."""
+    from app.models.ai_settings import AISettings
+
+    result = await db.execute(select(AISettings).limit(1))
+    settings = result.scalar_one_or_none()
+
+    if not settings:
+        settings = AISettings()
+        db.add(settings)
+        await db.commit()
+        await db.refresh(settings)
+
+    return settings
+
+
+@router.get("/openai", response_model=OpenAISettings)
+async def get_openai_settings(
+    db: DbSession,
+    admin: AdminUser,
+) -> OpenAISettings:
+    """Get OpenAI configuration settings (admin only)."""
+    from app.config import get_settings
+    from app.models.ai_settings import (
+        VISION_MODELS,
+        TEXT_MODELS,
+        estimate_vision_cost,
+        estimate_summary_cost,
+    )
+
+    config = get_settings()
+    ai_settings = await get_or_create_ai_settings(db)
+
+    # Get cost estimates
+    vision_cost = estimate_vision_cost(ai_settings.vision_model)
+    summary_cost = estimate_summary_cost(ai_settings.summary_model)
+
+    return OpenAISettings(
+        vision_enabled=ai_settings.vision_enabled,
+        vision_model=ai_settings.vision_model,
+        vision_max_tokens=ai_settings.vision_max_tokens,
+        vision_temperature=ai_settings.vision_temperature,
+        vision_cost_estimate=CostEstimate(
+            model=vision_cost["model"],
+            estimated_input_tokens=vision_cost["estimated_input_tokens"],
+            estimated_output_tokens=vision_cost["estimated_output_tokens"],
+            estimated_cost_usd=vision_cost["estimated_cost_usd"],
+            cost_per_image_usd=vision_cost["cost_per_image_usd"],
+        ),
+        summary_enabled=ai_settings.summary_enabled,
+        summary_model=ai_settings.summary_model,
+        summary_max_tokens=ai_settings.summary_max_tokens,
+        summary_temperature=ai_settings.summary_temperature,
+        summary_cost_estimate=CostEstimate(
+            model=summary_cost["model"],
+            estimated_input_tokens=summary_cost["estimated_input_tokens"],
+            estimated_output_tokens=summary_cost["estimated_output_tokens"],
+            estimated_cost_usd=summary_cost["estimated_cost_usd"],
+        ),
+        vision_models=[ModelOption(**m) for m in VISION_MODELS],
+        text_models=[ModelOption(**m) for m in TEXT_MODELS],
+        api_key_set=bool(config.openai_api_key),
+    )
+
+
+@router.put("/openai", response_model=OpenAISettings)
+async def update_openai_settings(
+    db: DbSession,
+    admin: AdminUser,
+    data: OpenAISettingsUpdate,
+) -> OpenAISettings:
+    """Update OpenAI configuration settings (admin only)."""
+    from app.config import get_settings
+    from app.models.ai_settings import (
+        VISION_MODELS,
+        TEXT_MODELS,
+        OPENAI_MODEL_PRICING,
+        estimate_vision_cost,
+        estimate_summary_cost,
+    )
+    from app.ai import _reset_classifier_cache
+
+    ai_settings = await get_or_create_ai_settings(db)
+
+    # Validate and update vision settings
+    if data.vision_enabled is not None:
+        ai_settings.vision_enabled = data.vision_enabled
+    if data.vision_model is not None:
+        if data.vision_model not in OPENAI_MODEL_PRICING:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid vision model: {data.vision_model}",
+            )
+        ai_settings.vision_model = data.vision_model
+    if data.vision_max_tokens is not None:
+        if not 100 <= data.vision_max_tokens <= 4096:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="vision_max_tokens must be between 100 and 4096",
+            )
+        ai_settings.vision_max_tokens = data.vision_max_tokens
+    if data.vision_temperature is not None:
+        if not 0.0 <= data.vision_temperature <= 2.0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="vision_temperature must be between 0.0 and 2.0",
+            )
+        ai_settings.vision_temperature = data.vision_temperature
+
+    # Validate and update summary settings
+    if data.summary_enabled is not None:
+        ai_settings.summary_enabled = data.summary_enabled
+    if data.summary_model is not None:
+        if data.summary_model not in OPENAI_MODEL_PRICING:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid summary model: {data.summary_model}",
+            )
+        ai_settings.summary_model = data.summary_model
+    if data.summary_max_tokens is not None:
+        if not 50 <= data.summary_max_tokens <= 2048:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="summary_max_tokens must be between 50 and 2048",
+            )
+        ai_settings.summary_max_tokens = data.summary_max_tokens
+    if data.summary_temperature is not None:
+        if not 0.0 <= data.summary_temperature <= 2.0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="summary_temperature must be between 0.0 and 2.0",
+            )
+        ai_settings.summary_temperature = data.summary_temperature
+
+    await db.commit()
+    await db.refresh(ai_settings)
+
+    # Reset the classifier cache so new settings are used
+    _reset_classifier_cache()
+
+    config = get_settings()
+
+    # Get updated cost estimates
+    vision_cost = estimate_vision_cost(ai_settings.vision_model)
+    summary_cost = estimate_summary_cost(ai_settings.summary_model)
+
+    return OpenAISettings(
+        vision_enabled=ai_settings.vision_enabled,
+        vision_model=ai_settings.vision_model,
+        vision_max_tokens=ai_settings.vision_max_tokens,
+        vision_temperature=ai_settings.vision_temperature,
+        vision_cost_estimate=CostEstimate(
+            model=vision_cost["model"],
+            estimated_input_tokens=vision_cost["estimated_input_tokens"],
+            estimated_output_tokens=vision_cost["estimated_output_tokens"],
+            estimated_cost_usd=vision_cost["estimated_cost_usd"],
+            cost_per_image_usd=vision_cost["cost_per_image_usd"],
+        ),
+        summary_enabled=ai_settings.summary_enabled,
+        summary_model=ai_settings.summary_model,
+        summary_max_tokens=ai_settings.summary_max_tokens,
+        summary_temperature=ai_settings.summary_temperature,
+        summary_cost_estimate=CostEstimate(
+            model=summary_cost["model"],
+            estimated_input_tokens=summary_cost["estimated_input_tokens"],
+            estimated_output_tokens=summary_cost["estimated_output_tokens"],
+            estimated_cost_usd=summary_cost["estimated_cost_usd"],
+        ),
+        vision_models=[ModelOption(**m) for m in VISION_MODELS],
+        text_models=[ModelOption(**m) for m in TEXT_MODELS],
+        api_key_set=bool(config.openai_api_key),
     )

@@ -64,9 +64,15 @@ class SummaryGenerator:
         self,
         api_key: str | None = None,
         model: str = "gpt-4o-mini",
+        max_tokens: int = 150,
+        temperature: float = 0.3,
+        enabled: bool = True,
     ):
         self.api_key = api_key or settings.openai_api_key
         self.model = model
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.enabled = enabled
         self.api_url = "https://api.openai.com/v1/chat/completions"
 
     async def generate_summary(
@@ -87,8 +93,8 @@ class SummaryGenerator:
         Returns:
             SummaryResult with the generated summary
         """
-        if not self.api_key:
-            # Fall back to simple summary if no API key
+        if not self.api_key or not self.enabled:
+            # Fall back to simple summary if no API key or disabled
             return self._generate_fallback_summary(items, max_length)
 
         if not items:
@@ -117,8 +123,8 @@ class SummaryGenerator:
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 150,  # Increased for longer summaries
-            "temperature": 0.3,
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature,
         }
 
         try:
@@ -241,15 +247,3 @@ class SummaryGenerator:
             summary = summary[: max_length - 3] + "..."
 
         return SummaryResult(summary=summary, success=True)
-
-
-# Singleton instance
-_summary_generator: SummaryGenerator | None = None
-
-
-def get_summary_generator() -> SummaryGenerator:
-    """Get or create the summary generator instance."""
-    global _summary_generator
-    if _summary_generator is None:
-        _summary_generator = SummaryGenerator()
-    return _summary_generator

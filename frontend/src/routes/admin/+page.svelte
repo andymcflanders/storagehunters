@@ -5,7 +5,7 @@
 	import { toast } from '$lib/stores/toast';
 	import { admin, ssl, backup } from '$lib/api';
 	import { Card, Button } from '$lib/components';
-	import type { SystemStats, AdminUser, ActivityLogItem, SegmentationSettings, SegmentationHealth } from '$lib/api/admin';
+	import type { SystemStats, AdminUser, ActivityLogItem, SegmentationSettings, SegmentationHealth, OpenAISettings } from '$lib/api/admin';
 	import type { SSLStatus, SSLMode } from '$lib/api/ssl';
 	import type { BackupHistory, BackupPreview, ProviderStatus, RemoteBackup, BackupSchedule } from '$lib/api/backup';
 
@@ -63,6 +63,20 @@
 		replicate_model: 'meta/sam-2-base',
 		confidence_threshold: 0.5,
 		min_area_ratio: 1.0
+	};
+
+	// OpenAI settings state
+	let openaiSettings: OpenAISettings | null = null;
+	let savingOpenAI = false;
+	let openaiFormData = {
+		vision_enabled: true,
+		vision_model: 'gpt-4o',
+		vision_max_tokens: 500,
+		vision_temperature: 0.3,
+		summary_enabled: true,
+		summary_model: 'gpt-4o-mini',
+		summary_max_tokens: 150,
+		summary_temperature: 0.3
 	};
 
 	// Backup state
@@ -305,6 +319,7 @@
 	async function loadAISettings() {
 		loadingAI = true;
 		try {
+			// Load segmentation settings
 			segmentationSettings = await admin.getSegmentationSettings();
 			segmentationHealth = await admin.checkSegmentationHealth();
 			aiFormData = {
@@ -314,6 +329,19 @@
 				replicate_model: segmentationSettings.replicate_model,
 				confidence_threshold: segmentationSettings.confidence_threshold,
 				min_area_ratio: segmentationSettings.min_area_ratio
+			};
+
+			// Load OpenAI settings
+			openaiSettings = await admin.getOpenAISettings();
+			openaiFormData = {
+				vision_enabled: openaiSettings.vision_enabled,
+				vision_model: openaiSettings.vision_model,
+				vision_max_tokens: openaiSettings.vision_max_tokens,
+				vision_temperature: openaiSettings.vision_temperature,
+				summary_enabled: openaiSettings.summary_enabled,
+				summary_model: openaiSettings.summary_model,
+				summary_max_tokens: openaiSettings.summary_max_tokens,
+				summary_temperature: openaiSettings.summary_temperature
 			};
 		} catch (error) {
 			toast.error('Failed to load AI settings');
@@ -356,6 +384,30 @@
 			toast.error(message);
 		} finally {
 			savingAI = false;
+		}
+	}
+
+	async function handleSaveOpenAISettings() {
+		savingOpenAI = true;
+		try {
+			const updateData: admin.OpenAISettingsUpdate = {
+				vision_enabled: openaiFormData.vision_enabled,
+				vision_model: openaiFormData.vision_model,
+				vision_max_tokens: openaiFormData.vision_max_tokens,
+				vision_temperature: openaiFormData.vision_temperature,
+				summary_enabled: openaiFormData.summary_enabled,
+				summary_model: openaiFormData.summary_model,
+				summary_max_tokens: openaiFormData.summary_max_tokens,
+				summary_temperature: openaiFormData.summary_temperature
+			};
+
+			openaiSettings = await admin.updateOpenAISettings(updateData);
+			toast.success('OpenAI settings saved');
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to save settings';
+			toast.error(message);
+		} finally {
+			savingOpenAI = false;
 		}
 	}
 
@@ -1734,6 +1786,216 @@
 							<strong>Local vs Cloud:</strong> Local processing (FastSAM) is free but requires
 							the Docker container to run. Cloud processing (Replicate) is faster with GPU
 							acceleration but has per-image costs.
+						</p>
+					</div>
+				</Card>
+
+				<!-- OpenAI Classification Settings -->
+				<Card>
+					<div class="flex items-center justify-between">
+						<div>
+							<h3 class="text-lg font-semibold text-slate-900">OpenAI Classification</h3>
+							<p class="mt-1 text-sm text-slate-500">
+								AI-powered item classification and description generation
+							</p>
+						</div>
+						{#if openaiSettings?.api_key_set}
+							<span class="flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+								<span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+								API Key Set
+							</span>
+						{:else}
+							<span class="flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+								<span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+								No API Key
+							</span>
+						{/if}
+					</div>
+
+					{#if openaiSettings}
+						<div class="mt-6 space-y-6">
+							<!-- Vision Classification -->
+							<div class="rounded-lg border border-slate-200 p-4">
+								<div class="flex items-center justify-between">
+									<div>
+										<h4 class="font-medium text-slate-900">Vision Classification</h4>
+										<p class="text-xs text-slate-500">Used for analyzing item photos</p>
+									</div>
+									<label class="relative inline-flex cursor-pointer items-center">
+										<input type="checkbox" bind:checked={openaiFormData.vision_enabled} class="peer sr-only" />
+										<div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300"></div>
+									</label>
+								</div>
+
+								<div class="mt-4 grid gap-4 sm:grid-cols-2">
+									<div>
+										<label for="vision-model" class="mb-1.5 block text-sm font-medium text-slate-700">
+											Model
+										</label>
+										<select
+											id="vision-model"
+											bind:value={openaiFormData.vision_model}
+											class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+										>
+											{#each openaiSettings.vision_models as model}
+												<option value={model.id}>{model.name} - {model.description}</option>
+											{/each}
+										</select>
+									</div>
+
+									<div>
+										<label for="vision-tokens" class="mb-1.5 block text-sm font-medium text-slate-700">
+											Max Tokens: {openaiFormData.vision_max_tokens}
+										</label>
+										<input
+											id="vision-tokens"
+											type="range"
+											min="200"
+											max="2000"
+											step="100"
+											bind:value={openaiFormData.vision_max_tokens}
+											class="w-full"
+										/>
+									</div>
+								</div>
+
+								<div class="mt-4">
+									<label for="vision-temp" class="mb-1.5 block text-sm font-medium text-slate-700">
+										Temperature: {openaiFormData.vision_temperature.toFixed(2)}
+									</label>
+									<input
+										id="vision-temp"
+										type="range"
+										min="0"
+										max="1"
+										step="0.05"
+										bind:value={openaiFormData.vision_temperature}
+										class="w-full"
+									/>
+									<p class="mt-1 text-xs text-slate-500">
+										Lower = more consistent, Higher = more creative
+									</p>
+								</div>
+
+								<!-- Cost estimate -->
+								<div class="mt-4 rounded-lg bg-slate-50 p-3">
+									<p class="text-sm text-slate-600">
+										<span class="font-medium">Estimated cost per image:</span>
+										${openaiSettings.vision_cost_estimate.cost_per_image_usd?.toFixed(5) || '0.00000'}
+									</p>
+									<p class="mt-1 text-xs text-slate-500">
+										~{openaiSettings.vision_cost_estimate.estimated_input_tokens} input + {openaiSettings.vision_cost_estimate.estimated_output_tokens} output tokens
+									</p>
+								</div>
+							</div>
+
+							<!-- Summary Generation -->
+							<div class="rounded-lg border border-slate-200 p-4">
+								<div class="flex items-center justify-between">
+									<div>
+										<h4 class="font-medium text-slate-900">Summary Generation</h4>
+										<p class="text-xs text-slate-500">Used for container label summaries</p>
+									</div>
+									<label class="relative inline-flex cursor-pointer items-center">
+										<input type="checkbox" bind:checked={openaiFormData.summary_enabled} class="peer sr-only" />
+										<div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300"></div>
+									</label>
+								</div>
+
+								<div class="mt-4 grid gap-4 sm:grid-cols-2">
+									<div>
+										<label for="summary-model" class="mb-1.5 block text-sm font-medium text-slate-700">
+											Model
+										</label>
+										<select
+											id="summary-model"
+											bind:value={openaiFormData.summary_model}
+											class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+										>
+											{#each openaiSettings.text_models as model}
+												<option value={model.id}>{model.name} - {model.description}</option>
+											{/each}
+										</select>
+									</div>
+
+									<div>
+										<label for="summary-tokens" class="mb-1.5 block text-sm font-medium text-slate-700">
+											Max Tokens: {openaiFormData.summary_max_tokens}
+										</label>
+										<input
+											id="summary-tokens"
+											type="range"
+											min="50"
+											max="500"
+											step="25"
+											bind:value={openaiFormData.summary_max_tokens}
+											class="w-full"
+										/>
+									</div>
+								</div>
+
+								<div class="mt-4">
+									<label for="summary-temp" class="mb-1.5 block text-sm font-medium text-slate-700">
+										Temperature: {openaiFormData.summary_temperature.toFixed(2)}
+									</label>
+									<input
+										id="summary-temp"
+										type="range"
+										min="0"
+										max="1"
+										step="0.05"
+										bind:value={openaiFormData.summary_temperature}
+										class="w-full"
+									/>
+									<p class="mt-1 text-xs text-slate-500">
+										Lower = more consistent, Higher = more creative
+									</p>
+								</div>
+
+								<!-- Cost estimate -->
+								<div class="mt-4 rounded-lg bg-slate-50 p-3">
+									<p class="text-sm text-slate-600">
+										<span class="font-medium">Estimated cost per summary:</span>
+										${openaiSettings.summary_cost_estimate.estimated_cost_usd.toFixed(6)}
+									</p>
+									<p class="mt-1 text-xs text-slate-500">
+										~{openaiSettings.summary_cost_estimate.estimated_input_tokens} input + {openaiSettings.summary_cost_estimate.estimated_output_tokens} output tokens
+									</p>
+								</div>
+							</div>
+
+							<div class="flex justify-end pt-2">
+								<Button on:click={handleSaveOpenAISettings} loading={savingOpenAI}>
+									Save OpenAI Settings
+								</Button>
+							</div>
+						</div>
+					{:else}
+						<div class="mt-4 text-sm text-slate-500">
+							Loading OpenAI settings...
+						</div>
+					{/if}
+				</Card>
+
+				<!-- OpenAI Help -->
+				<Card>
+					<h3 class="text-lg font-semibold text-slate-900">About OpenAI Classification</h3>
+					<div class="mt-4 space-y-3 text-sm text-slate-600">
+						<p>
+							<strong>Vision Classification:</strong> When you add a new item, the AI analyzes the photo
+							to automatically generate a name, description, tags, and detect size/season information.
+						</p>
+						<p>
+							<strong>Summary Generation:</strong> Creates helpful summaries for container labels,
+							describing what's inside in 2-4 sentences.
+						</p>
+						<p>
+							<strong>Model Selection:</strong> GPT-4o provides the best quality but costs more.
+							GPT-4o-mini is a good balance of quality and cost for most uses.
+						</p>
+						<p>
+							<strong>Cost Estimates:</strong> Shown costs are approximate. Actual costs depend on
+							image complexity and response length. Check <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener" class="text-primary-600 underline">OpenAI pricing</a> for current rates.
 						</p>
 					</div>
 				</Card>

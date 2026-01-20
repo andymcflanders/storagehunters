@@ -1,6 +1,7 @@
 """SQLAlchemy models for StorageHub."""
 
 from app.models.activity import ActivityLog
+from app.models.ai_settings import AISettings
 from app.models.api_key import APIKey, APIKeyScope
 from app.models.backup import (
     BackupConfig,
@@ -52,4 +53,5 @@ __all__ = [
     "BackupProviderType",
     "BackupStatus",
     "ScheduleFrequency",
+    "AISettings",
 ]

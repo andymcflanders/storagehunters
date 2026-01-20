@@ -126,10 +126,12 @@ class OpenAIVisionClassifier(BaseClassifier):
         api_key: str | None = None,
         model: str = "gpt-4o",
         max_tokens: int = 500,
+        temperature: float = 0.3,
     ):
         self.api_key = api_key or settings.openai_api_key
         self.model = model
         self.max_tokens = max_tokens
+        self.temperature = temperature
         self.api_url = "https://api.openai.com/v1/chat/completions"
 
     async def classify(self, images: list[bytes]) -> ClassificationResult:
@@ -174,7 +176,7 @@ class OpenAIVisionClassifier(BaseClassifier):
             "model": self.model,
             "messages": [{"role": "user", "content": content}],
             "max_tokens": self.max_tokens,
-            "temperature": 0.3,  # Lower temperature for more consistent output
+            "temperature": self.temperature,
         }
 
         async with httpx.AsyncClient(timeout=90.0) as client:
