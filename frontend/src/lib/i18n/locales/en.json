@@ -10,6 +10,7 @@
 		"reminders": "Reminders",
 		"printers": "Printers",
 		"godView": "God View",
+		"docs": "Docs",
 		"home": "Home",
 		"browse": "Browse",
 		"add": "Add",
@@ -337,5 +338,78 @@
 		"hoursAgo": "{count} hours ago",
 		"daysAgo": "{count} days ago",
 		"weeksAgo": "{count} weeks ago"
+	},
+	"docs": {
+		"title": "Documentation",
+		"subtitle": "Learn how to use StorageHub",
+		"categories": {
+			"userGuide": "User Guide",
+			"technical": "Technical Docs"
+		},
+		"navigation": {
+			"previous": "Previous",
+			"next": "Next"
+		},
+		"userGuide": {
+			"introduction": {
+				"title": "Introduction"
+			},
+			"hierarchy": {
+				"title": "Understanding the Hierarchy"
+			},
+			"locations": {
+				"title": "Managing Locations"
+			},
+			"containers": {
+				"title": "Working with Containers"
+			},
+			"items": {
+				"title": "Managing Items"
+			},
+			"aiFeatures": {
+				"title": "AI Features"
+			},
+			"searching": {
+				"title": "Searching"
+			},
+			"qrCodes": {
+				"title": "QR Codes"
+			},
+			"sharing": {
+				"title": "Sharing"
+			},
+			"reminders": {
+				"title": "Reminders"
+			},
+			"godview": {
+				"title": "God View"
+			},
+			"printing": {
+				"title": "Printing Labels"
+			},
+			"settings": {
+				"title": "Settings"
+			},
+			"admin": {
+				"title": "Admin Features"
+			},
+			"backup": {
+				"title": "Backup & Restore"
+			}
+		},
+		"technical": {
+			"architecture": {
+				"title": "Architecture Overview"
+			},
+			"database": {
+				"title": "Database Models"
+			},
+			"apiOverview": {
+				"title": "API Overview"
+			},
+			"apiEndpoints": {
+				"title": "API Endpoints"
+			}
+		}
 	}
 }

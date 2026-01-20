@@ -10,6 +10,7 @@
 		"reminders": "Påminnelser",
 		"printers": "Skrivere",
 		"godView": "Totaloversikt",
+		"docs": "Dokumentasjon",
 		"home": "Hjem",
 		"browse": "Bla",
 		"add": "Legg til",
@@ -337,5 +338,78 @@
 		"hoursAgo": "{count} timer siden",
 		"daysAgo": "{count} dager siden",
 		"weeksAgo": "{count} uker siden"
+	},
+	"docs": {
+		"title": "Dokumentasjon",
+		"subtitle": "Lær hvordan du bruker StorageHub",
+		"categories": {
+			"userGuide": "Brukerveiledning",
+			"technical": "Teknisk dokumentasjon"
+		},
+		"navigation": {
+			"previous": "Forrige",
+			"next": "Neste"
+		},
+		"userGuide": {
+			"introduction": {
+				"title": "Introduksjon"
+			},
+			"hierarchy": {
+				"title": "Forstå hierarkiet"
+			},
+			"locations": {
+				"title": "Administrere steder"
+			},
+			"containers": {
+				"title": "Arbeide med beholdere"
+			},
+			"items": {
+				"title": "Administrere gjenstander"
+			},
+			"aiFeatures": {
+				"title": "AI-funksjoner"
+			},
+			"searching": {
+				"title": "Søking"
+			},
+			"qrCodes": {
+				"title": "QR-koder"
+			},
+			"sharing": {
+				"title": "Deling"
+			},
+			"reminders": {
+				"title": "Påminnelser"
+			},
+			"godview": {
+				"title": "Totaloversikt"
+			},
+			"printing": {
+				"title": "Skrive ut etiketter"
+			},
+			"settings": {
+				"title": "Innstillinger"
+			},
+			"admin": {
+				"title": "Administratorfunksjoner"
+			},
+			"backup": {
+				"title": "Sikkerhetskopiering og gjenoppretting"
+			}
+		},
+		"technical": {
+			"architecture": {
+				"title": "Arkitekturoversikt"
+			},
+			"database": {
+				"title": "Databasemodeller"
+			},
+			"apiOverview": {
+				"title": "API-oversikt"
+			},
+			"apiEndpoints": {
+				"title": "API-endepunkter"
+			}
+		}
 	}
 }

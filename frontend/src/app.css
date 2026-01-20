@@ -65,6 +65,164 @@
 	}
 }
 
+@layer components {
+	/* Prose styles for markdown content */
+	.prose {
+		@apply text-slate-700 leading-relaxed;
+	}
+
+	.prose h1 {
+		@apply text-3xl font-bold text-slate-900 mt-8 mb-4 first:mt-0;
+	}
+
+	.prose h2 {
+		@apply text-2xl font-bold text-slate-900 mt-8 mb-4 pb-2 border-b border-slate-200;
+	}
+
+	.prose h3 {
+		@apply text-xl font-semibold text-slate-900 mt-6 mb-3;
+	}
+
+	.prose h4 {
+		@apply text-lg font-semibold text-slate-900 mt-4 mb-2;
+	}
+
+	.prose p {
+		@apply mb-4;
+	}
+
+	.prose a {
+		@apply text-primary-600 hover:text-primary-700 underline;
+	}
+
+	.prose strong {
+		@apply font-semibold text-slate-900;
+	}
+
+	.prose ul {
+		@apply list-disc list-inside mb-4 space-y-1;
+	}
+
+	.prose ol {
+		@apply list-decimal list-inside mb-4 space-y-1;
+	}
+
+	.prose li {
+		@apply text-slate-700;
+	}
+
+	.prose li > ul,
+	.prose li > ol {
+		@apply ml-4 mt-1;
+	}
+
+	.prose blockquote {
+		@apply border-l-4 border-amber-400 bg-amber-50 pl-4 py-2 my-4 text-slate-700 italic;
+	}
+
+	.prose code {
+		@apply bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-sm font-mono;
+	}
+
+	.prose pre {
+		@apply bg-slate-800 text-slate-100 p-4 rounded-lg my-4 overflow-x-auto;
+	}
+
+	.prose pre code {
+		@apply bg-transparent text-inherit p-0 rounded-none;
+	}
+
+	.prose table {
+		@apply w-full border-collapse my-4;
+	}
+
+	.prose th {
+		@apply bg-slate-100 text-left px-4 py-2 font-semibold text-slate-900 border border-slate-200;
+	}
+
+	.prose td {
+		@apply px-4 py-2 border border-slate-200;
+	}
+
+	.prose tr:nth-child(even) td {
+		@apply bg-slate-50;
+	}
+
+	.prose hr {
+		@apply my-8 border-slate-200;
+	}
+
+	.prose img {
+		@apply rounded-lg my-4;
+	}
+
+	/* Dark mode prose styles */
+	.dark .prose {
+		@apply text-slate-300;
+	}
+
+	.dark .prose h1,
+	.dark .prose h2,
+	.dark .prose h3,
+	.dark .prose h4,
+	.dark .prose strong {
+		@apply text-white;
+	}
+
+	.dark .prose h2 {
+		@apply border-slate-700;
+	}
+
+	.dark .prose a {
+		@apply text-primary-400 hover:text-primary-300;
+	}
+
+	.dark .prose li {
+		@apply text-slate-300;
+	}
+
+	.dark .prose blockquote {
+		@apply border-amber-500 bg-amber-900/20 text-slate-300;
+	}
+
+	.dark .prose code {
+		@apply bg-slate-700 text-slate-200;
+	}
+
+	.dark .prose pre {
+		@apply bg-slate-950 text-slate-200;
+	}
+
+	.dark .prose th {
+		@apply bg-slate-800 text-white border-slate-700;
+	}
+
+	.dark .prose td {
+		@apply border-slate-700;
+	}
+
+	.dark .prose tr:nth-child(even) td {
+		@apply bg-slate-800/50;
+	}
+
+	.dark .prose hr {
+		@apply border-slate-700;
+	}
+
+	/* Prose invert utility for dark backgrounds */
+	.prose-invert {
+		@apply text-slate-300;
+	}
+
+	.prose-invert h1,
+	.prose-invert h2,
+	.prose-invert h3,
+	.prose-invert h4,
+	.prose-invert strong {
+		@apply text-white;
+	}
+}
+
 @layer utilities {
 	.text-balance {
 		text-wrap: balance;

@@ -10,6 +10,7 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
   },
   "dependencies": {
+    "marked": "^15.0.0",
     "svelte-dnd-action": "^0.9.49",
     "svelte-i18n": "^4.0.0"
   },
