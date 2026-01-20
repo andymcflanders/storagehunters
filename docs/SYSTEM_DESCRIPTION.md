@@ -185,6 +185,46 @@ Audit trail for all changes.
 | new_values | JSON | New values |
 | created_at | DateTime | When it happened |
 
+#### AISettings
+Configuration for OpenAI models (singleton table).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| vision_model | String | Model for image classification (default: gpt-4o) |
+| vision_max_tokens | Integer | Max response tokens (default: 500) |
+| vision_temperature | Float | Model temperature (default: 0.3) |
+| vision_enabled | Boolean | Enable vision classification |
+| summary_model | String | Model for summaries (default: gpt-4o-mini) |
+| summary_max_tokens | Integer | Max summary tokens (default: 150) |
+| summary_temperature | Float | Summary temperature (default: 0.3) |
+| summary_enabled | Boolean | Enable AI summaries |
+
+#### SegmentationSettings
+Configuration for image segmentation (singleton table).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| enabled | Boolean | Enable segmentation feature |
+| provider | Enum | LOCAL, REPLICATE |
+| replicate_model | String | Replicate model identifier |
+| confidence_threshold | Float | Minimum confidence for detection |
+| min_area_ratio | Float | Minimum object area ratio |
+
+#### BackupConfig
+Configuration for automatic backups (singleton table).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| enabled | Boolean | Enable automatic backups |
+| frequency_hours | Integer | Hours between backups |
+| retention_count | Integer | Number of backups to keep |
+| google_drive_enabled | Boolean | Sync to Google Drive |
+| google_credentials | JSON | OAuth credentials (encrypted) |
+| last_backup_at | DateTime | Last successful backup time |
+
 ---
 
 ## Feature Modules
@@ -224,12 +264,24 @@ Audit trail for all changes.
 - Background processing via Celery workers
 - Reprocessing capability for updated results
 
+**Configurable AI Models:**
+- Vision model selection (gpt-4o, gpt-4o-mini, gpt-4-turbo)
+- Summary model selection
+- Adjustable max tokens and temperature
+- Real-time cost estimation per operation
+- Settings stored in database with caching
+
 **Image Segmentation:**
 - Upload a single image containing multiple items
 - AI detects and segments individual objects
 - Creates separate items for each detected object
 - Review workflow for AI-created items
 - Two providers: Local FastSAM or Replicate API
+
+**Container Summaries:**
+- AI-generated content descriptions for labels
+- Considers item owners, seasons, and categories
+- Configurable model and parameters
 
 **Semantic Search:**
 - Natural language queries ("red dress size 104")
@@ -371,6 +423,29 @@ Audit trail for all changes.
 - Let's Encrypt integration
 - Auto-renewal support
 
+### 11. Backup & Restore System
+
+**Manual Backups:**
+- Create database dumps on demand
+- Download backups as compressed archives
+- View backup history with timestamps and sizes
+
+**Automatic Backups:**
+- Configurable backup frequency (hourly to weekly)
+- Retention policy (number of backups to keep)
+- Runs via Celery beat scheduler
+
+**Google Drive Integration:**
+- OAuth-based authentication
+- Automatic upload after backup completion
+- List and manage cloud backups
+- Sync backup deletions
+
+**Restore Operations:**
+- Point-in-time restore from any backup
+- Full database replacement
+- Automatic service restart after restore
+
 ---
 
 ## API Structure
@@ -401,7 +476,9 @@ Most endpoints require authentication via session cookie. Public endpoints:
 | `/api/uploads` | Image upload and segmentation |
 | `/api/activity` | Activity logs |
 | `/api/export` | Data export |
-| `/api/admin` | Admin operations |
+| `/api/admin` | Admin operations (users, AI settings, segmentation) |
+| `/api/admin/openai` | OpenAI model configuration |
+| `/api/backup` | Backup and restore operations |
 | `/api/ssl` | SSL configuration |
 
 ---
@@ -422,6 +499,9 @@ Most endpoints require authentication via session cookie. Public endpoints:
 - **process_item_image**: AI classification of uploaded images
 - **segment_image**: Object detection and segmentation
 - **create_items_from_segments**: Item creation from segmented objects
+- **create_backup**: Create database backup
+- **cleanup_old_backups**: Remove backups exceeding retention limit
+- **upload_backup_to_drive**: Sync backup to Google Drive
 
 ---
 
@@ -495,5 +575,8 @@ Managed via Alembic. Current migrations:
 8. Add segmentation support
 9. Add Norwegian AI fields
 10. Add primary_image_id to items
+11. Add segmentation_settings table
+12. Add backup_config table
+13. Add ai_settings table (OpenAI configuration)
 
 Run migrations: `alembic upgrade head`

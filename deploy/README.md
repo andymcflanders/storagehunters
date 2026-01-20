@@ -115,6 +115,9 @@ ssh user@192.168.200.13
 # Deploy to production
 ./deploy/deploy.sh
 
+# Deploy with database migrations (after schema changes)
+./deploy/deploy.sh --migrate
+
 # View production logs
 ./deploy/logs.sh
 
@@ -136,6 +139,41 @@ ssh user@192.168.200.13
 
 # Create a new user
 ./deploy/create-admin.sh "Name" "email@example.com" "password"
+```
+
+---
+
+## Backups
+
+### Built-in Backup System
+
+StorageHub has a built-in backup system accessible from the Admin panel:
+
+1. Go to **Admin → Backups** in the web interface
+2. Click **Create Backup** for manual backups
+3. Configure automatic backups with retention policies
+4. Optionally enable Google Drive sync for off-site storage
+
+### Manual Database Backup (CLI)
+
+```bash
+# Create a database dump
+./deploy/backup.sh
+
+# Backups are stored in /opt/storagehub/backups on the server
+```
+
+### Restoring from Backup
+
+Use the Admin panel to restore from any backup, or manually:
+
+```bash
+# SSH to server
+ssh user@192.168.200.13
+
+# Restore from backup file
+cd /opt/storagehub
+docker compose exec -T postgres pg_restore -U storagehub -d storagehub < backups/backup-file.dump
 ```
 
 ---

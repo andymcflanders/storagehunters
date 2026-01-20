@@ -20,7 +20,8 @@ Welcome to StorageHub! This guide will help you organize and manage your belongi
 12. [Printing Labels](#printing-labels)
 13. [Settings & Preferences](#settings--preferences)
 14. [Admin Features](#admin-features)
-15. [Tips & Best Practices](#tips--best-practices)
+15. [Backup & Restore](#backup--restore)
+16. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -516,6 +517,21 @@ Click the trash icon on any row to delete:
 - Containers (shows options if has contents)
 - Items (immediate delete)
 
+### Batch Printing Labels
+
+Print labels for all containers in a location at once:
+
+1. Hover over a location row
+2. Click the **Print** button (printer icon)
+3. Select your printer
+4. Preview the labels for all containers
+5. Click **Print All**
+
+Labels include:
+- Container name
+- QR code
+- AI-generated summary (if enabled)
+
 ### Expanded Item View
 
 Click the arrow on an item row to expand:
@@ -584,10 +600,13 @@ Access via the gear icon or **Settings** menu.
 - Norwegian
 - Affects UI and AI-generated content
 
-**Theme:**
-- Light mode
-- Dark mode
-- System preference
+**Theme (Dark Mode):**
+StorageHub includes a full dark theme:
+- Light mode - bright interface
+- Dark mode - dark interface, easier on the eyes
+- System preference - follows your device settings
+
+Toggle dark mode from the settings page or use the theme button in the navigation.
 
 ### Changing Password
 
@@ -652,10 +671,103 @@ Dashboard shows:
 
 ### AI Settings
 
-Configure AI features:
-- Enable/disable segmentation
-- Choose provider (FastSAM or Replicate)
-- Check service health
+**Segmentation Settings:**
+- Enable/disable multi-item detection
+- Choose provider (Local FastSAM or Replicate API)
+- Configure confidence threshold and minimum area
+- Check service health status
+
+**OpenAI Classification Settings:**
+Configure the AI models used for item classification:
+
+1. **Vision Classification** (for analyzing uploaded images):
+   - Enable/disable vision processing
+   - Select model (gpt-4o, gpt-4o-mini, gpt-4-turbo)
+   - Adjust max tokens (response length)
+   - Set temperature (0.0-1.0, lower = more consistent)
+   - View estimated cost per image
+
+2. **Summary Generation** (for container labels):
+   - Enable/disable AI summaries
+   - Select model (gpt-4o-mini, gpt-4o)
+   - Adjust max tokens
+   - Set temperature
+   - View estimated cost per summary
+
+The admin panel shows real-time cost estimates based on current settings, helping you balance quality vs. cost.
+
+---
+
+## Backup & Restore
+
+*Available to users with Admin role only.*
+
+StorageHub includes a comprehensive backup system to protect your inventory data.
+
+### Accessing Backup Settings
+
+1. Go to **Admin** in the navigation menu
+2. Click the **Backups** tab
+
+### Creating a Manual Backup
+
+1. Click **Create Backup Now**
+2. Wait for the backup to complete
+3. The backup appears in the list with timestamp and size
+
+### Downloading Backups
+
+1. Find the backup in the list
+2. Click the **Download** button
+3. A compressed archive is downloaded containing your complete database
+
+### Restoring from Backup
+
+**Warning:** Restoring replaces your current data!
+
+1. Find the backup you want to restore
+2. Click **Restore**
+3. Confirm the restoration
+4. Wait for the process to complete
+5. The system reloads with the restored data
+
+### Automatic Backups
+
+Configure scheduled backups to run automatically:
+
+1. In Backup Settings, enable **Automatic Backups**
+2. Set the frequency (daily, weekly, or custom interval)
+3. Configure retention (how many backups to keep)
+4. Backups run automatically at the scheduled time
+
+### Google Drive Integration
+
+Sync backups to Google Drive for off-site storage:
+
+**Setting Up Google Drive:**
+1. Click **Setup Google Drive** in the Backup section
+2. Follow the OAuth flow to authorize StorageHub
+3. Grant access to manage backup files
+
+**Automatic Sync:**
+- Once configured, backups are automatically uploaded to Google Drive
+- Backups are stored in a "StorageHub Backups" folder
+- Old backups are automatically cleaned up based on retention settings
+
+**Manual Sync:**
+- Click **Sync Now** to upload the latest backup
+- Click **List Backups** to see backups stored in Google Drive
+
+### Backup Contents
+
+Each backup includes:
+- All locations, containers, and items
+- User accounts and settings
+- Tags, reminders, and share links
+- Activity logs
+- System configuration
+
+**Note:** Uploaded images are NOT included in database backups. Consider backing up the `uploads/` directory separately.
 
 ---
 
