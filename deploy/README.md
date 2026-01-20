@@ -26,10 +26,10 @@ On your laptop, run:
 ssh-keygen -t ed25519 -C "storagehub-deploy"
 
 # Copy your public key to the server (you'll need the server password)
-ssh-copy-id john@192.168.200.13
+ssh-copy-id user@192.168.200.13
 
 # Test the connection (should not ask for password)
-ssh john@192.168.200.13 "echo 'SSH key access working!'"
+ssh user@192.168.200.13 "echo 'SSH key access working!'"
 ```
 
 ### Step 2: Provision the Server
@@ -62,6 +62,22 @@ Important settings to configure:
 ./deploy/deploy.sh
 ```
 
+### Step 5: Create First Admin User
+
+After the initial deployment, create your first admin user:
+
+```bash
+# With password (recommended for production)
+./deploy/create-admin.sh "Your Name" "your@email.com" "your-password"
+
+# Without password (household mode - anyone can select the user)
+./deploy/create-admin.sh "Your Name"
+```
+
+You can now access StorageHub at `https://192.168.200.13`
+
+> **Note:** The first time you visit, your browser will warn about the self-signed certificate. This is expected for local network deployments. Click "Advanced" and "Proceed" to continue.
+
 ---
 
 ## Daily Workflow
@@ -88,7 +104,7 @@ git push
 ./deploy/logs.sh
 
 # Optional: SSH to server
-ssh john@192.168.200.13
+ssh user@192.168.200.13
 ```
 
 ---
@@ -110,13 +126,16 @@ ssh john@192.168.200.13
 ./deploy/restart.sh
 
 # SSH to production server
-ssh john@192.168.200.13
+ssh user@192.168.200.13
 
 # Run database migrations on production
 ./deploy/migrate.sh
 
 # Backup production database
 ./deploy/backup.sh
+
+# Create a new user
+./deploy/create-admin.sh "Name" "email@example.com" "password"
 ```
 
 ---
@@ -126,7 +145,7 @@ ssh john@192.168.200.13
 ### SSH Connection Refused
 ```bash
 # Check if SSH is running on server
-ssh john@192.168.200.13 "sudo systemctl status ssh"
+ssh user@192.168.200.13 "sudo systemctl status ssh"
 ```
 
 ### Docker Permission Denied
