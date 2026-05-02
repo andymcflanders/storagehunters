@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Nginx Reverse Proxy (Entry Point)
   nginx:
@@ -23,13 +21,13 @@ services:
     image: postgres:16-alpine
     container_name: storagehub-postgres
     environment:
-      POSTGRES_USER: storagehub
-      POSTGRES_PASSWORD: storagehub_secret
-      POSTGRES_DB: storagehub
+      POSTGRES_USER: ${POSTGRES_USER:-storagehub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-storagehub}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U storagehub -d storagehub"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-storagehub} -d ${POSTGRES_DB:-storagehub}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -55,14 +53,15 @@ services:
       dockerfile: Dockerfile
     container_name: storagehub-backend
     environment:
-      DATABASE_URL: postgresql://storagehub:storagehub_secret@postgres:5432/storagehub
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-storagehub}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-storagehub}"
       REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-min-32-chars-long}
+      SECRET_KEY: "${SECRET_KEY:?SECRET_KEY must be set in .env - generate with openssl rand -hex 32}"
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       UPLOAD_DIR: /app/uploads
-      MAX_UPLOAD_SIZE_MB: 10
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
       FASTSAM_URL: http://fastsam:8001
       FASTSAM_ENABLED: "true"
       # Segmentation settings
@@ -95,13 +94,16 @@ services:
       dockerfile: Dockerfile
     container_name: storagehub-celery
     command: celery -A app.worker.celery_app worker --loglevel=info -Q celery,ai,segmentation,default
+    healthcheck:
+      disable: true
     environment:
-      DATABASE_URL: postgresql://storagehub:storagehub_secret@postgres:5432/storagehub
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-storagehub}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-storagehub}"
       REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-min-32-chars-long}
+      SECRET_KEY: "${SECRET_KEY:?SECRET_KEY must be set in .env}"
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       UPLOAD_DIR: /app/uploads
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       FASTSAM_URL: http://fastsam:8001
       FASTSAM_ENABLED: "true"
       # Segmentation settings
@@ -127,10 +129,12 @@ services:
       dockerfile: Dockerfile
     container_name: storagehub-celery-beat
     command: celery -A app.worker.celery_app beat --loglevel=info
+    healthcheck:
+      disable: true
     environment:
-      DATABASE_URL: postgresql://storagehub:storagehub_secret@postgres:5432/storagehub
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-storagehub}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-storagehub}"
       REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-min-32-chars-long}
+      SECRET_KEY: "${SECRET_KEY:?SECRET_KEY must be set in .env}"
       UPLOAD_DIR: /app/uploads
     volumes:
       - uploads_data:/app/uploads

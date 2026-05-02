@@ -97,15 +97,20 @@ app = FastAPI(
 )
 
 # CORS middleware - build origin list
+# Always-allowed: configured frontend_url plus localhost variants for dev/Docker.
+# Additional origins (e.g. LAN IPs, alternate domains) come from CORS_ORIGINS
+# as a comma-separated string.
 cors_origins = [
     settings.frontend_url,
     "http://localhost:5173",
     "http://localhost:3000",
-    "http://localhost",  # Docker with nginx
+    "http://localhost",
     "https://localhost",
-    "http://192.168.200.13",
-    "https://192.168.200.13",
 ]
+if settings.cors_origins:
+    cors_origins.extend(
+        origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()
+    )
 
 app.add_middleware(
     CORSMiddleware,

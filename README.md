@@ -63,19 +63,19 @@ A self-hosted web application for tracking personal belongings across multiple s
 
 ### Quick Start with Docker (Recommended)
 
-The easiest way to run StorageHub is with Docker:
-
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/storagehub.git
 cd storagehub
 
-# Copy environment file
-cp .env.docker .env
+# Create .env from the template
+cp .env.example .env
 
-# (Optional) Edit .env to add your OpenAI API key for AI features
-# AI_PROVIDER=openai
-# OPENAI_API_KEY=sk-...
+# Set the two required values (compose will refuse to start without them):
+#   SECRET_KEY        — generate with: openssl rand -hex 32
+#   POSTGRES_PASSWORD — any strong password
+# Optionally also set:
+#   AI_PROVIDER=openai and OPENAI_API_KEY=sk-... for AI features
 
 # Start all services
 docker compose up -d
@@ -88,6 +88,14 @@ Access the application:
 - **Application**: http://localhost
 - **API Docs**: http://localhost/docs
 
+Create the first admin user (run once, after services are up):
+
+```bash
+curl -X POST http://localhost/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Admin","email":"you@example.com","password":"your-password","requires_password":true,"role":"admin","language":"en"}'
+```
+
 To stop:
 ```bash
 docker compose down
@@ -97,6 +105,27 @@ To reset everything (including data):
 ```bash
 docker compose down -v
 ```
+
+### Production Checklist
+
+When deploying to a real server (single VPS, cloud, etc.):
+
+1. **Generate a strong `SECRET_KEY`**: `openssl rand -hex 32`
+2. **Set a strong `POSTGRES_PASSWORD`** in `.env` (don't reuse the example)
+3. **Set `FRONTEND_URL`** to the public URL where users will reach the app
+   (e.g. `https://storagehub.example.com`). This is used for QR codes and
+   share links — wrong values will produce broken links.
+4. **Set `CORS_ORIGINS`** if the app is reachable at additional URLs (LAN IP,
+   alternate domains). Comma-separated.
+5. **Configure HTTPS** — see `deploy/README.md` for the Let's Encrypt flow
+   via the bundled certbot service.
+6. **Back up regularly** — use the in-app Admin → Backups panel, or the
+   `deploy/backup.sh` script for CLI dumps.
+
+The deployment is portable: the same `docker-compose.yml` works on a single
+VPS, a cloud VM, or any platform that runs Docker Compose (Coolify, Dokploy,
+etc.). The `deploy/` directory contains optional helpers for an SSH-based
+laptop→server workflow.
 
 ### Manual Setup (Development)
 

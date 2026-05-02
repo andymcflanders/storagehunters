@@ -21,9 +21,13 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    # Security
-    secret_key: str = "change-me-in-production-min-32-chars"
+    # Security (required — no default; generate with: openssl rand -hex 32)
+    secret_key: str
     access_token_expire_days: int = 30
+
+    # CORS — comma-separated list of additional allowed origins beyond
+    # frontend_url and the always-allowed localhost variants
+    cors_origins: str = ""
 
     # AI Provider
     ai_provider: str = "openai"
