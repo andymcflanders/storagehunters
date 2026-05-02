@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { auth, user } from '$lib/stores/auth';
 	import { Toast, SearchBar, QuickAdd } from '$lib/components';
@@ -29,20 +30,37 @@
 			}
 		});
 
+		// First-run check: if the instance has no users yet, send the
+		// browser into the setup wizard. The setup endpoints are public,
+		// so this works even though there's nobody to authenticate as.
+		// Skip the check on /setup itself to avoid redirect loops.
+		if (!$page.url.pathname.startsWith('/setup')) {
+			fetch('/api/setup/status', { credentials: 'include' })
+				.then((r) => (r.ok ? r.json() : null))
+				.then((data) => {
+					if (data?.needs_setup) goto('/setup');
+				})
+				.catch(() => {
+					// Backend unreachable — let the rest of the app surface that.
+				});
+		}
+
 		return unsubscribe;
 	});
 
 	$: isLoginPage = $page.url.pathname === '/login';
+	$: isSetupPage = $page.url.pathname.startsWith('/setup');
+	$: isChromeless = isLoginPage || isSetupPage;
 </script>
 
 <Toast />
 
-{#if !$user && !isLoginPage}
+{#if !$user && !isChromeless}
 	<!-- Redirect to login handled by layout load -->
 {/if}
 
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900">
-	{#if $user && !isLoginPage}
+	{#if $user && !isChromeless}
 		<!-- Header -->
 		<header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
 			<div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -172,12 +190,12 @@
 	{/if}
 
 	<!-- Main content -->
-	<main class="{$user && !isLoginPage ? 'mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 md:pb-8 lg:px-8' : ''}">
+	<main class="{$user && !isChromeless ? 'mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 md:pb-8 lg:px-8' : ''}">
 		<slot />
 	</main>
 
 	<!-- Mobile bottom navigation -->
-	{#if $user && !isLoginPage}
+	{#if $user && !isChromeless}
 		<nav class="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white pb-safe dark:border-slate-700 dark:bg-slate-900 md:hidden">
 			<div class="flex h-16 items-stretch justify-around">
 				<!-- Home -->

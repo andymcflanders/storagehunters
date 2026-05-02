@@ -41,6 +41,7 @@ class CachedAISettings:
     summary_temperature: float = 0.3
     supported_languages: tuple[str, ...] = ("en", "no")
     default_language: str = "en"
+    openai_api_key: str | None = None
 
 
 # Module-level cache
@@ -90,6 +91,7 @@ def _load_ai_settings_sync() -> CachedAISettings:
                     summary_temperature=settings.summary_temperature,
                     supported_languages=tuple(settings.supported_languages or ("en",)),
                     default_language=settings.default_language or "en",
+                    openai_api_key=settings.openai_api_key,
                 )
             else:
                 # Use defaults if no settings exist yet
@@ -122,13 +124,16 @@ def get_classifier() -> BaseClassifier:
     ai_settings = _load_ai_settings_sync()
 
     languages = list(ai_settings.supported_languages)
+    # DB-stored key wins over the env var so the onboarding wizard /
+    # admin panel can persist a key without rewriting .env on disk.
+    api_key = ai_settings.openai_api_key or settings.openai_api_key
 
     if settings.ai_provider == "openai":
-        if not settings.openai_api_key or not ai_settings.vision_enabled:
+        if not api_key or not ai_settings.vision_enabled:
             return MockClassifier(languages=languages)
 
         return OpenAIVisionClassifier(
-            api_key=settings.openai_api_key,
+            api_key=api_key,
             model=ai_settings.vision_model,
             max_tokens=ai_settings.vision_max_tokens,
             temperature=ai_settings.vision_temperature,
@@ -147,9 +152,10 @@ def get_summary_generator() -> SummaryGenerator:
 
     settings = get_settings()
     ai_settings = _load_ai_settings_sync()
+    api_key = ai_settings.openai_api_key or settings.openai_api_key
 
     _summary_generator_cache = SummaryGenerator(
-        api_key=settings.openai_api_key if settings.openai_api_key else None,
+        api_key=api_key or None,
         model=ai_settings.summary_model,
         max_tokens=ai_settings.summary_max_tokens,
         temperature=ai_settings.summary_temperature,

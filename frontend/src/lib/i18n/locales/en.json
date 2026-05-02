@@ -3,6 +3,49 @@
 		"name": "StorageHub",
 		"tagline": "Organize your belongings"
 	},
+	"setup": {
+		"welcome": {
+			"title": "Welcome to StorageHub",
+			"intro": "Let's get you set up. This takes about a minute and you can skip the optional bits.",
+			"start": "Get started"
+		},
+		"admin": {
+			"title": "Create your admin account",
+			"intro": "This first user is an administrator with full access. You can add more users later.",
+			"name": "Your name",
+			"namePlaceholder": "Anders",
+			"email": "Email (optional)",
+			"emailPlaceholder": "you@example.com",
+			"password": "Password",
+			"passwordHelp": "Leave empty for a passwordless household account.",
+			"language": "Your language"
+		},
+		"ai": {
+			"title": "AI features (optional)",
+			"intro": "StorageHub can identify items from photos automatically. This needs an OpenAI API key — paste it here, or skip and add it later in Admin → AI Settings.",
+			"keyLabel": "OpenAI API key",
+			"keyPlaceholder": "sk-…",
+			"keyHelp": "Stored encrypted in your database. You can change or remove it anytime.",
+			"languagesLabel": "Languages the AI generates content in",
+			"languagesHelp": "Comma-separated ISO codes. Add 'de' for German, 'sv' for Swedish, etc."
+		},
+		"location": {
+			"title": "Add your first location (optional)",
+			"intro": "A location is a physical place where you store things — your home, garage, or storage unit. You can skip and add some later.",
+			"namePlaceholder": "Home"
+		},
+		"done": {
+			"title": "You're all set!",
+			"intro": "Your admin account is ready. Off you go.",
+			"finish": "Open StorageHub"
+		},
+		"buttons": {
+			"continue": "Continue",
+			"back": "Back",
+			"skip": "Skip for now",
+			"finish": "Finish setup"
+		}
+	},
 	"nav": {
 		"dashboard": "Dashboard",
 		"locations": "Locations",

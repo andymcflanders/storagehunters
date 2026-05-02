@@ -160,6 +160,8 @@ class OpenAISettingsUpdate(BaseModel):
     summary_model: str | None = None
     summary_max_tokens: int | None = None
     summary_temperature: float | None = None
+    # Pass an empty string to clear the persisted key.
+    openai_api_key: str | None = None
 
 
 # ============== Endpoints ==============
@@ -589,7 +591,7 @@ async def get_openai_settings(
         ),
         vision_models=[ModelOption(**m) for m in VISION_MODELS],
         text_models=[ModelOption(**m) for m in TEXT_MODELS],
-        api_key_set=bool(config.openai_api_key),
+        api_key_set=bool(ai_settings.openai_api_key or config.openai_api_key),
     )
 
 
@@ -662,6 +664,10 @@ async def update_openai_settings(
             )
         ai_settings.summary_temperature = data.summary_temperature
 
+    if data.openai_api_key is not None:
+        # Empty string clears the persisted key (falls back to env var).
+        ai_settings.openai_api_key = data.openai_api_key.strip() or None
+
     await db.commit()
     await db.refresh(ai_settings)
 
@@ -698,7 +704,7 @@ async def update_openai_settings(
         ),
         vision_models=[ModelOption(**m) for m in VISION_MODELS],
         text_models=[ModelOption(**m) for m in TEXT_MODELS],
-        api_key_set=bool(config.openai_api_key),
+        api_key_set=bool(ai_settings.openai_api_key or config.openai_api_key),
     )
 
 

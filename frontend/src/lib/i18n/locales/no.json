@@ -3,6 +3,49 @@
 		"name": "StorageHub",
 		"tagline": "Organiser eiendelene dine"
 	},
+	"setup": {
+		"welcome": {
+			"title": "Velkommen til StorageHub",
+			"intro": "La oss sette opp StorageHub. Det tar omtrent et minutt, og du kan hoppe over de valgfrie stegene.",
+			"start": "Kom i gang"
+		},
+		"admin": {
+			"title": "Opprett administratorkontoen",
+			"intro": "Den første brukeren er administrator med full tilgang. Du kan legge til flere brukere senere.",
+			"name": "Navnet ditt",
+			"namePlaceholder": "Anders",
+			"email": "E-post (valgfritt)",
+			"emailPlaceholder": "deg@eksempel.no",
+			"password": "Passord",
+			"passwordHelp": "La feltet stå tomt for en husholdningskonto uten passord.",
+			"language": "Ditt språk"
+		},
+		"ai": {
+			"title": "AI-funksjoner (valgfritt)",
+			"intro": "StorageHub kan identifisere gjenstander automatisk fra bilder. Dette krever en OpenAI API-nøkkel — lim den inn her, eller hopp over og legg til senere under Admin → AI-innstillinger.",
+			"keyLabel": "OpenAI API-nøkkel",
+			"keyPlaceholder": "sk-…",
+			"keyHelp": "Lagres i databasen din. Du kan endre eller fjerne den når som helst.",
+			"languagesLabel": "Språk AI-en genererer innhold i",
+			"languagesHelp": "Kommaseparerte ISO-koder. Legg til 'de' for tysk, 'sv' for svensk osv."
+		},
+		"location": {
+			"title": "Legg til ditt første sted (valgfritt)",
+			"intro": "Et sted er et fysisk område der du oppbevarer ting — hjemme, i garasjen eller på lageret. Du kan hoppe over og legge til senere.",
+			"namePlaceholder": "Hjem"
+		},
+		"done": {
+			"title": "Ferdig!",
+			"intro": "Administratorkontoen din er klar. Da setter vi i gang.",
+			"finish": "Åpne StorageHub"
+		},
+		"buttons": {
+			"continue": "Fortsett",
+			"back": "Tilbake",
+			"skip": "Hopp over",
+			"finish": "Fullfør oppsettet"
+		}
+	},
 	"nav": {
 		"dashboard": "Oversikt",
 		"locations": "Steder",

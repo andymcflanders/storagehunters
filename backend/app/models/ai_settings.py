@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -208,6 +208,11 @@ class AISettings(Base):
         default="en",
         nullable=False,
     )
+
+    # Persistent OpenAI API key. Takes precedence over the OPENAI_API_KEY
+    # env var, which stays as a fallback for installs that haven't been
+    # onboarded yet.
+    openai_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
