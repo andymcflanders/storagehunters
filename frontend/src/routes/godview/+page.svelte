@@ -6,8 +6,11 @@
 	import GodViewLocationRow from '$lib/components/godview/GodViewLocationRow.svelte';
 	import DeleteContainerModal from '$lib/components/godview/DeleteContainerModal.svelte';
 	import { BatchPrintModal, PrintModal } from '$lib/components/print';
+	import { Button, Input, Modal } from '$lib/components';
+	import { _ } from '$lib/i18n';
+	import { CONTAINER_TYPES, CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
 	import type { DeleteMode } from '$lib/api/containers';
-	import type { PrintResult } from '$lib/types';
+	import type { ContainerCreate, PrintResult } from '$lib/types';
 	import type {
 		GodViewResponse,
 		GodViewLocation,
@@ -450,18 +453,53 @@
 		}
 	}
 
-	async function handleCreateContainer(e: CustomEvent<{ locationId: string }>) {
-		const name = prompt('Enter container name:');
-		if (!name) return;
+	// Container creation modal state — replaces the old `prompt()` call
+	// so users can pick a type and upload an image alongside the name.
+	let showCreateContainerModal = false;
+	let creatingContainer = false;
+	let newContainer: ContainerCreate = {
+		name: '',
+		location_id: '',
+		notes: '',
+		container_type: null
+	};
+	let newContainerImage: File | null = null;
 
+	function handleCreateContainer(e: CustomEvent<{ locationId: string }>) {
+		newContainer = {
+			name: '',
+			location_id: e.detail.locationId,
+			notes: '',
+			container_type: null
+		};
+		newContainerImage = null;
+		showCreateContainerModal = true;
+	}
+
+	function handleNewContainerImagePick(event: Event) {
+		const target = event.target as HTMLInputElement;
+		newContainerImage = target.files?.[0] ?? null;
+	}
+
+	async function submitCreateContainer() {
+		if (!newContainer.name.trim()) return;
+		creatingContainer = true;
 		try {
-			await containers.createContainer({
-				name,
-				location_id: e.detail.locationId
-			});
+			const created = await containers.createContainer(newContainer);
+			if (newContainerImage) {
+				try {
+					await containers.uploadContainerImage(created.id, newContainerImage);
+				} catch {
+					toast.error('Container created, but image upload failed');
+				}
+			}
+			showCreateContainerModal = false;
 			await loadData(true);
 		} catch (err) {
 			console.error('Failed to create container:', err);
+			toast.error('Failed to create container');
+		} finally {
+			creatingContainer = false;
 		}
 	}
 
@@ -733,3 +771,57 @@
 	on:close={() => (showSinglePrintModal = false)}
 	on:printed={handleSinglePrintComplete}
 />
+
+<!-- Create Container Modal -->
+<Modal
+	open={showCreateContainerModal}
+	title={$_('containers.addContainer')}
+	on:close={() => (showCreateContainerModal = false)}
+>
+	<form on:submit|preventDefault={submitCreateContainer} class="space-y-4">
+		<Input
+			label={$_('common.name')}
+			placeholder={$_('containers.containerNamePlaceholder')}
+			bind:value={newContainer.name}
+			required
+			id="gv-container-name"
+		/>
+
+		<div>
+			<label for="gv-container-type" class="label">{$_('containers.containerType')}</label>
+			<select
+				id="gv-container-type"
+				class="input"
+				bind:value={newContainer.container_type}
+			>
+				<option value={null}>{$_('containers.chooseType')}</option>
+				{#each CONTAINER_TYPES as t}
+					<option value={t}>{$_(CONTAINER_TYPE_KEYS[t])}</option>
+				{/each}
+			</select>
+		</div>
+
+		<Input
+			label={$_('items.notes')}
+			placeholder={$_('containers.notesPlaceholder')}
+			bind:value={newContainer.notes}
+			id="gv-container-notes"
+		/>
+
+		<div>
+			<label for="gv-container-image" class="label">{$_('containers.image')}</label>
+			<input
+				id="gv-container-image"
+				type="file"
+				accept="image/*"
+				on:change={handleNewContainerImagePick}
+				class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-primary-700 hover:file:bg-primary-100 dark:text-slate-300 dark:file:bg-primary-900/30 dark:file:text-primary-300"
+			/>
+		</div>
+	</form>
+
+	<svelte:fragment slot="footer">
+		<Button variant="secondary" on:click={() => (showCreateContainerModal = false)}>{$_('common.cancel')}</Button>
+		<Button loading={creatingContainer} on:click={submitCreateContainer}>{$_('common.create')}</Button>
+	</svelte:fragment>
+</Modal>

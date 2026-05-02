@@ -8,21 +8,27 @@
 	import { ItemCard, ContainerCard, Breadcrumb, Button, Card, Input, Modal, ShareModal } from '$lib/components';
 	import { PrintModal } from '$lib/components/print';
 	import { _ } from '$lib/i18n';
-	import { CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
-	import type { ContainerWithItems, ItemCreate, PrintResult } from '$lib/types';
+	import { CONTAINER_TYPES, CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
+	import type { ContainerWithItems, ContainerUpdate, ItemCreate, PrintResult } from '$lib/types';
 
 	let container: ContainerWithItems | null = null;
 	let loading = true;
 	let showCreateModal = false;
 	let showPrintModal = false;
 	let showShareModal = false;
+	let showEditModal = false;
 	let creating = false;
+	let savingEdit = false;
+	let uploadingImage = false;
 
 	let newItem: ItemCreate = {
 		name: '',
 		description: '',
 		container_id: ''
 	};
+
+	let editData: ContainerUpdate = {};
+	let imageFileInput: HTMLInputElement;
 
 	$: containerId = $page.params.id!;
 
@@ -71,6 +77,64 @@
 			toast.success(result.message || 'Label sent to printer');
 		}
 	}
+
+	function openEditModal() {
+		if (!container) return;
+		editData = {
+			name: container.name,
+			notes: container.notes ?? undefined,
+			container_type: container.container_type
+		};
+		showEditModal = true;
+	}
+
+	async function handleSaveEdit() {
+		if (!container) return;
+		savingEdit = true;
+		try {
+			await containers.updateContainer(container.id, editData);
+			toast.success('Container updated');
+			showEditModal = false;
+			await loadContainer();
+		} catch {
+			toast.error('Failed to update container');
+		} finally {
+			savingEdit = false;
+		}
+	}
+
+	async function handleImagePick(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (!file || !container) return;
+		uploadingImage = true;
+		try {
+			await containers.uploadContainerImage(container.id, file);
+			toast.success('Image updated');
+			await loadContainer();
+		} catch {
+			toast.error('Failed to upload image');
+		} finally {
+			uploadingImage = false;
+			// Reset so picking the same file again still triggers `change`.
+			target.value = '';
+		}
+	}
+
+	async function handleRemoveImage() {
+		if (!container) return;
+		if (!confirm($_('containers.removeImage') + '?')) return;
+		uploadingImage = true;
+		try {
+			await containers.deleteContainerImage(container.id);
+			toast.success('Image removed');
+			await loadContainer();
+		} catch {
+			toast.error('Failed to remove image');
+		} finally {
+			uploadingImage = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -106,6 +170,12 @@
 				{/if}
 			</div>
 			<div class="flex gap-2">
+				<Button variant="secondary" on:click={openEditModal}>
+					<svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+					</svg>
+					{$_('common.edit')}
+				</Button>
 				<Button variant="secondary" on:click={() => (showShareModal = true)}>
 					<svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -128,13 +198,39 @@
 		</div>
 
 		<!-- Hero Image -->
+		<input
+			bind:this={imageFileInput}
+			type="file"
+			accept="image/*"
+			class="hidden"
+			on:change={handleImagePick}
+		/>
 		{#if container.image_url}
 			<Card padding="none">
-				<img
-					src={container.image_url}
-					alt={container.name}
-					class="aspect-[3/2] w-full rounded-xl object-cover"
-				/>
+				<div class="relative">
+					<img
+						src={container.image_url}
+						alt={container.name}
+						class="aspect-[3/2] w-full rounded-xl object-cover"
+					/>
+					<div class="absolute right-3 top-3 flex gap-2">
+						<Button variant="secondary" loading={uploadingImage} on:click={() => imageFileInput.click()}>
+							{$_('containers.replaceImage')}
+						</Button>
+						<Button variant="danger" loading={uploadingImage} on:click={handleRemoveImage}>
+							{$_('containers.removeImage')}
+						</Button>
+					</div>
+				</div>
+			</Card>
+		{:else}
+			<Card>
+				<div class="flex items-center justify-between">
+					<p class="text-sm text-slate-500 dark:text-slate-400">{$_('containers.image')}</p>
+					<Button variant="secondary" loading={uploadingImage} on:click={() => imageFileInput.click()}>
+						{$_('containers.chooseImage')}
+					</Button>
+				</div>
 			</Card>
 		{/if}
 
@@ -233,4 +329,43 @@
 		containerName={container.name}
 		on:close={() => (showShareModal = false)}
 	/>
+{/if}
+
+<!-- Edit Container Modal -->
+{#if container}
+	<Modal open={showEditModal} title={$_('containers.editContainer')} on:close={() => (showEditModal = false)}>
+		<form on:submit|preventDefault={handleSaveEdit} class="space-y-4">
+			<Input
+				label={$_('common.name')}
+				bind:value={editData.name}
+				required
+				id="edit-container-name"
+			/>
+
+			<div>
+				<label for="edit-container-type" class="label">{$_('containers.containerType')}</label>
+				<select
+					id="edit-container-type"
+					class="input"
+					bind:value={editData.container_type}
+				>
+					<option value={null}>{$_('containers.chooseType')}</option>
+					{#each CONTAINER_TYPES as t}
+						<option value={t}>{$_(CONTAINER_TYPE_KEYS[t])}</option>
+					{/each}
+				</select>
+			</div>
+
+			<Input
+				label={$_('items.notes')}
+				bind:value={editData.notes}
+				id="edit-container-notes"
+			/>
+		</form>
+
+		<svelte:fragment slot="footer">
+			<Button variant="secondary" on:click={() => (showEditModal = false)}>{$_('common.cancel')}</Button>
+			<Button loading={savingEdit} on:click={handleSaveEdit}>{$_('common.save')}</Button>
+		</svelte:fragment>
+	</Modal>
 {/if}

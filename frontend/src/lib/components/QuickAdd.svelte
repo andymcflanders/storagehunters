@@ -4,8 +4,9 @@
 	import { toast } from '$lib/stores/toast';
 	import { locations, containers, items } from '$lib/api';
 	import { Button, Input, Modal, Card, CameraCapture } from '$lib/components';
-	import { locale } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import { getLocalizedAI } from '$lib/utils/localized';
+	import { CONTAINER_TYPES, CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
 	import type { Location, Container, ContainerCreate, LocationCreate, Item } from '$lib/types';
 
 	export let open = false;
@@ -36,8 +37,10 @@
 	let newContainer: ContainerCreate = {
 		name: '',
 		location_id: '',
-		notes: ''
+		notes: '',
+		container_type: null
 	};
+	let newContainerImage: File | null = null;
 
 	// Batch items - each item has its own photos
 	let batchItems: { photos: File[]; previews: string[] }[] = [];
@@ -130,15 +133,28 @@
 		saving = true;
 		try {
 			const created = await containers.createContainer(newContainer);
+			if (newContainerImage) {
+				try {
+					await containers.uploadContainerImage(created.id, newContainerImage);
+				} catch {
+					toast.error('Container created, but image upload failed');
+				}
+			}
 			toast.success('Container created');
 			selectedContainer = created;
-			newContainer = { name: '', location_id: '', notes: '' };
+			newContainer = { name: '', location_id: '', notes: '', container_type: null };
+			newContainerImage = null;
 			step = 'camera';
 		} catch (error) {
 			toast.error('Failed to create container');
 		} finally {
 			saving = false;
 		}
+	}
+
+	function handleContainerImagePick(event: Event) {
+		const target = event.target as HTMLInputElement;
+		newContainerImage = target.files?.[0] ?? null;
 	}
 
 	function handleBatch(event: CustomEvent<{ items: File[][] }>) {
@@ -663,18 +679,44 @@
 					</button>
 
 					<Input
-						label="Container name"
-						placeholder="e.g., Box #1, Top Shelf, Blue Bin"
+						label={$_('containers.containerName')}
+						placeholder={$_('containers.containerNamePlaceholder')}
 						bind:value={newContainer.name}
 						required
 						id="container-name"
 					/>
+
+					<div>
+						<label for="qa-container-type" class="label">{$_('containers.containerType')}</label>
+						<select
+							id="qa-container-type"
+							class="input"
+							bind:value={newContainer.container_type}
+						>
+							<option value={null}>{$_('containers.chooseType')}</option>
+							{#each CONTAINER_TYPES as t}
+								<option value={t}>{$_(CONTAINER_TYPE_KEYS[t])}</option>
+							{/each}
+						</select>
+					</div>
+
 					<Input
-						label="Notes"
-						placeholder="Optional description"
+						label={$_('items.notes')}
+						placeholder={$_('containers.notesPlaceholder')}
 						bind:value={newContainer.notes}
 						id="container-notes"
 					/>
+
+					<div>
+						<label for="qa-container-image" class="label">{$_('containers.image')}</label>
+						<input
+							id="qa-container-image"
+							type="file"
+							accept="image/*"
+							on:change={handleContainerImagePick}
+							class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-primary-700 hover:file:bg-primary-100 dark:text-slate-300 dark:file:bg-primary-900/30 dark:file:text-primary-300"
+						/>
+					</div>
 				</div>
 			{/if}
 
