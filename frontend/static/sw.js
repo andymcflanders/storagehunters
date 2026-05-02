@@ -3,7 +3,10 @@
  * Provides offline support and caching for PWA functionality.
  */
 
-const CACHE_NAME = 'storagehub-v1';
+// __BUILD_VERSION__ is replaced at image build time so each deploy gets a
+// unique cache name. The activate handler below purges any cache whose name
+// doesn't match — that's how stale assets from a previous deploy get cleared.
+const CACHE_NAME = 'storagehub-__BUILD_VERSION__';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache on install

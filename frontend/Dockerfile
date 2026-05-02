@@ -12,6 +12,13 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
+# Stamp the service worker with a unique build version. Each image build
+# gets a fresh timestamp, which becomes the SW cache name. When the new SW
+# activates it purges every cache whose name doesn't match, evicting JS
+# from the previous deploy. Without this, the stale-while-revalidate
+# strategy can serve outdated bundles indefinitely.
+RUN sed -i "s/__BUILD_VERSION__/$(date +%Y%m%d%H%M%S)/g" static/sw.js
+
 # Build the application
 RUN npm run build
 
