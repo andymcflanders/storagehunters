@@ -3,6 +3,7 @@
 	import { user } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
 	import { search } from '$lib/api';
+	import { _ } from '$lib/i18n';
 	import type { SearchResultItem } from '$lib/api/search';
 
 	let searchQuery = '';
@@ -53,7 +54,7 @@
 			<h1 class="text-2xl font-bold text-slate-900 dark:text-white">
 				Hi, {$user?.name?.split(' ')[0] || 'there'}!
 			</h1>
-			<p class="text-slate-500 dark:text-slate-400">What are you looking for?</p>
+			<p class="text-slate-500 dark:text-slate-400">{$_('mobile.searchPrompt')}</p>
 		</div>
 
 		<!-- Search Bar -->
@@ -64,7 +65,7 @@
 				</svg>
 				<input
 					type="search"
-					placeholder="Search items, containers, locations..."
+					placeholder={$_('mobile.searchPlaceholder')}
 					class="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-12 pr-12 text-base shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-primary-400"
 					bind:value={searchQuery}
 					on:keypress={(e) => e.key === 'Enter' && goToSearch()}
@@ -136,9 +137,9 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 				</svg>
 			</div>
-			<h3 class="text-lg font-medium text-slate-700 dark:text-slate-300">Find anything</h3>
+			<h3 class="text-lg font-medium text-slate-700 dark:text-slate-300">{$_('mobile.findAnything')}</h3>
 			<p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-xs">
-				Search by item name, description, tags, or location to quickly find what you need.
+				{$_('mobile.searchHelp')}
 			</p>
 			<div class="mt-6 flex flex-wrap justify-center gap-2">
 				<button
@@ -168,8 +169,8 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 				</svg>
 			</div>
-			<p class="text-slate-500 dark:text-slate-400">No results for "{searchQuery}"</p>
-			<p class="mt-1 text-sm text-slate-400">Try a different search term</p>
+			<p class="text-slate-500 dark:text-slate-400">{$_('mobile.noResultsFor', { values: { query: searchQuery } })}</p>
+			<p class="mt-1 text-sm text-slate-400">{$_('mobile.tryDifferent')}</p>
 		</div>
 	{/if}
 </div>

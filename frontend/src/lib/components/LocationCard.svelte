@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Location } from '$lib/types';
 	import Card from './ui/Card.svelte';
+	import { _ } from '$lib/i18n';
 
 	export let location: Location;
 	export let containerCount = 0;
@@ -51,8 +52,7 @@
 
 		<div class="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-4">
 			<span class="text-sm text-slate-500 dark:text-slate-400">
-				{containerCount}
-				{containerCount === 1 ? 'container' : 'containers'}
+				{$_('locations.containerCount', { values: { count: containerCount } })}
 			</span>
 			<svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

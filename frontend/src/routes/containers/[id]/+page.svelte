@@ -7,6 +7,7 @@
 	import { containers, items } from '$lib/api';
 	import { ItemCard, ContainerCard, Breadcrumb, Button, Card, Input, Modal, ShareModal } from '$lib/components';
 	import { PrintModal } from '$lib/components/print';
+	import { _ } from '$lib/i18n';
 	import type { ContainerWithItems, ItemCreate, PrintResult } from '$lib/types';
 
 	let container: ContainerWithItems | null = null;
@@ -129,9 +130,9 @@
 					class="h-24 w-24 rounded-lg border border-slate-200"
 				/>
 				<div>
-					<p class="text-sm font-medium text-slate-500">Quick access code</p>
+					<p class="text-sm font-medium text-slate-500">{$_('containers.quickAccessCode')}</p>
 					<p class="mt-1 font-mono text-lg text-slate-900">{container.qr_code}</p>
-					<p class="mt-2 text-sm text-slate-500">Scan this code to quickly find this container</p>
+					<p class="mt-2 text-sm text-slate-500">{$_('containers.quickAccessHelp')}</p>
 				</div>
 			</div>
 		</Card>
@@ -139,7 +140,7 @@
 		<!-- Child Containers -->
 		{#if container.child_containers.length > 0}
 			<div>
-				<h2 class="mb-4 text-lg font-semibold text-slate-900">Nested Containers</h2>
+				<h2 class="mb-4 text-lg font-semibold text-slate-900">{$_('containers.nestedContainers')}</h2>
 				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{#each container.child_containers as child}
 						<ContainerCard container={child} />
@@ -150,16 +151,16 @@
 
 		<!-- Items -->
 		<div>
-			<h2 class="mb-4 text-lg font-semibold text-slate-900">Items ({container.items.length})</h2>
+			<h2 class="mb-4 text-lg font-semibold text-slate-900">{$_('items.title')} ({container.items.length})</h2>
 			{#if container.items.length === 0}
 				<Card>
 					<div class="py-12 text-center">
 						<svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
 						</svg>
-						<h3 class="mt-4 text-lg font-medium text-slate-900">No items yet</h3>
-						<p class="mt-2 text-slate-500">Add items to this container to keep track of your belongings.</p>
-						<Button class="mt-4" on:click={() => (showCreateModal = true)}>Add Item</Button>
+						<h3 class="mt-4 text-lg font-medium text-slate-900">{$_('containers.noItems')}</h3>
+						<p class="mt-2 text-slate-500">{$_('containers.addItemsHelp')}</p>
+						<Button class="mt-4" on:click={() => (showCreateModal = true)}>{$_('items.addItem')}</Button>
 					</div>
 				</Card>
 			{:else}
@@ -174,26 +175,26 @@
 {/if}
 
 <!-- Create Item Modal -->
-<Modal open={showCreateModal} title="Add Item" on:close={() => (showCreateModal = false)}>
+<Modal open={showCreateModal} title={$_('items.addItem')} on:close={() => (showCreateModal = false)}>
 	<form on:submit|preventDefault={handleCreateItem} class="space-y-4">
 		<Input
-			label="Name"
-			placeholder="e.g., Winter jacket, Christmas decorations"
+			label={$_('common.name')}
+			placeholder={$_('containers.namePlaceholder')}
 			bind:value={newItem.name}
 			required
 			id="item-name"
 		/>
 		<Input
-			label="Description"
-			placeholder="Optional description"
+			label={$_('common.description')}
+			placeholder={$_('locations.descriptionPlaceholder')}
 			bind:value={newItem.description}
 			id="item-description"
 		/>
 	</form>
 
 	<svelte:fragment slot="footer">
-		<Button variant="secondary" on:click={() => (showCreateModal = false)}>Cancel</Button>
-		<Button loading={creating} on:click={handleCreateItem}>Create Item</Button>
+		<Button variant="secondary" on:click={() => (showCreateModal = false)}>{$_('common.cancel')}</Button>
+		<Button loading={creating} on:click={handleCreateItem}>{$_('common.create')}</Button>
 	</svelte:fragment>
 </Modal>
 

@@ -5,6 +5,7 @@
 	import { toast } from '$lib/stores/toast';
 	import { locations } from '$lib/api';
 	import { LocationCard, Button, Card, Input, Modal } from '$lib/components';
+	import { _ } from '$lib/i18n';
 	import type { Location, LocationCreate } from '$lib/types';
 
 	let locationList: Location[] = [];
@@ -62,14 +63,14 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-2xl font-bold text-slate-900">Locations</h1>
-			<p class="mt-1 text-slate-500">Manage your storage locations</p>
+			<h1 class="text-2xl font-bold text-slate-900">{$_('locations.title')}</h1>
+			<p class="mt-1 text-slate-500">{$_('locations.manageStorage')}</p>
 		</div>
 		<Button on:click={() => (showCreateModal = true)}>
 			<svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 			</svg>
-			Add Location
+			{$_('locations.addLocation')}
 		</Button>
 	</div>
 
@@ -86,9 +87,9 @@
 				<svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-slate-900">No locations yet</h3>
-				<p class="mt-2 text-slate-500">Get started by adding your first storage location.</p>
-				<Button class="mt-4" on:click={() => (showCreateModal = true)}>Add Location</Button>
+				<h3 class="mt-4 text-lg font-medium text-slate-900">{$_('dashboard.noLocations')}</h3>
+				<p class="mt-2 text-slate-500">{$_('dashboard.getStarted')}</p>
+				<Button class="mt-4" on:click={() => (showCreateModal = true)}>{$_('locations.addLocation')}</Button>
 			</div>
 		</Card>
 	{:else}
@@ -101,31 +102,31 @@
 </div>
 
 <!-- Create Modal -->
-<Modal open={showCreateModal} title="Add Location" on:close={() => (showCreateModal = false)}>
+<Modal open={showCreateModal} title={$_('locations.addLocation')} on:close={() => (showCreateModal = false)}>
 	<form on:submit|preventDefault={handleCreate} class="space-y-4">
 		<Input
-			label="Name"
-			placeholder="e.g., Garage, Loft, Storage Unit"
+			label={$_('common.name')}
+			placeholder={$_('locations.namePlaceholder')}
 			bind:value={newLocation.name}
 			required
 			id="name"
 		/>
 		<Input
-			label="Description"
-			placeholder="Optional description"
+			label={$_('common.description')}
+			placeholder={$_('locations.descriptionPlaceholder')}
 			bind:value={newLocation.description}
 			id="description"
 		/>
 		<Input
-			label="Address"
-			placeholder="Optional address for off-site storage"
+			label={$_('locations.address')}
+			placeholder={$_('locations.addressPlaceholder')}
 			bind:value={newLocation.address}
 			id="address"
 		/>
 	</form>
 
 	<svelte:fragment slot="footer">
-		<Button variant="secondary" on:click={() => (showCreateModal = false)}>Cancel</Button>
-		<Button loading={creating} on:click={handleCreate}>Create Location</Button>
+		<Button variant="secondary" on:click={() => (showCreateModal = false)}>{$_('common.cancel')}</Button>
+		<Button loading={creating} on:click={handleCreate}>{$_('common.create')}</Button>
 	</svelte:fragment>
 </Modal>

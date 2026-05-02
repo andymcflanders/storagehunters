@@ -65,14 +65,26 @@
 	},
 	"dashboard": {
 		"welcome": "Velkommen tilbake, {name}!",
+		"subtitle": "Her er en oversikt over lagringen din.",
 		"overview": "Oversikt",
 		"recentActivity": "Nylig aktivitet",
 		"quickActions": "Hurtighandlinger",
-		"totalLocations": "Totalt antall steder",
-		"totalContainers": "Totalt antall beholdere",
-		"totalItems": "Totalt antall gjenstander",
+		"totalLocations": "Steder",
+		"totalContainers": "Beholdere",
+		"totalItems": "Gjenstander",
+		"totalPhotos": "Bilder",
+		"yourLocations": "Dine steder",
+		"viewAll": "Vis alle",
 		"noLocations": "Ingen steder ennå",
-		"getStarted": "Kom i gang ved å legge til ditt første sted"
+		"getStarted": "Kom i gang ved å legge til ditt første lagringssted."
+	},
+	"mobile": {
+		"searchPrompt": "Hva leter du etter?",
+		"searchPlaceholder": "Søk gjenstander, beholdere, steder...",
+		"findAnything": "Finn alt",
+		"searchHelp": "Søk etter navn, beskrivelse, etiketter eller sted for å raskt finne det du trenger.",
+		"noResultsFor": "Ingen resultater for \"{query}\"",
+		"tryDifferent": "Prøv et annet søkeord"
 	},
 	"locations": {
 		"title": "Steder",
@@ -85,7 +97,12 @@
 		"createFirst": "Opprett ditt første sted for å begynne å organisere",
 		"deleteConfirm": "Slette stedet \"{name}\"? Dette vil også slette alle beholdere og gjenstander i det.",
 		"containers": "Beholdere",
-		"items": "Gjenstander"
+		"items": "Gjenstander",
+		"manageStorage": "Administrer lagringsstedene dine",
+		"containerCount": "{count, plural, =0 {ingen beholdere} one {# beholder} other {# beholdere}}",
+		"addressPlaceholder": "Valgfri adresse for ekstern lagring",
+		"namePlaceholder": "f.eks. Garasje, Loft, Lagerrom",
+		"descriptionPlaceholder": "Valgfri beskrivelse"
 	},
 	"containers": {
 		"title": "Beholdere",
@@ -100,6 +117,13 @@
 		"moveContainer": "Flytt beholder",
 		"selectLocation": "Velg sted",
 		"selectContainer": "Velg beholder",
+		"itemCount": "{count, plural, =0 {ingen gjenstander} one {# gjenstand} other {# gjenstander}}",
+		"quickAccessCode": "Hurtigtilgangskode",
+		"quickAccessHelp": "Skann denne koden for å raskt finne denne beholderen",
+		"noItems": "Ingen gjenstander ennå",
+		"addItemsHelp": "Legg til gjenstander i denne beholderen for å holde oversikt over eiendelene dine.",
+		"namePlaceholder": "f.eks. Vinterjakke, Juledekorasjoner",
+		"nestedContainers": "Nestede beholdere",
 		"types": {
 			"box": "Boks",
 			"drawer": "Skuff",

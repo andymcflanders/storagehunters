@@ -4,6 +4,7 @@
 	import { user } from '$lib/stores/auth';
 	import { locations } from '$lib/api';
 	import { LocationCard, Card, MobileHome } from '$lib/components';
+	import { _ } from '$lib/i18n';
 	import type { Location } from '$lib/types';
 	import type { DashboardStats } from '$lib/api/locations';
 
@@ -43,8 +44,8 @@
 		<div class="space-y-8">
 			<!-- Welcome -->
 			<div>
-				<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Welcome back, {$user.name}!</h1>
-				<p class="mt-1 text-slate-500 dark:text-slate-400">Here's an overview of your storage.</p>
+				<h1 class="text-2xl font-bold text-slate-900 dark:text-white">{$_('dashboard.welcome', { values: { name: $user.name } })}</h1>
+				<p class="mt-1 text-slate-500 dark:text-slate-400">{$_('dashboard.subtitle')}</p>
 			</div>
 
 			<!-- Stats -->
@@ -58,7 +59,7 @@
 						</div>
 						<div>
 							<p class="text-2xl font-bold text-slate-900 dark:text-white">{stats?.locations ?? '-'}</p>
-							<p class="text-sm text-slate-500 dark:text-slate-400">Locations</p>
+							<p class="text-sm text-slate-500 dark:text-slate-400">{$_('dashboard.totalLocations')}</p>
 						</div>
 					</div>
 				</Card>
@@ -72,7 +73,7 @@
 						</div>
 						<div>
 							<p class="text-2xl font-bold text-slate-900 dark:text-white">{stats?.containers ?? '-'}</p>
-							<p class="text-sm text-slate-500 dark:text-slate-400">Containers</p>
+							<p class="text-sm text-slate-500 dark:text-slate-400">{$_('dashboard.totalContainers')}</p>
 						</div>
 					</div>
 				</Card>
@@ -86,7 +87,7 @@
 						</div>
 						<div>
 							<p class="text-2xl font-bold text-slate-900 dark:text-white">{stats?.items ?? '-'}</p>
-							<p class="text-sm text-slate-500 dark:text-slate-400">Items</p>
+							<p class="text-sm text-slate-500 dark:text-slate-400">{$_('dashboard.totalItems')}</p>
 						</div>
 					</div>
 				</Card>
@@ -100,7 +101,7 @@
 						</div>
 						<div>
 							<p class="text-2xl font-bold text-slate-900 dark:text-white">{stats?.photos ?? '-'}</p>
-							<p class="text-sm text-slate-500 dark:text-slate-400">Photos</p>
+							<p class="text-sm text-slate-500 dark:text-slate-400">{$_('dashboard.totalPhotos')}</p>
 						</div>
 					</div>
 				</Card>
@@ -109,8 +110,8 @@
 			<!-- Locations -->
 			<div>
 				<div class="mb-4 flex items-center justify-between">
-					<h2 class="text-lg font-semibold text-slate-900 dark:text-white">Your Locations</h2>
-					<a href="/locations" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">View all</a>
+					<h2 class="text-lg font-semibold text-slate-900 dark:text-white">{$_('dashboard.yourLocations')}</h2>
+					<a href="/locations" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">{$_('dashboard.viewAll')}</a>
 				</div>
 
 				{#if loading}
@@ -125,9 +126,9 @@
 							<svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 							</svg>
-							<h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-white">No locations yet</h3>
-							<p class="mt-2 text-slate-500 dark:text-slate-400">Get started by adding your first storage location.</p>
-							<a href="/locations" class="btn-primary mt-4 inline-flex">Add Location</a>
+							<h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-white">{$_('dashboard.noLocations')}</h3>
+							<p class="mt-2 text-slate-500 dark:text-slate-400">{$_('dashboard.getStarted')}</p>
+							<a href="/locations" class="btn-primary mt-4 inline-flex">{$_('locations.addLocation')}</a>
 						</div>
 					</Card>
 				{:else}
