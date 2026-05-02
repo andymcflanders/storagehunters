@@ -68,6 +68,11 @@
 		summary_temperature: 0.3
 	};
 
+	// Language settings — which languages the AI generates content in.
+	let languageSettings: { supported_languages: string[]; default_language: string } | null = null;
+	let savingLanguages = false;
+	let newLanguageInput = '';
+
 	// Backup state
 	let backups: BackupHistory[] = [];
 	let backupsTotal = 0;
@@ -319,10 +324,56 @@
 				summary_max_tokens: openaiSettings.summary_max_tokens,
 				summary_temperature: openaiSettings.summary_temperature
 			};
+			languageSettings = await admin.getLanguageSettings();
 		} catch (error) {
 			toast.error('Failed to load AI settings');
 		} finally {
 			loadingAI = false;
+		}
+	}
+
+	async function addLanguage() {
+		if (!languageSettings) return;
+		const code = newLanguageInput.trim().toLowerCase();
+		if (!code) return;
+		if (languageSettings.supported_languages.includes(code)) {
+			toast.error(`${code} is already enabled`);
+			return;
+		}
+		await saveLanguages({
+			supported_languages: [...languageSettings.supported_languages, code]
+		});
+		newLanguageInput = '';
+	}
+
+	async function removeLanguage(code: string) {
+		if (!languageSettings) return;
+		if (languageSettings.supported_languages.length <= 1) {
+			toast.error('At least one language is required');
+			return;
+		}
+		const next = languageSettings.supported_languages.filter((c) => c !== code);
+		const update: admin.LanguageSettingsUpdate = { supported_languages: next };
+		if (languageSettings.default_language === code) {
+			update.default_language = next[0];
+		}
+		await saveLanguages(update);
+	}
+
+	async function setDefaultLanguage(code: string) {
+		await saveLanguages({ default_language: code });
+	}
+
+	async function saveLanguages(update: admin.LanguageSettingsUpdate) {
+		savingLanguages = true;
+		try {
+			languageSettings = await admin.updateLanguageSettings(update);
+			toast.success('Languages saved');
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to save languages';
+			toast.error(message);
+		} finally {
+			savingLanguages = false;
 		}
 	}
 
@@ -1520,6 +1571,71 @@
 					<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600"></div>
 				</div>
 			{:else}
+				<!-- Languages -->
+				{#if languageSettings}
+					<Card>
+						<div class="flex items-center justify-between">
+							<div>
+								<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Languages</h3>
+								<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+									ISO codes the AI generates names and descriptions in. Adding a language only
+									affects items processed from now on — existing items keep their original
+									translations until re-processed.
+								</p>
+							</div>
+						</div>
+
+						<div class="mt-4 flex flex-wrap gap-2">
+							{#each languageSettings.supported_languages as code}
+								<div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm dark:bg-slate-700">
+									<span class="font-mono uppercase text-slate-700 dark:text-slate-200">{code}</span>
+									{#if code === languageSettings.default_language}
+										<span class="rounded bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">default</span>
+									{:else}
+										<button
+											type="button"
+											class="text-xs text-primary-600 hover:underline dark:text-primary-400"
+											on:click={() => setDefaultLanguage(code)}
+											disabled={savingLanguages}
+										>
+											make default
+										</button>
+									{/if}
+									{#if languageSettings.supported_languages.length > 1}
+										<button
+											type="button"
+											class="text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+											on:click={() => removeLanguage(code)}
+											disabled={savingLanguages}
+											title="Remove"
+										>
+											<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										</button>
+									{/if}
+								</div>
+							{/each}
+						</div>
+
+						<form
+							class="mt-4 flex gap-2"
+							on:submit|preventDefault={addLanguage}
+						>
+							<Input
+								bind:value={newLanguageInput}
+								placeholder="ISO code (e.g. de, sv, fr)"
+								disabled={savingLanguages}
+							/>
+							<Button type="submit" loading={savingLanguages}>Add language</Button>
+						</form>
+						<p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+							Note: a UI translation file must also exist in the source for the language to be
+							selectable as a user preference. AI content will still be generated either way.
+						</p>
+					</Card>
+				{/if}
+
 				<!-- OpenAI Classification Settings -->
 				<Card>
 					<div class="flex items-center justify-between">

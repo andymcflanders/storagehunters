@@ -13,7 +13,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -66,10 +66,16 @@ class Item(Base):
         default=SeasonalEnum.NONE
     )
     value_estimate: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
-    ai_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    ai_name_no: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    ai_description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    ai_description_no: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # AI-generated names and descriptions, keyed by ISO language code.
+    # Example: {"en": "Red sweater", "no": "Rød genser"}.
+    # Populated by the OpenAI classifier for each language listed in
+    # AISettings.supported_languages. Read via the get_localized helpers.
+    ai_names: Mapped[dict[str, str]] = mapped_column(
+        JSONB, default=dict, nullable=False, server_default="{}"
+    )
+    ai_descriptions: Mapped[dict[str, str]] = mapped_column(
+        JSONB, default=dict, nullable=False, server_default="{}"
+    )
     ai_processed: Mapped[bool] = mapped_column(Boolean, default=False)
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False)
     primary_image_id: Mapped[uuid.UUID | None] = mapped_column(

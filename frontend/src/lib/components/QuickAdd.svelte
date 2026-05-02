@@ -43,7 +43,7 @@
 	let batchItems: { photos: File[]; previews: string[] }[] = [];
 
 	// Created items (after save)
-	let createdItems: { item: Item; aiProcessing: boolean; aiName: string | null; aiNameNo: string | null }[] = [];
+	let createdItems: { item: Item; aiProcessing: boolean; aiNames: Record<string, string> }[] = [];
 
 	// Overall progress
 	let savingProgress = 0;
@@ -213,7 +213,7 @@
 					}
 				}
 
-				createdItems = [...createdItems, { item, aiProcessing: true, aiName: null, aiNameNo: null }];
+				createdItems = [...createdItems, { item, aiProcessing: true, aiNames: {} }];
 			}
 
 			toast.success(`${batchItems.length} item${batchItems.length > 1 ? 's' : ''} created! AI is analyzing...`);
@@ -244,8 +244,7 @@
 
 						if (itemDetails.ai_processed) {
 							updatedItems[i].aiProcessing = false;
-							updatedItems[i].aiName = itemDetails.ai_name || null;
-							updatedItems[i].aiNameNo = itemDetails.ai_name_no || null;
+							updatedItems[i].aiNames = itemDetails.ai_names || {};
 						} else {
 							allProcessed = false;
 						}
@@ -278,22 +277,14 @@
 	}
 
 	function applyAIName(index: number) {
-		// Use locale-aware name selection
-		const nameToApply = getLocalizedAI(
-			createdItems[index].aiName,
-			createdItems[index].aiNameNo
-		);
+		const nameToApply = getLocalizedAI(createdItems[index].aiNames);
 		if (nameToApply) {
 			updateItemName(index, nameToApply);
 		}
 	}
 
-	// Get localized AI name for display
 	function getLocalizedAIName(index: number): string {
-		return getLocalizedAI(
-			createdItems[index].aiName,
-			createdItems[index].aiNameNo
-		);
+		return getLocalizedAI(createdItems[index].aiNames);
 	}
 
 	function handleDone() {

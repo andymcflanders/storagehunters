@@ -7,13 +7,16 @@ from typing import Any, Protocol, runtime_checkable
 
 @dataclass
 class ClassificationResult:
-    """Result of image classification."""
+    """Result of image classification.
 
-    name: str = ""  # Short, descriptive name for the item (English)
-    name_no: str = ""  # Norwegian name for the item
+    `names` and `descriptions` are keyed by ISO language code, e.g.
+    {"en": "Red sweater", "no": "Rød genser"}. The set of keys depends
+    on AISettings.supported_languages at the time of generation.
+    """
+
+    names: dict[str, str] = field(default_factory=dict)
+    descriptions: dict[str, str] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
-    description: str = ""
-    description_no: str = ""  # Norwegian description
     size: str = ""  # Size in EU format (e.g., "46", "M", "104")
     seasonal: str = ""  # Season: none, spring, summer, fall, winter, holiday
     confidence: float = 0.0

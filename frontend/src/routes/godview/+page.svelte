@@ -306,10 +306,12 @@
 			return false;
 		}
 
-		// Search filter
+		// Search filter — match against the manual fields plus every AI translation.
 		if (searchQuery) {
 			const query = searchQuery.toLowerCase();
-			const searchFields = [item.name, item.description, item.ai_name, item.ai_name_no, item.ai_description, item.ai_description_no].filter(Boolean);
+			const searchFields: string[] = [item.name, item.description].filter(Boolean) as string[];
+			if (item.ai_names) searchFields.push(...Object.values(item.ai_names));
+			if (item.ai_descriptions) searchFields.push(...Object.values(item.ai_descriptions));
 			if (!searchFields.some((field) => field?.toLowerCase().includes(query))) {
 				return false;
 			}

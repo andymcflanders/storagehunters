@@ -28,10 +28,8 @@ class GodViewItem(BaseModel):
     owner_name: str | None
     thumbnail_url: str | None
     value_estimate: float | None
-    ai_name: str | None
-    ai_name_no: str | None
-    ai_description: str | None
-    ai_description_no: str | None
+    ai_names: dict[str, str] = {}
+    ai_descriptions: dict[str, str] = {}
     ai_processed: bool
     needs_review: bool
     created_at: datetime

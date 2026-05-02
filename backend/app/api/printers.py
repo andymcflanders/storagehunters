@@ -96,12 +96,14 @@ async def build_label_content(
         return LabelContent(**base_content)
 
     elif template == LabelTemplate.QR_AI_SUMMARY:
-        # Fetch items with details for AI summary, including owner name
+        # Fetch items with details for AI summary, including owner name.
+        # ai_descriptions is a JSONB dict; we resolve to a single string
+        # below using the configured default language.
         result = await db.execute(
             select(
                 Item.name,
                 Item.description,
-                Item.ai_description,
+                Item.ai_descriptions,
                 Item.seasonal,
                 Item.size,
                 User.name.label("owner_name"),
@@ -113,12 +115,16 @@ async def build_label_content(
         items = result.all()
         item_count = len(items)
 
-        # Convert to ContainerItem objects for the summary generator
+        from app.ai import _load_ai_settings_sync
+        from app.services.localized import localized
+
+        default_lang = _load_ai_settings_sync().default_language
+
         container_items = [
             ContainerItem(
                 name=item.name,
                 description=item.description,
-                ai_description=item.ai_description,
+                ai_description=localized(item.ai_descriptions, default_lang),
                 seasonal=item.seasonal.value if item.seasonal else None,
                 size=item.size,
                 owner_name=item.owner_name,
@@ -163,7 +169,7 @@ async def build_label_content(
                 Item.id,
                 Item.name,
                 Item.description,
-                Item.ai_description,
+                Item.ai_descriptions,
                 Item.size,
                 Item.primary_image_id,
                 User.name.label("owner_name"),
@@ -194,10 +200,15 @@ async def build_label_content(
                 image_paths[str(row.item_id)] = str(settings.upload_dir / row.filepath)
 
         # Build item details
+        from app.ai import _load_ai_settings_sync
+        from app.services.localized import localized
+
+        default_lang = _load_ai_settings_sync().default_language
+
         item_details = []
         for item in items:
-            # Use AI description if available, otherwise regular description
-            description = item.ai_description or item.description
+            ai_desc = localized(item.ai_descriptions, default_lang)
+            description = ai_desc or item.description
 
             # Get thumbnail path - first try primary_image_id, then fall back to first image
             thumbnail_path = None
@@ -241,7 +252,7 @@ async def build_label_content(
             ContainerItem(
                 name=item.name,
                 description=item.description,
-                ai_description=item.ai_description,
+                ai_description=localized(item.ai_descriptions, default_lang),
                 size=item.size,
                 owner_name=item.owner_name,
             )

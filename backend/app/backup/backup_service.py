@@ -200,10 +200,8 @@ class BackupService:
                     "value_estimate": (
                         float(item.value_estimate) if item.value_estimate else None
                     ),
-                    "ai_name": item.ai_name,
-                    "ai_name_no": item.ai_name_no,
-                    "ai_description": item.ai_description,
-                    "ai_description_no": item.ai_description_no,
+                    "ai_names": item.ai_names or {},
+                    "ai_descriptions": item.ai_descriptions or {},
                     "ai_processed": item.ai_processed,
                     "needs_review": item.needs_review,
                     "primary_image_id": (
@@ -667,15 +665,37 @@ class BackupService:
                         continue
 
                     # Create item
+                    # Restore translations dicts. Old backup files (pre-015)
+                    # used flat ai_name/ai_name_no fields — coerce them so
+                    # users can import historical archives.
+                    ai_names = item_data.get("ai_names")
+                    if ai_names is None:
+                        ai_names = {
+                            k: v
+                            for k, v in (
+                                ("en", item_data.get("ai_name")),
+                                ("no", item_data.get("ai_name_no")),
+                            )
+                            if v
+                        }
+                    ai_descriptions = item_data.get("ai_descriptions")
+                    if ai_descriptions is None:
+                        ai_descriptions = {
+                            k: v
+                            for k, v in (
+                                ("en", item_data.get("ai_description")),
+                                ("no", item_data.get("ai_description_no")),
+                            )
+                            if v
+                        }
+
                     new_item = Item(
                         name=item_data["name"],
                         description=item_data.get("description"),
                         container_id=container_id,
                         size=item_data.get("size"),
-                        ai_name=item_data.get("ai_name"),
-                        ai_name_no=item_data.get("ai_name_no"),
-                        ai_description=item_data.get("ai_description"),
-                        ai_description_no=item_data.get("ai_description_no"),
+                        ai_names=ai_names,
+                        ai_descriptions=ai_descriptions,
                         ai_processed=item_data.get("ai_processed", False),
                         needs_review=item_data.get("needs_review", False),
                     )

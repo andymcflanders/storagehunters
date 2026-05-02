@@ -18,21 +18,30 @@
 	let fileInput: HTMLInputElement;
 
 	// Language toggle for AI content (null = use user preference)
-	let contentLanguage: 'en' | 'no' | null = null;
+	let contentLanguage: string | null = null;
 
 	// Edit mode
 	let editMode = false;
 	let editData: ItemUpdate = {};
 
-	// Get effective language for content display
-	$: effectiveLanguage = contentLanguage || ($locale === 'no' ? 'no' : 'en');
+	// Get effective language for content display.
+	$: effectiveLanguage = contentLanguage || $locale || 'en';
 
 	// Localized AI content
-	$: localizedName = item ? getLocalizedAI(item.ai_name, item.ai_name_no, effectiveLanguage) : '';
-	$: localizedDescription = item ? getLocalizedAI(item.ai_description, item.ai_description_no, effectiveLanguage) : '';
+	$: localizedName = item ? getLocalizedAI(item.ai_names, effectiveLanguage) : '';
+	$: localizedDescription = item ? getLocalizedAI(item.ai_descriptions, effectiveLanguage) : '';
 
-	// Check if both languages are available for toggle
-	$: hasBothLanguages = item && item.ai_description && item.ai_description_no;
+	// Available languages are whatever the AI generated for this item.
+	$: availableLanguages = item?.ai_descriptions
+		? Object.keys(item.ai_descriptions).filter((k) => item.ai_descriptions[k])
+		: [];
+	$: hasMultipleLanguages = availableLanguages.length > 1;
+
+	function cycleLanguage() {
+		if (availableLanguages.length === 0) return;
+		const i = availableLanguages.indexOf(effectiveLanguage);
+		contentLanguage = availableLanguages[(i + 1) % availableLanguages.length];
+	}
 
 	// Users for owner selection
 	let userList: User[] = [];
@@ -500,15 +509,16 @@
 						{#if item.description || localizedDescription}
 							<div class="mt-2">
 								<p class="text-slate-600 dark:text-slate-400">{item.description || localizedDescription}</p>
-								{#if hasBothLanguages && !item.description}
+								{#if hasMultipleLanguages && !item.description}
 									<button
 										class="mt-1 inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
-										on:click={() => contentLanguage = effectiveLanguage === 'no' ? 'en' : 'no'}
+										on:click={cycleLanguage}
+										title={availableLanguages.join(' / ')}
 									>
 										<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
 										</svg>
-										{effectiveLanguage === 'no' ? 'View in English' : 'Se på norsk'}
+										{effectiveLanguage.toUpperCase()} → {availableLanguages[(availableLanguages.indexOf(effectiveLanguage) + 1) % availableLanguages.length].toUpperCase()}
 									</button>
 								{/if}
 							</div>

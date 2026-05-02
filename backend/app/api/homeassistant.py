@@ -11,13 +11,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import Text, func, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import APIUser, DbSession, require_scope
 from app.models.api_key import APIKeyScope
 from app.models.container import Container
-from app.models.item import Item, ItemImage
+from app.models.item import Item, ItemImage, ItemTag
 from app.models.location import Location
 from app.models.reminder import Reminder, ReminderType
 from app.models.tag import Tag
@@ -617,33 +617,33 @@ async def search_items(
     search_term = f"%{q.lower()}%"
 
     # Search in name, description, and AI-generated fields
+    # Search across the manual fields plus any AI translation. The JSONB
+    # cast-to-text catches every language without us having to enumerate
+    # them — an item with German names becomes searchable as soon as it's
+    # saved, no code change required.
+    where = (
+        func.lower(Item.name).like(search_term)
+        | func.lower(Item.description).like(search_term)
+        | func.lower(func.cast(Item.ai_names, Text)).like(search_term)
+        | func.lower(func.cast(Item.ai_descriptions, Text)).like(search_term)
+    )
+
     query = (
         select(Item)
         .options(
             selectinload(Item.container).selectinload(Container.location),
             selectinload(Item.owner),
-            selectinload(Item.tags),
+            selectinload(Item.item_tags).selectinload(ItemTag.tag),
             selectinload(Item.images),
         )
-        .where(
-            (func.lower(Item.name).like(search_term))
-            | (func.lower(Item.description).like(search_term))
-            | (func.lower(Item.ai_name_en).like(search_term))
-            | (func.lower(Item.ai_description_en).like(search_term))
-        )
+        .where(where)
         .limit(limit)
     )
 
     result = await db.execute(query)
     items = result.scalars().all()
 
-    # Get total count
-    count_query = select(func.count(Item.id)).where(
-        (func.lower(Item.name).like(search_term))
-        | (func.lower(Item.description).like(search_term))
-        | (func.lower(Item.ai_name_en).like(search_term))
-        | (func.lower(Item.ai_description_en).like(search_term))
-    )
+    count_query = select(func.count(Item.id)).where(where)
     total = await db.scalar(count_query) or 0
 
     return SearchResult(

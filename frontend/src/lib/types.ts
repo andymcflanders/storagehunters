@@ -135,10 +135,8 @@ export interface Item {
 	condition: Condition;
 	seasonal: Seasonal;
 	value_estimate: number | null;
-	ai_name: string | null;
-	ai_name_no: string | null;
-	ai_description: string | null;
-	ai_description_no: string | null;
+	ai_names: Record<string, string>;
+	ai_descriptions: Record<string, string>;
 	ai_processed: boolean;
 	needs_review: boolean;
 	primary_image_id: string | null;
@@ -294,10 +292,8 @@ export interface GodViewItem {
 	owner_name: string | null;
 	thumbnail_url: string | null;
 	value_estimate: number | null;
-	ai_name: string | null;
-	ai_name_no: string | null;
-	ai_description: string | null;
-	ai_description_no: string | null;
+	ai_names: Record<string, string>;
+	ai_descriptions: Record<string, string>;
 	ai_processed: boolean;
 	needs_review: boolean;
 	created_at: string;

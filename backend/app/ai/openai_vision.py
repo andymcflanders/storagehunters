@@ -12,34 +12,96 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# Prompt for consistent classification with name generation in both English and Norwegian
-CLASSIFICATION_PROMPT_SINGLE = """Analyze this image of a stored item for a home inventory system.
 
-Return a JSON object with:
-{
-  "name": "Short item name in English (2-5 words)",
-  "name_no": "Short item name in Norwegian (2-5 words)",
-  "tags": ["tag1", "tag2", ...],
-  "description": "Brief description in English",
-  "description_no": "Brief description in Norwegian",
-  "size": "Size in EU format or null",
-  "seasonal": "none|spring|summer|fall|winter|holiday"
+# ISO language code -> human-readable name shown to the model in the prompt.
+# When a user adds a language outside this map (e.g. "fr"), the code falls
+# back to the ISO code itself, which GPT-4o handles fine for common languages.
+LANGUAGE_NAMES: dict[str, str] = {
+    "en": "English",
+    "no": "Norwegian",
+    "nb": "Norwegian Bokmål",
+    "nn": "Norwegian Nynorsk",
+    "sv": "Swedish",
+    "da": "Danish",
+    "de": "German",
+    "fr": "French",
+    "es": "Spanish",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "nl": "Dutch",
+    "fi": "Finnish",
 }
 
-For NAME (both English and Norwegian):
+
+def _language_label(code: str) -> str:
+    return LANGUAGE_NAMES.get(code, code)
+
+
+def build_classification_prompt(languages: list[str], image_count: int) -> str:
+    """Construct the classification prompt for the configured languages.
+
+    The prompt asks GPT to return a JSON object with one `name_<code>`
+    and one `description_<code>` field per supported language, plus
+    shared fields (tags, size, seasonal). The parser pulls the
+    translations out by prefix.
+    """
+    if not languages:
+        languages = ["en"]
+
+    name_lines = "\n".join(
+        f'  "name_{code}": "Short item name in {_language_label(code)} (2-5 words)",'
+        for code in languages
+    )
+    desc_lines = "\n".join(
+        f'  "description_{code}": "Brief description in {_language_label(code)}",'
+        for code in languages
+    )
+
+    name_examples = "\n".join(
+        f"- {_language_label(code)} examples: " + _name_examples_for(code)
+        for code in languages
+    )
+
+    if image_count <= 1:
+        intro = "Analyze this image of a stored item for a home inventory system."
+        desc_guidance = "1-2 sentences about the item and notable features"
+    else:
+        intro = (
+            f"Analyze these {image_count} images showing DIFFERENT ANGLES/DETAILS "
+            "of the SAME item for a home inventory system.\n\n"
+            "The images may show:\n"
+            "- Different angles of the item\n"
+            "- Close-ups of labels, tags, or size information\n"
+            "- Brand logos or product details\n"
+            "- The item in use or context\n\n"
+            "Combine ALL information from ALL images to provide a complete classification."
+        )
+        desc_guidance = "1-2 sentences combining details from all images"
+
+    return f"""{intro}
+
+Return a JSON object with:
+{{
+{name_lines}
+  "tags": ["tag1", "tag2", ...],
+{desc_lines}
+  "size": "Size in EU format or null",
+  "seasonal": "none|spring|summer|fall|winter|holiday"
+}}
+
+For NAME (in every language listed above):
 - Keep it short and descriptive (2-5 words)
 - Include the most specific item type
 - Include brand if clearly visible (keep brand names unchanged)
-- English examples: "Blue Nike Running Shoes", "IKEA Billy Bookshelf", "Red Wool Sweater"
-- Norwegian examples: "Blå Nike Løpesko", "IKEA Billy Bokhylle", "Rød Ullgenser"
+{name_examples}
 
 For TAGS, include:
 - Primary color(s), item category, specific type, material, pattern
 - Style, season if applicable, size if visible, brand if visible
 - Keep tags lowercase in English, 8-15 relevant tags
 
-For DESCRIPTION (both languages):
-- 1-2 sentences about the item and notable features
+For DESCRIPTION (in every language listed above):
+- {desc_guidance}
 
 For SIZE:
 - Extract size if visible on labels/tags
@@ -61,61 +123,20 @@ For SEASONAL:
 IMPORTANT: Return ONLY the JSON object, no other text."""
 
 
-CLASSIFICATION_PROMPT_MULTI = """Analyze these {count} images showing DIFFERENT ANGLES/DETAILS of the SAME item for a home inventory system.
-
-The images may show:
-- Different angles of the item
-- Close-ups of labels, tags, or size information
-- Brand logos or product details
-- The item in use or context
-
-Combine ALL information from ALL images to provide a complete classification.
-
-Return a JSON object with:
-{{
-  "name": "Short item name in English (2-5 words)",
-  "name_no": "Short item name in Norwegian (2-5 words)",
-  "tags": ["tag1", "tag2", ...],
-  "description": "Brief description in English",
-  "description_no": "Brief description in Norwegian",
-  "size": "Size in EU format or null",
-  "seasonal": "none|spring|summer|fall|winter|holiday"
-}}
-
-For NAME (both English and Norwegian):
-- Keep it short and descriptive (2-5 words)
-- Include the most specific item type
-- Include brand if visible in any image (keep brand names unchanged)
-- English examples: "Blue Nike Running Shoes", "IKEA Billy Bookshelf White"
-- Norwegian examples: "Blå Nike Løpesko", "IKEA Billy Bokhylle Hvit"
-
-For TAGS, include information from ALL images:
-- Colors, item category, specific type, material, pattern
-- Style, season, size (from labels), brand (from logos)
-- Any text visible on labels or tags
-- Keep tags lowercase in English, 8-15 relevant tags
-
-For DESCRIPTION (both languages):
-- 1-2 sentences combining details from all images
-
-For SIZE:
-- Extract size from labels/tags visible in any image
-- ALWAYS use EU/European sizing (convert if needed):
-  * Clothing: EU sizes like 46, 48, 50, 52 (not US 16, 18)
-  * Children's clothes: Use height in cm (e.g., "104", "110", "116", "122")
-  * Shoes: EU sizes like 38, 40, 42 (not US 8, 10)
-  * Generic: Use S, M, L, XL if EU conversion unclear
-- Return null if no size visible
-
-For SEASONAL:
-- Determine the most appropriate season for the item
-- "winter" for heavy coats, wool sweaters, boots, scarves, gloves
-- "summer" for shorts, tank tops, sandals, swimwear
-- "spring" or "fall" for light jackets, transitional clothing
-- "holiday" for Christmas decorations, Halloween items, etc.
-- "none" for non-seasonal items (tools, electronics, furniture)
-
-IMPORTANT: Return ONLY the JSON object, no other text."""
+def _name_examples_for(code: str) -> str:
+    """Per-language naming examples to anchor the model's tone."""
+    examples = {
+        "en": '"Blue Nike Running Shoes", "IKEA Billy Bookshelf", "Red Wool Sweater"',
+        "no": '"Blå Nike Løpesko", "IKEA Billy Bokhylle", "Rød Ullgenser"',
+        "nb": '"Blå Nike Løpesko", "IKEA Billy Bokhylle", "Rød Ullgenser"',
+        "sv": '"Blå Nike Löparskor", "IKEA Billy Bokhylla", "Röd Ulltröja"',
+        "da": '"Blå Nike Løbesko", "IKEA Billy Bogreol", "Rød Uldsweater"',
+        "de": '"Blaue Nike Laufschuhe", "IKEA Billy Bücherregal", "Roter Wollpullover"',
+        "fr": '"Chaussures de Course Nike Bleues", "Bibliothèque IKEA Billy", "Pull en Laine Rouge"',
+        "es": '"Zapatillas Nike Azules", "Estantería IKEA Billy", "Suéter de Lana Rojo"',
+        "it": '"Scarpe Nike Blu", "Libreria IKEA Billy", "Maglione di Lana Rosso"',
+    }
+    return examples.get(code, "(short, item-type-first)")
 
 
 class OpenAIVisionClassifier(BaseClassifier):
@@ -127,11 +148,13 @@ class OpenAIVisionClassifier(BaseClassifier):
         model: str = "gpt-4o",
         max_tokens: int = 500,
         temperature: float = 0.3,
+        languages: list[str] | None = None,
     ):
         self.api_key = api_key or settings.openai_api_key
         self.model = model
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.languages = languages or ["en", "no"]
         self.api_url = "https://api.openai.com/v1/chat/completions"
 
     async def classify(self, images: list[bytes]) -> ClassificationResult:
@@ -142,25 +165,14 @@ class OpenAIVisionClassifier(BaseClassifier):
         if not images:
             return ClassificationResult()
 
-        # Build request headers
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
-        # Build content with all images
-        content: list[dict] = []
+        prompt = build_classification_prompt(self.languages, image_count=len(images))
+        content: list[dict] = [{"type": "text", "text": prompt}]
 
-        # Add prompt (different for single vs multiple images)
-        if len(images) == 1:
-            content.append({"type": "text", "text": CLASSIFICATION_PROMPT_SINGLE})
-        else:
-            content.append({
-                "type": "text",
-                "text": CLASSIFICATION_PROMPT_MULTI.format(count=len(images))
-            })
-
-        # Add all images
         for image_bytes in images:
             image_b64 = base64.b64encode(image_bytes).decode("utf-8")
             image_type = self._detect_image_type(image_bytes)
@@ -168,7 +180,7 @@ class OpenAIVisionClassifier(BaseClassifier):
                 "type": "image_url",
                 "image_url": {
                     "url": f"data:{image_type};base64,{image_b64}",
-                    "detail": "auto",  # Let OpenAI choose based on image complexity
+                    "detail": "auto",
                 },
             })
 
@@ -188,7 +200,6 @@ class OpenAIVisionClassifier(BaseClassifier):
             response.raise_for_status()
             data = response.json()
 
-        # Parse response
         return self._parse_response(data)
 
     def _detect_image_type(self, image_bytes: bytes) -> str:
@@ -202,57 +213,53 @@ class OpenAIVisionClassifier(BaseClassifier):
         elif image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
             return "image/webp"
         else:
-            return "image/jpeg"  # Default to JPEG
+            return "image/jpeg"
 
     def _parse_response(self, data: dict[str, Any]) -> ClassificationResult:
         """Parse OpenAI API response into ClassificationResult."""
         try:
             content = data["choices"][0]["message"]["content"]
 
-            # Try to extract JSON from the response
             json_match = re.search(r"\{[\s\S]*\}", content)
-            if json_match:
-                parsed = json.loads(json_match.group())
-            else:
-                # If no JSON found, try parsing the whole content
-                parsed = json.loads(content)
+            parsed = json.loads(json_match.group()) if json_match else json.loads(content)
 
-            name = parsed.get("name", "")
-            name_no = parsed.get("name_no", "")
-            tags = parsed.get("tags", [])
-            description = parsed.get("description", "")
-            description_no = parsed.get("description_no", "")
-            size = parsed.get("size") or ""  # Handle null
-            seasonal = parsed.get("seasonal", "none")
+            # Pull any name_<code> / description_<code> keys back out into dicts.
+            # We also accept legacy "name"/"description" (without suffix) as the
+            # default-language value, in case the model omits the suffix.
+            names: dict[str, str] = {}
+            descriptions: dict[str, str] = {}
+            for key, value in parsed.items():
+                if not isinstance(value, str) or not value:
+                    continue
+                if key == "name":
+                    names.setdefault(self.languages[0], value)
+                elif key.startswith("name_"):
+                    names[key.removeprefix("name_")] = value
+                elif key == "description":
+                    descriptions.setdefault(self.languages[0], value)
+                elif key.startswith("description_"):
+                    descriptions[key.removeprefix("description_")] = value
 
-            # Normalize tags
-            tags = self._normalize_tags(tags)
-
-            # Validate seasonal value
+            tags = self._normalize_tags(parsed.get("tags", []))
+            size = parsed.get("size") or ""
+            seasonal = (parsed.get("seasonal") or "none").lower()
             valid_seasons = {"none", "spring", "summer", "fall", "winter", "holiday"}
-            if seasonal.lower() not in valid_seasons:
+            if seasonal not in valid_seasons:
                 seasonal = "none"
-            else:
-                seasonal = seasonal.lower()
 
             return ClassificationResult(
-                name=name,
-                name_no=name_no,
+                names=names,
+                descriptions=descriptions,
                 tags=tags,
-                description=description,
-                description_no=description_no,
                 size=size,
                 seasonal=seasonal,
-                confidence=0.9,  # OpenAI doesn't provide confidence scores
+                confidence=0.9,
                 raw_response=data,
             )
 
         except (json.JSONDecodeError, KeyError, IndexError) as e:
-            # If parsing fails, return empty result
             return ClassificationResult(
-                name="",
                 tags=[],
-                description="",
                 confidence=0.0,
                 raw_response={"error": str(e), "raw": data},
             )

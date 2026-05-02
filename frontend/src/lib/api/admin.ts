@@ -198,3 +198,37 @@ export async function updateOpenAISettings(data: OpenAISettingsUpdate): Promise<
 
 	return response.json();
 }
+
+// Language settings (which languages the AI generates content in)
+
+export interface LanguageSettings {
+	supported_languages: string[];
+	default_language: string;
+}
+
+export interface LanguageSettingsUpdate {
+	supported_languages?: string[];
+	default_language?: string;
+}
+
+export async function getLanguageSettings(): Promise<LanguageSettings> {
+	return get<LanguageSettings>('/admin/languages');
+}
+
+export async function updateLanguageSettings(
+	data: LanguageSettingsUpdate
+): Promise<LanguageSettings> {
+	const response = await fetch('/api/admin/languages', {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data),
+		credentials: 'include'
+	});
+
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({ detail: 'Update failed' }));
+		throw new Error(error.detail || 'Update failed');
+	}
+
+	return response.json();
+}

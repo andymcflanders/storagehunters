@@ -39,6 +39,8 @@ class CachedAISettings:
     summary_model: str = "gpt-4o-mini"
     summary_max_tokens: int = 150
     summary_temperature: float = 0.3
+    supported_languages: tuple[str, ...] = ("en", "no")
+    default_language: str = "en"
 
 
 # Module-level cache
@@ -86,6 +88,8 @@ def _load_ai_settings_sync() -> CachedAISettings:
                     summary_model=settings.summary_model,
                     summary_max_tokens=settings.summary_max_tokens,
                     summary_temperature=settings.summary_temperature,
+                    supported_languages=tuple(settings.supported_languages or ("en",)),
+                    default_language=settings.default_language or "en",
                 )
             else:
                 # Use defaults if no settings exist yet
@@ -117,27 +121,21 @@ def get_classifier() -> BaseClassifier:
     settings = get_settings()
     ai_settings = _load_ai_settings_sync()
 
-    if settings.ai_provider == "openai":
-        if not settings.openai_api_key:
-            # Fall back to mock if no API key
-            return MockClassifier()
+    languages = list(ai_settings.supported_languages)
 
-        if not ai_settings.vision_enabled:
-            return MockClassifier()
+    if settings.ai_provider == "openai":
+        if not settings.openai_api_key or not ai_settings.vision_enabled:
+            return MockClassifier(languages=languages)
 
         return OpenAIVisionClassifier(
             api_key=settings.openai_api_key,
             model=ai_settings.vision_model,
             max_tokens=ai_settings.vision_max_tokens,
             temperature=ai_settings.vision_temperature,
+            languages=languages,
         )
 
-    elif settings.ai_provider == "mock":
-        return MockClassifier()
-
-    else:
-        # Default to mock for unknown providers
-        return MockClassifier()
+    return MockClassifier(languages=languages)
 
 
 def get_summary_generator() -> SummaryGenerator:

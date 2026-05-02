@@ -76,10 +76,8 @@ class ItemResponse(BaseModel):
     condition: ConditionEnum
     seasonal: SeasonalEnum
     value_estimate: Decimal | None
-    ai_name: str | None = None
-    ai_name_no: str | None = None
-    ai_description: str | None = None
-    ai_description_no: str | None = None
+    ai_names: dict[str, str] = {}
+    ai_descriptions: dict[str, str] = {}
     ai_processed: bool = False
     needs_review: bool = False
     primary_image_id: UUID | None = None

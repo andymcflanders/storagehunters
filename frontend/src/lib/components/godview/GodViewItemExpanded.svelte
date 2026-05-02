@@ -170,22 +170,21 @@
 							AI Generated Content
 						</h4>
 						<div class="grid grid-cols-2 gap-4">
-							<div>
-								<label class="mb-1 block text-xs font-medium text-blue-700 dark:text-blue-400">AI Name (EN)</label>
-								<p class="text-sm text-blue-900 dark:text-blue-200">{item.ai_name || '-'}</p>
-							</div>
-							<div>
-								<label class="mb-1 block text-xs font-medium text-blue-700 dark:text-blue-400">AI Name (NO)</label>
-								<p class="text-sm text-blue-900 dark:text-blue-200">{item.ai_name_no || '-'}</p>
-							</div>
-							<div>
-								<label class="mb-1 block text-xs font-medium text-blue-700 dark:text-blue-400">AI Description (EN)</label>
-								<p class="text-sm text-blue-900 dark:text-blue-200">{item.ai_description || '-'}</p>
-							</div>
-							<div>
-								<label class="mb-1 block text-xs font-medium text-blue-700 dark:text-blue-400">AI Description (NO)</label>
-								<p class="text-sm text-blue-900 dark:text-blue-200">{item.ai_description_no || '-'}</p>
-							</div>
+							{#each Object.entries(item.ai_names || {}) as [code, value]}
+								<div>
+									<label class="mb-1 block text-xs font-medium text-blue-700 dark:text-blue-400">AI Name ({code.toUpperCase()})</label>
+									<p class="text-sm text-blue-900 dark:text-blue-200">{value || '-'}</p>
+								</div>
+							{/each}
+							{#each Object.entries(item.ai_descriptions || {}) as [code, value]}
+								<div>
+									<label class="mb-1 block text-xs font-medium text-blue-700 dark:text-blue-400">AI Description ({code.toUpperCase()})</label>
+									<p class="text-sm text-blue-900 dark:text-blue-200">{value || '-'}</p>
+								</div>
+							{/each}
+							{#if Object.keys(item.ai_names || {}).length === 0 && Object.keys(item.ai_descriptions || {}).length === 0}
+								<p class="col-span-2 text-sm text-blue-900 dark:text-blue-200">No AI content yet</p>
+							{/if}
 						</div>
 					</div>
 				{/if}

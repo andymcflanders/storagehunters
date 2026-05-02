@@ -25,14 +25,16 @@ SAMPLE_ITEMS = [
 class MockClassifier(BaseClassifier):
     """Mock classifier that generates deterministic tags based on image hash."""
 
-    def __init__(self, delay: float = 0.5):
+    def __init__(self, delay: float = 0.5, languages: list[str] | None = None):
         """
         Initialize mock classifier.
 
         Args:
             delay: Simulated processing delay in seconds
+            languages: ISO codes to populate in the mock translations dict
         """
         self.delay = delay
+        self.languages = languages or ["en"]
 
     async def classify(self, images: list[bytes]) -> ClassificationResult:
         """Generate mock classification based on combined image hashes."""
@@ -100,10 +102,15 @@ class MockClassifier(BaseClassifier):
         if len(images) > 1:
             description += f" (Analyzed from {len(images)} photos)"
 
+        # Mock fills the same string for every supported language so
+        # downstream code paths see populated dicts during dev/testing.
+        names = {lang: name for lang in self.languages}
+        descriptions = {lang: description for lang in self.languages}
+
         return ClassificationResult(
-            name=name,
+            names=names,
+            descriptions=descriptions,
             tags=tags,
-            description=description,
             confidence=0.85,
             raw_response={"mock": True, "hash": combined_hash, "image_count": len(images)},
         )

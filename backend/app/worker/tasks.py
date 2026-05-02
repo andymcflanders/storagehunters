@@ -77,19 +77,25 @@ def _process_item_sync(item_id: UUID) -> dict:
             return {"status": "error", "message": str(e)}
 
         # Update item with AI results
-        item.ai_name = classification.name
-        item.ai_name_no = classification.name_no
-        item.ai_description = classification.description
-        item.ai_description_no = classification.description_no
+        item.ai_names = dict(classification.names)
+        item.ai_descriptions = dict(classification.descriptions)
         item.ai_processed = True
 
         # Update size if extracted and not already set
         if classification.size and not item.size:
             item.size = classification.size
 
-        # Update description if not already set
-        if classification.description and not item.description:
-            item.description = classification.description
+        # Seed manual description from default-language AI description.
+        if not item.description:
+            from app.services.localized import localized
+            from app.ai import _load_ai_settings_sync
+
+            default_desc = localized(
+                classification.descriptions,
+                _load_ai_settings_sync().default_language,
+            )
+            if default_desc:
+                item.description = default_desc
 
         # Update seasonal if extracted and currently set to default
         if classification.seasonal and classification.seasonal != "none":
@@ -105,10 +111,17 @@ def _process_item_sync(item_id: UUID) -> dict:
                 if item.seasonal == SeasonalEnum.NONE:
                     item.seasonal = seasonal_map[classification.seasonal]
 
-        # Mark all images as processed and store per-image data
+        # Mark all images as processed and store per-image data.
+        # Per-image AI description uses the default language only — it's
+        # an internal scratch field, not user-facing for selection.
+        from app.services.localized import localized as _localized
+        from app.ai import _load_ai_settings_sync as _load_ai
+        per_image_desc = _localized(
+            classification.descriptions, _load_ai().default_language
+        )
         for img in unprocessed_images:
             img.ai_tags = classification.tags
-            img.ai_description = classification.description
+            img.ai_description = per_image_desc
             img.ai_processed = True
 
         # Create/link tags to item
@@ -139,11 +152,9 @@ def _process_item_sync(item_id: UUID) -> dict:
 
         return {
             "status": "success",
-            "name": classification.name,
-            "name_no": classification.name_no,
+            "names": classification.names,
+            "descriptions": classification.descriptions,
             "tags": classification.tags,
-            "description": classification.description,
-            "description_no": classification.description_no,
             "images_processed": len(image_bytes_list),
         }
 

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -192,6 +192,20 @@ class AISettings(Base):
     summary_enabled: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
+        nullable=False,
+    )
+
+    # Languages the AI should generate content in (ISO codes, e.g. ["en", "no"]).
+    # The OpenAI prompt asks for one name + description per language.
+    supported_languages: Mapped[list[str]] = mapped_column(
+        ARRAY(String(length=10)),
+        default=lambda: ["en", "no"],
+        nullable=False,
+    )
+    # Fallback language used when a translation is missing for a user's locale.
+    default_language: Mapped[str] = mapped_column(
+        String(length=10),
+        default="en",
         nullable=False,
     )
 

@@ -700,3 +700,107 @@ async def update_openai_settings(
         text_models=[ModelOption(**m) for m in TEXT_MODELS],
         api_key_set=bool(config.openai_api_key),
     )
+
+
+# ============== Language Settings ==============
+
+
+import re as _re_lang
+
+
+class LanguageSettings(BaseModel):
+    """Languages the AI generates content in."""
+
+    supported_languages: list[str]
+    default_language: str
+
+
+class LanguageSettingsUpdate(BaseModel):
+    """Update payload for language settings."""
+
+    supported_languages: list[str] | None = None
+    default_language: str | None = None
+
+
+_LANGUAGE_CODE_PATTERN = _re_lang.compile(r"^[a-z]{2}(-[a-z]{2})?$")
+
+
+def _normalize_language_codes(codes: list[str]) -> list[str]:
+    """Lowercase, strip, dedupe, and validate ISO-style language codes."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in codes:
+        code = raw.strip().lower()
+        if not code or code in seen:
+            continue
+        if not _LANGUAGE_CODE_PATTERN.match(code):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid language code: {raw!r} (use ISO codes like 'en', 'no', 'de')",
+            )
+        seen.add(code)
+        out.append(code)
+    return out
+
+
+@router.get("/languages", response_model=LanguageSettings)
+async def get_language_settings(
+    db: DbSession,
+    admin: AdminUser,
+) -> LanguageSettings:
+    """Get the languages the AI generates content in (admin only)."""
+    ai_settings = await get_or_create_ai_settings(db)
+    return LanguageSettings(
+        supported_languages=list(ai_settings.supported_languages or ["en"]),
+        default_language=ai_settings.default_language or "en",
+    )
+
+
+@router.put("/languages", response_model=LanguageSettings)
+async def update_language_settings(
+    db: DbSession,
+    admin: AdminUser,
+    data: LanguageSettingsUpdate,
+) -> LanguageSettings:
+    """Update language settings (admin only).
+
+    - At least one language is required.
+    - default_language must be present in supported_languages.
+    - Existing items are NOT re-translated when adding a language.
+    """
+    from app.ai import _reset_classifier_cache
+
+    ai_settings = await get_or_create_ai_settings(db)
+
+    if data.supported_languages is not None:
+        codes = _normalize_language_codes(data.supported_languages)
+        if not codes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="supported_languages must contain at least one language",
+            )
+        ai_settings.supported_languages = codes
+
+    if data.default_language is not None:
+        default = data.default_language.strip().lower()
+        if not _LANGUAGE_CODE_PATTERN.match(default):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid default_language: {data.default_language!r}",
+            )
+        if default not in (ai_settings.supported_languages or []):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="default_language must be one of supported_languages",
+            )
+        ai_settings.default_language = default
+
+    await db.commit()
+    await db.refresh(ai_settings)
+
+    _reset_classifier_cache()
+
+    return LanguageSettings(
+        supported_languages=list(ai_settings.supported_languages),
+        default_language=ai_settings.default_language,
+    )
