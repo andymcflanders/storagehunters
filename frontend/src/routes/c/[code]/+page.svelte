@@ -8,7 +8,7 @@
 	let loading = true;
 	let error = '';
 
-	$: code = $page.params.code;
+	$: code = $page.params.code!;
 
 	onMount(async () => {
 		await lookupContainer();

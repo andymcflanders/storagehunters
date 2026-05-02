@@ -134,11 +134,11 @@
 	}
 
 	function clearLocationFilter() {
-		dispatch('filterLocationIds', new Set());
+		dispatch('filterLocationIds', new Set<string>());
 	}
 
 	function clearContainerFilter() {
-		dispatch('filterContainerIds', new Set());
+		dispatch('filterContainerIds', new Set<string>());
 	}
 
 	function toggleAllLocations() {
@@ -163,8 +163,8 @@
 		dispatch('filterSeasonal', '');
 		dispatch('filterOwner', '');
 		dispatch('filterNeedsReview', null);
-		dispatch('filterLocationIds', new Set());
-		dispatch('filterContainerIds', new Set());
+		dispatch('filterLocationIds', new Set<string>());
+		dispatch('filterContainerIds', new Set<string>());
 	}
 
 	$: hasActiveFilters = searchQuery || filterCondition || filterSeasonal || filterOwner || filterNeedsReview !== null || filterLocationIds.size > 0 || filterContainerIds.size > 0;

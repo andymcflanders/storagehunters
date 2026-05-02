@@ -33,9 +33,10 @@
 	$: localizedDescription = item ? getLocalizedAI(item.ai_descriptions, effectiveLanguage) : '';
 
 	// Available languages are whatever the AI generated for this item.
-	$: availableLanguages = item?.ai_descriptions
-		? Object.keys(item.ai_descriptions).filter((k) => item.ai_descriptions[k])
-		: [];
+	$: availableLanguages = (() => {
+		const desc = item?.ai_descriptions;
+		return desc ? Object.keys(desc).filter((k) => desc[k]) : [];
+	})();
 	$: hasMultipleLanguages = availableLanguages.length > 1;
 
 	function cycleLanguage() {
@@ -51,7 +52,7 @@
 	let pollInterval: ReturnType<typeof setInterval> | null = null;
 	let aiProcessing = false;
 
-	$: itemId = $page.params.id;
+	$: itemId = $page.params.id!;
 
 	// Check if any images are still processing
 	$: aiProcessing = item?.images.some(img => !img.ai_processed) ?? false;

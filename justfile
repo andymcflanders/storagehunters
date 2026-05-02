@@ -49,6 +49,11 @@ admin name email password:
 genkey:
     @openssl rand -hex 32
 
+# Enable the repo's pre-commit hook (one-time, per clone).
+install-hooks:
+    git config core.hooksPath .githooks
+    @echo "Pre-commit hook enabled. Bypass with: git commit --no-verify"
+
 # Run svelte-check (frontend type-check) in an ephemeral container
 check:
     docker run --rm \

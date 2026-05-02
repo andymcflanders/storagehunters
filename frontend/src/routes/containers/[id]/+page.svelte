@@ -22,7 +22,7 @@
 		container_id: ''
 	};
 
-	$: containerId = $page.params.id;
+	$: containerId = $page.params.id!;
 
 	onMount(async () => {
 		if (!$user) {

@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# Pre-commit hook: run frontend type checks if any frontend files are staged.
+#
+# Enable once with:  git config core.hooksPath .githooks
+# Bypass for one commit:  git commit --no-verify
+
+set -e
+
+# Only run if frontend files are staged — keeps unrelated commits fast.
+if ! git diff --cached --name-only | grep -q '^frontend/'; then
+    exit 0
+fi
+
+if ! command -v just >/dev/null 2>&1; then
+    echo "pre-commit: 'just' not installed; skipping frontend type check." >&2
+    exit 0
+fi
+
+echo "pre-commit: running 'just check' (frontend type check)..."
+if ! just check >/dev/null 2>&1; then
+    echo "pre-commit: 'just check' failed. Run it directly to see errors:" >&2
+    echo "    just check" >&2
+    echo "Bypass with --no-verify if intentional." >&2
+    exit 1
+fi
+
+echo "pre-commit: OK"

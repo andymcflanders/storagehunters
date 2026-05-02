@@ -8,7 +8,7 @@
 	let error = '';
 	let data: PublicShareResponse | null = null;
 
-	$: token = $page.params.token;
+	$: token = $page.params.token!;
 
 	onMount(async () => {
 		await loadShare();

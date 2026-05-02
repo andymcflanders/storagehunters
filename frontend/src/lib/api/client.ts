@@ -64,11 +64,16 @@ export async function patch<T>(endpoint: string, data: unknown): Promise<T> {
 	return handleResponse<T>(response);
 }
 
-export async function del<T>(endpoint: string): Promise<T> {
-	const response = await fetch(`${API_BASE}${endpoint}`, {
+export async function del<T>(endpoint: string, body?: unknown): Promise<T> {
+	const init: RequestInit = {
 		method: 'DELETE',
 		credentials: 'include'
-	});
+	};
+	if (body !== undefined) {
+		init.headers = { 'Content-Type': 'application/json' };
+		init.body = JSON.stringify(body);
+	}
+	const response = await fetch(`${API_BASE}${endpoint}`, init);
 	return handleResponse<T>(response);
 }
 

@@ -606,7 +606,7 @@
 		{:else if error}
 			<div class="rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
 				<p class="text-red-600 dark:text-red-400">{error}</p>
-				<button class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700" on:click={loadData}>
+				<button class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700" on:click={() => loadData()}>
 					Retry
 				</button>
 			</div>
@@ -639,7 +639,7 @@
 				on:collapseAllLocations={collapseAllLocations}
 				on:expandAllContainers={expandAllContainers}
 				on:collapseAllContainers={collapseAllContainers}
-				on:refresh={loadData}
+				on:refresh={() => loadData()}
 				on:batchPrint={handleBatchPrint}
 				on:printSelected={handlePrintSelected}
 				on:clearSelection={clearPrintSelection}

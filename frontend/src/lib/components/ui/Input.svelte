@@ -1,5 +1,5 @@
 <script lang="ts">
-	export let value = '';
+	export let value: string | number = '';
 	export let type: 'text' | 'email' | 'password' | 'number' | 'search' = 'text';
 	export let placeholder = '';
 	export let label = '';
@@ -10,7 +10,7 @@
 
 	function handleInput(e: Event) {
 		const target = e.target as HTMLInputElement;
-		value = target.value;
+		value = type === 'number' ? target.valueAsNumber : target.value;
 	}
 </script>
 

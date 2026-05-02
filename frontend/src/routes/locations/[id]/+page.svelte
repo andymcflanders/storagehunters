@@ -19,7 +19,7 @@
 		notes: ''
 	};
 
-	$: locationId = $page.params.id;
+	$: locationId = $page.params.id!;
 
 	onMount(async () => {
 		if (!$user) {

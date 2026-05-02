@@ -139,9 +139,16 @@
 			ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
 			const imageData = ctx.getImageData(0, 0, canvasElement.width, canvasElement.height);
 
-			// Use jsQR library (loaded from CDN in scan page)
+			// Use jsQR library (loaded from CDN in scan page; types are declared
+			// inline since the lib is loaded as a global, not bundled).
+			type JsQRFn = (
+				data: Uint8ClampedArray,
+				width: number,
+				height: number,
+				options?: { inversionAttempts?: 'dontInvert' | 'attemptBoth' | 'invertFirst' | 'onlyInvert' }
+			) => { data: string } | null;
 			if (typeof window !== 'undefined' && 'jsQR' in window) {
-				const jsQR = (window as unknown as { jsQR: typeof import('jsqr').default }).jsQR;
+				const jsQR = (window as unknown as { jsQR: JsQRFn }).jsQR;
 				const code = jsQR(imageData.data, imageData.width, imageData.height, {
 					inversionAttempts: 'dontInvert'
 				});
