@@ -52,6 +52,8 @@ class ContainerSummary(BaseModel):
     name: str
     qr_code: str
     item_count: int = 0
+    container_type: str | None = None
+    image_url: str | None = None
 
     model_config = {"from_attributes": True}
 

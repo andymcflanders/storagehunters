@@ -48,3 +48,22 @@ export async function deleteContainer(id: string, options?: DeleteContainerOptio
 export function getContainerQRUrl(id: string): string {
 	return `/api/containers/${id}/qr`;
 }
+
+export async function uploadContainerImage(id: string, file: File): Promise<Container> {
+	const formData = new FormData();
+	formData.append('file', file);
+	const response = await fetch(`/api/containers/${id}/image`, {
+		method: 'POST',
+		body: formData,
+		credentials: 'include'
+	});
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+		throw new Error(error.detail || 'Upload failed');
+	}
+	return response.json();
+}
+
+export async function deleteContainerImage(id: string): Promise<void> {
+	return del(`/containers/${id}/image`);
+}

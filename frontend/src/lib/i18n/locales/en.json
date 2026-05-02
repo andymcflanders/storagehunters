@@ -124,6 +124,13 @@
 		"addItemsHelp": "Add items to this container to keep track of your belongings.",
 		"namePlaceholder": "e.g., Winter jacket, Christmas decorations",
 		"nestedContainers": "Nested Containers",
+		"containerNamePlaceholder": "e.g., Blue IKEA box, Clear bin #3",
+		"notesPlaceholder": "Optional notes about this container",
+		"chooseType": "Choose a type…",
+		"image": "Image",
+		"chooseImage": "Choose image…",
+		"removeImage": "Remove image",
+		"replaceImage": "Replace image",
 		"types": {
 			"box": "Box",
 			"drawer": "Drawer",

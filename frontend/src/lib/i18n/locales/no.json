@@ -124,6 +124,13 @@
 		"addItemsHelp": "Legg til gjenstander i denne beholderen for å holde oversikt over eiendelene dine.",
 		"namePlaceholder": "f.eks. Vinterjakke, Juledekorasjoner",
 		"nestedContainers": "Nestede beholdere",
+		"containerNamePlaceholder": "f.eks. Blå IKEA-boks, Gjennomsiktig kasse #3",
+		"notesPlaceholder": "Valgfrie notater om denne beholderen",
+		"chooseType": "Velg en type…",
+		"image": "Bilde",
+		"chooseImage": "Velg bilde…",
+		"removeImage": "Fjern bilde",
+		"replaceImage": "Bytt bilde",
 		"types": {
 			"box": "Boks",
 			"drawer": "Skuff",

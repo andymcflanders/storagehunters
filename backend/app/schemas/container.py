@@ -1,9 +1,25 @@
 """Container schemas."""
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+
+# Allowed values mirror the frontend translation keys
+# (containers.types.{box,drawer,...}). Add new values here AND in the
+# locale files when introducing a new container type.
+ContainerType = Literal[
+    "box",
+    "drawer",
+    "shelf",
+    "cabinet",
+    "closet",
+    "bin",
+    "basket",
+    "other",
+]
 
 
 class ContainerBase(BaseModel):
@@ -13,6 +29,7 @@ class ContainerBase(BaseModel):
     location_id: UUID
     parent_container_id: UUID | None = None
     notes: str | None = None
+    container_type: ContainerType | None = None
 
 
 class ContainerCreate(ContainerBase):
@@ -28,6 +45,7 @@ class ContainerUpdate(BaseModel):
     location_id: UUID | None = None
     parent_container_id: UUID | None = None
     notes: str | None = None
+    container_type: ContainerType | None = None
 
 
 class ContainerResponse(BaseModel):
@@ -39,6 +57,8 @@ class ContainerResponse(BaseModel):
     parent_container_id: UUID | None
     qr_code: str
     notes: str | None
+    container_type: ContainerType | None = None
+    image_url: str | None = None
     created_at: datetime
     updated_at: datetime
 

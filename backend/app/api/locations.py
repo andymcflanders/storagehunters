@@ -21,6 +21,7 @@ from app.schemas.location import (
     LocationWithContainers,
 )
 from app.services.activity_logger import ActivityLogger
+from app.services.image_storage import ImageStorageService
 
 router = APIRouter()
 
@@ -126,12 +127,15 @@ async def get_location(location_id: UUID, db: DbSession) -> LocationWithContaine
         )
         item_counts = dict(count_result.all())
 
+    storage = ImageStorageService()
     containers = [
         ContainerSummary(
             id=c.id,
             name=c.name,
             qr_code=c.qr_code,
             item_count=item_counts.get(c.id, 0),
+            container_type=c.container_type,
+            image_url=storage.get_url(c.image_filepath) if c.image_filepath else None,
         )
         for c in location.containers
         if c.parent_container_id is None  # Only top-level containers

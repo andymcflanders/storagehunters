@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Response, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -23,6 +23,23 @@ from app.services.image_storage import ImageStorageService
 from app.services.qr_generator import QRGeneratorService
 
 router = APIRouter()
+
+
+def _to_response(container: Container) -> ContainerResponse:
+    """Build a ContainerResponse, mapping image_filepath -> image_url."""
+    storage = ImageStorageService()
+    return ContainerResponse(
+        id=container.id,
+        name=container.name,
+        location_id=container.location_id,
+        parent_container_id=container.parent_container_id,
+        qr_code=container.qr_code,
+        notes=container.notes,
+        container_type=container.container_type,
+        image_url=storage.get_url(container.image_filepath) if container.image_filepath else None,
+        created_at=container.created_at,
+        updated_at=container.updated_at,
+    )
 
 
 async def build_container_path(
@@ -69,7 +86,7 @@ async def list_containers(
 
     result = await db.execute(query)
     containers = result.scalars().all()
-    return [ContainerResponse.model_validate(c) for c in containers]
+    return [_to_response(c) for c in containers]
 
 
 @router.post("", response_model=ContainerResponse, status_code=status.HTTP_201_CREATED)
@@ -113,7 +130,7 @@ async def create_container(
         entity_name=container.name,
     )
 
-    return ContainerResponse.model_validate(container)
+    return _to_response(container)
 
 
 @router.get("/qr/{qr_code}", response_model=ContainerWithItems)
@@ -142,10 +159,10 @@ async def get_container_by_qr(qr_code: str, db: DbSession) -> ContainerWithItems
         if item.images:
             thumbnail_url = storage.get_url(item.images[0].filepath)
         items.append(ItemSummary(id=item.id, name=item.name, thumbnail_url=thumbnail_url))
-    children = [ContainerResponse.model_validate(c) for c in container.child_containers]
+    children = [_to_response(c) for c in container.child_containers]
 
     return ContainerWithItems(
-        **ContainerResponse.model_validate(container).model_dump(),
+        **_to_response(container).model_dump(),
         items=items,
         child_containers=children,
         path=path,
@@ -178,10 +195,10 @@ async def get_container(container_id: UUID, db: DbSession) -> ContainerWithItems
         if item.images:
             thumbnail_url = storage.get_url(item.images[0].filepath)
         items.append(ItemSummary(id=item.id, name=item.name, thumbnail_url=thumbnail_url))
-    children = [ContainerResponse.model_validate(c) for c in container.child_containers]
+    children = [_to_response(c) for c in container.child_containers]
 
     return ContainerWithItems(
-        **ContainerResponse.model_validate(container).model_dump(),
+        **_to_response(container).model_dump(),
         items=items,
         child_containers=children,
         path=path,
@@ -228,7 +245,7 @@ async def update_container(
 
     await db.flush()
     await db.refresh(container)
-    return ContainerResponse.model_validate(container)
+    return _to_response(container)
 
 
 @router.delete("/{container_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -386,6 +403,10 @@ async def delete_container(
             # Delete related records (share links, pending uploads)
             await delete_container_relations(cont_id)
 
+            # Clean up the container's own image file before dropping the row.
+            if cont.image_filepath:
+                await storage.delete_image(cont.image_filepath)
+
             # Delete the container
             await db.delete(cont)
 
@@ -394,6 +415,8 @@ async def delete_container(
     else:
         # Mode is "fail" (with no contents) or "transfer" (items already moved)
         # Still need to delete any empty child containers
+        storage = ImageStorageService()
+
         async def delete_empty_children(cont_id: UUID):
             res = await db.execute(
                 select(Container)
@@ -409,6 +432,9 @@ async def delete_container(
 
             # Delete related records (share links, pending uploads)
             await delete_container_relations(cont_id)
+
+            if cont.image_filepath:
+                await storage.delete_image(cont.image_filepath)
 
             await db.delete(cont)
 
@@ -454,3 +480,63 @@ async def get_container_path(
         )
 
     return await build_container_path(container, db)
+
+
+@router.post("/{container_id}/image", response_model=ContainerResponse)
+async def upload_container_image(
+    container_id: UUID,
+    file: UploadFile,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> ContainerResponse:
+    """Upload (or replace) the hero image for a container."""
+    result = await db.execute(select(Container).where(Container.id == container_id))
+    container = result.scalar_one_or_none()
+    if not container:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Container not found",
+        )
+
+    if file.content_type not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image type",
+        )
+
+    storage = ImageStorageService()
+    content = await file.read()
+    _, filepath = await storage.save_image(
+        container.id, file.filename or "image.jpg", content
+    )
+
+    # Replace any previous image — clean up the old file before swapping.
+    if container.image_filepath:
+        await storage.delete_image(container.image_filepath)
+
+    container.image_filepath = filepath
+    await db.flush()
+    await db.refresh(container)
+    return _to_response(container)
+
+
+@router.delete("/{container_id}/image", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_container_image(
+    container_id: UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> None:
+    """Remove the container's hero image."""
+    result = await db.execute(select(Container).where(Container.id == container_id))
+    container = result.scalar_one_or_none()
+    if not container:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Container not found",
+        )
+
+    if container.image_filepath:
+        storage = ImageStorageService()
+        await storage.delete_image(container.image_filepath)
+        container.image_filepath = None
+        await db.flush()

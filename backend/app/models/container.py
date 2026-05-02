@@ -36,6 +36,12 @@ class Container(Base):
         String(32), unique=True, nullable=False, default=generate_qr_code
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Optional category — values come from the frontend's translation
+    # keys (containers.types.box / drawer / shelf / etc.). Free-form so
+    # adding a new type is a code change, not a migration.
+    container_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Relative path under the upload_dir for the container's hero image.
+    image_filepath: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

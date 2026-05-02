@@ -71,6 +71,8 @@ export interface ContainerSummary {
 	name: string;
 	qr_code: string;
 	item_count: number;
+	container_type: ContainerType | null;
+	image_url: string | null;
 }
 
 export interface LocationWithContainers extends Location {
@@ -78,6 +80,16 @@ export interface LocationWithContainers extends Location {
 }
 
 // Container types
+export type ContainerType =
+	| 'box'
+	| 'drawer'
+	| 'shelf'
+	| 'cabinet'
+	| 'closet'
+	| 'bin'
+	| 'basket'
+	| 'other';
+
 export interface Container {
 	id: string;
 	name: string;
@@ -85,6 +97,8 @@ export interface Container {
 	parent_container_id: string | null;
 	qr_code: string;
 	notes: string | null;
+	container_type: ContainerType | null;
+	image_url: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -94,6 +108,7 @@ export interface ContainerCreate {
 	location_id: string;
 	parent_container_id?: string;
 	notes?: string;
+	container_type?: ContainerType | null;
 }
 
 export interface ContainerUpdate {
@@ -101,6 +116,7 @@ export interface ContainerUpdate {
 	location_id?: string;
 	parent_container_id?: string;
 	notes?: string;
+	container_type?: ContainerType | null;
 }
 
 export interface ItemSummary {

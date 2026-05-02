@@ -8,6 +8,7 @@
 	import { ItemCard, ContainerCard, Breadcrumb, Button, Card, Input, Modal, ShareModal } from '$lib/components';
 	import { PrintModal } from '$lib/components/print';
 	import { _ } from '$lib/i18n';
+	import { CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
 	import type { ContainerWithItems, ItemCreate, PrintResult } from '$lib/types';
 
 	let container: ContainerWithItems | null = null;
@@ -95,6 +96,11 @@
 		<div class="flex items-start justify-between">
 			<div class="flex-1">
 				<h1 class="text-2xl font-bold text-slate-900">{container.name}</h1>
+				{#if container.container_type}
+					<span class="mt-1 inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+						{$_(CONTAINER_TYPE_KEYS[container.container_type])}
+					</span>
+				{/if}
 				{#if container.notes}
 					<p class="mt-1 text-slate-500">{container.notes}</p>
 				{/if}
@@ -120,6 +126,17 @@
 				</Button>
 			</div>
 		</div>
+
+		<!-- Hero Image -->
+		{#if container.image_url}
+			<Card padding="none">
+				<img
+					src={container.image_url}
+					alt={container.name}
+					class="aspect-[3/2] w-full rounded-xl object-cover"
+				/>
+			</Card>
+		{/if}
 
 		<!-- QR Code -->
 		<Card>

@@ -6,6 +6,8 @@
 	import { toast } from '$lib/stores/toast';
 	import { locations, containers } from '$lib/api';
 	import { ContainerCard, Breadcrumb, Button, Card, Input, Modal } from '$lib/components';
+	import { _ } from '$lib/i18n';
+	import { CONTAINER_TYPES, CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
 	import type { LocationWithContainers, ContainerCreate } from '$lib/types';
 
 	let location: LocationWithContainers | null = null;
@@ -16,8 +18,10 @@
 	let newContainer: ContainerCreate = {
 		name: '',
 		location_id: '',
-		notes: ''
+		notes: '',
+		container_type: null
 	};
+	let newContainerImage: File | null = null;
 
 	$: locationId = $page.params.id!;
 
@@ -48,16 +52,32 @@
 
 		creating = true;
 		try {
-			await containers.createContainer(newContainer);
+			const created = await containers.createContainer(newContainer);
+			// Image upload is a separate request — only run it if the user
+			// actually picked a file. Failure here doesn't roll back the
+			// container; we just toast and let them retry from the detail page.
+			if (newContainerImage) {
+				try {
+					await containers.uploadContainerImage(created.id, newContainerImage);
+				} catch {
+					toast.error('Container created, but image upload failed');
+				}
+			}
 			toast.success('Container created successfully');
 			showCreateModal = false;
-			newContainer = { name: '', location_id: locationId, notes: '' };
+			newContainer = { name: '', location_id: locationId, notes: '', container_type: null };
+			newContainerImage = null;
 			await loadLocation();
 		} catch (error) {
 			toast.error('Failed to create container');
 		} finally {
 			creating = false;
 		}
+	}
+
+	function handleImageChange(event: Event) {
+		const target = event.target as HTMLInputElement;
+		newContainerImage = target.files?.[0] ?? null;
 	}
 </script>
 
@@ -127,25 +147,51 @@
 {/if}
 
 <!-- Create Container Modal -->
-<Modal open={showCreateModal} title="Add Container" on:close={() => (showCreateModal = false)}>
+<Modal open={showCreateModal} title={$_('containers.addContainer')} on:close={() => (showCreateModal = false)}>
 	<form on:submit|preventDefault={handleCreateContainer} class="space-y-4">
 		<Input
-			label="Name"
-			placeholder="e.g., Blue IKEA box, Clear bin #3"
+			label={$_('common.name')}
+			placeholder={$_('containers.containerNamePlaceholder')}
 			bind:value={newContainer.name}
 			required
 			id="container-name"
 		/>
+
+		<div>
+			<label for="container-type" class="label">{$_('containers.containerType')}</label>
+			<select
+				id="container-type"
+				class="input"
+				bind:value={newContainer.container_type}
+			>
+				<option value={null}>{$_('containers.chooseType')}</option>
+				{#each CONTAINER_TYPES as t}
+					<option value={t}>{$_(CONTAINER_TYPE_KEYS[t])}</option>
+				{/each}
+			</select>
+		</div>
+
 		<Input
-			label="Notes"
-			placeholder="Optional notes about this container"
+			label={$_('items.notes')}
+			placeholder={$_('containers.notesPlaceholder')}
 			bind:value={newContainer.notes}
 			id="container-notes"
 		/>
+
+		<div>
+			<label for="container-image" class="label">{$_('containers.image')}</label>
+			<input
+				id="container-image"
+				type="file"
+				accept="image/*"
+				on:change={handleImageChange}
+				class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-primary-700 hover:file:bg-primary-100 dark:text-slate-300 dark:file:bg-primary-900/30 dark:file:text-primary-300"
+			/>
+		</div>
 	</form>
 
 	<svelte:fragment slot="footer">
-		<Button variant="secondary" on:click={() => (showCreateModal = false)}>Cancel</Button>
-		<Button loading={creating} on:click={handleCreateContainer}>Create Container</Button>
+		<Button variant="secondary" on:click={() => (showCreateModal = false)}>{$_('common.cancel')}</Button>
+		<Button loading={creating} on:click={handleCreateContainer}>{$_('common.create')}</Button>
 	</svelte:fragment>
 </Modal>

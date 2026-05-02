@@ -2,18 +2,32 @@
 	import type { Container, ContainerSummary } from '$lib/types';
 	import Card from './ui/Card.svelte';
 	import { _ } from '$lib/i18n';
+	import { CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
 
 	export let container: Container | ContainerSummary;
 	export let showQR = false;
 
 	$: itemCount = 'item_count' in container ? container.item_count : 0;
+	$: imageUrl = 'image_url' in container ? container.image_url : null;
+	$: containerType = 'container_type' in container ? container.container_type : null;
 </script>
 
 <a href="/containers/{container.id}" class="block">
 	<Card hover>
+		{#if imageUrl}
+			<div class="-m-6 mb-3 aspect-[3/2] overflow-hidden rounded-t-xl bg-slate-100 dark:bg-slate-700">
+				<img src={imageUrl} alt={container.name} class="h-full w-full object-cover" />
+			</div>
+		{/if}
+
 		<div class="flex items-start justify-between">
 			<div class="flex-1">
 				<h3 class="text-lg font-semibold text-slate-900 dark:text-white">{container.name}</h3>
+				{#if containerType}
+					<span class="mt-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+						{$_(CONTAINER_TYPE_KEYS[containerType])}
+					</span>
+				{/if}
 				{#if 'notes' in container && container.notes}
 					<p class="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{container.notes}</p>
 				{/if}
@@ -31,7 +45,7 @@
 						/>
 					</svg>
 				</div>
-			{:else}
+			{:else if !imageUrl}
 				<div
 					class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
 				>
