@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { _ } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import { marked } from 'marked';
 	import type { DocSection } from '$lib/docs';
 
@@ -16,8 +16,13 @@
 		breaks: true
 	});
 
+	// Pick the markdown body for the user's locale, falling back to English.
+	// Re-runs when either the section or the user's language changes so a
+	// language switch refreshes the content immediately.
 	$: if (section?.content) {
-		renderedContent = marked.parse(section.content) as string;
+		const lang = $locale || 'en';
+		const body = section.content[lang] ?? section.content.en ?? Object.values(section.content)[0] ?? '';
+		renderedContent = marked.parse(body) as string;
 	}
 
 	$: currentIndex = allSections.findIndex((s) => s.id === section?.id);

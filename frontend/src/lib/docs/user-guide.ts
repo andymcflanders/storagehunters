@@ -1,19 +1,24 @@
 /**
  * User Guide documentation content.
- * Each section contains markdown content for the documentation.
+ *
+ * Each section's body is keyed by ISO language code. The renderer picks
+ * the user's locale and falls back to English when a translation is
+ * missing — adding a new language only requires appending a key here,
+ * not changing the interface.
  */
 
 export interface DocSection {
 	id: string;
 	titleKey: string;
-	content: string;
+	content: Record<string, string>;
 }
 
 export const userGuideSections: DocSection[] = [
 	{
 		id: 'introduction',
 		titleKey: 'docs.userGuide.introduction.title',
-		content: `
+		content: {
+			en: `
 ## Welcome to StorageHub
 
 StorageHub is a powerful home inventory management application that helps you organize, track, and find your belongings with ease. Whether you're managing a single closet or an entire household, StorageHub provides the tools you need to stay organized.
@@ -35,12 +40,37 @@ StorageHub is a powerful home inventory management application that helps you or
 3. **Add Items**: Populate containers with your belongings
 4. **Generate QR Codes**: Print labels for physical containers
 5. **Search and Find**: Use the search feature to locate items quickly
+`,
+			no: `
+## Velkommen til StorageHub
+
+StorageHub er en kraftig applikasjon for å holde orden på eiendelene dine hjemme — til å organisere, spore og finne ting når du trenger dem. Uansett om du har ett skap eller et helt hus, gir StorageHub deg verktøyene du trenger for å holde orden.
+
+### Hovedfunksjoner
+
+- **Hierarkisk organisering**: Organiser gjenstander i steder, beholdere og gjenstander
+- **AI-drevet klassifisering**: La AI kategorisere gjenstander automatisk fra bilder
+- **QR-kodeintegrering**: Generer og skann QR-koder for rask tilgang
+- **Smart søk**: Finn det du trenger raskt med intelligent søk
+- **Deling**: Del beholdere eller steder med andre via sikre lenker
+- **Påminnelser**: Sett påminnelser for sesongbaserte gjenstander eller vedlikehold
+- **Flerspråklig**: Tilgjengelig på engelsk og norsk
+
+### Kom i gang
+
+1. **Opprett et sted**: Start med å legge til ditt første sted (f.eks. "Hjem", "Kontor", "Lagerrom")
+2. **Legg til beholdere**: Opprett beholdere på stedene (esker, hyller, skuffer)
+3. **Legg til gjenstander**: Fyll beholderne med eiendelene dine
+4. **Generer QR-koder**: Skriv ut etiketter for de fysiske beholderne
+5. **Søk og finn**: Bruk søkefunksjonen for å finne gjenstander raskt
 `
+		}
 	},
 	{
 		id: 'hierarchy',
 		titleKey: 'docs.userGuide.hierarchy.title',
-		content: `
+		content: {
+			en: `
 ## Understanding the Hierarchy
 
 StorageHub uses a three-level hierarchy to organize your belongings:
@@ -92,12 +122,67 @@ Items are the individual belongings you want to track. Each item belongs to exac
 - Tags for categorization
 - Photos
 - Notes
+`,
+			no: `
+## Forstå hierarkiet
+
+StorageHub bruker et hierarki i tre nivåer for å organisere eiendelene dine:
+
+### Steder
+
+Steder er det øverste nivået. De representerer fysiske plasser der du oppbevarer ting.
+
+**Eksempler:**
+- Hjem
+- Kontor
+- Garasje
+- Lagerrom
+- Hytte
+
+### Beholdere
+
+Beholdere ligger på et sted og kan nestes inni andre beholdere. De representerer fysiske oppbevaringsenheter.
+
+**Beholdertyper:**
+- Boks
+- Skuff
+- Hylle
+- Skap
+- Garderobe
+- Kasse
+- Kurv
+- Annet
+
+**Eksempel på nesting:**
+\`\`\`
+Hjem (sted)
+└── Soveromsgarderobe (beholder)
+    ├── Øverste hylle (beholder)
+    │   └── Vinterluer (gjenstander)
+    └── Nederste skuff (beholder)
+        └── Sokker (gjenstander)
+\`\`\`
+
+### Gjenstander
+
+Gjenstander er de enkelte eiendelene du vil holde oversikt over. Hver gjenstand tilhører nøyaktig én beholder.
+
+**Egenskaper for gjenstander:**
+- Navn og beskrivelse
+- Antall
+- Tilstand (God, Brukbar, Skadet, Trenger reparasjon)
+- Kjøpsdato og pris
+- Etiketter for kategorisering
+- Bilder
+- Notater
 `
+		}
 	},
 	{
 		id: 'locations',
 		titleKey: 'docs.userGuide.locations.title',
-		content: `
+		content: {
+			en: `
 ## Managing Locations
 
 Locations are the foundation of your organization system.
@@ -131,12 +216,49 @@ Each location page shows:
 - Total number of items
 - List of top-level containers
 - Recent activity
+`,
+			no: `
+## Administrere steder
+
+Steder er grunnlaget for organiseringssystemet ditt.
+
+### Opprette et sted
+
+1. Gå til **Steder**-siden i hovedmenyen
+2. Klikk **Legg til sted**
+3. Skriv inn et navn (obligatorisk) og valgfri adresse eller beskrivelse
+4. Klikk **Opprett**
+
+### Redigere et sted
+
+1. Gå til stedet du vil redigere
+2. Klikk **Rediger**-knappen (blyantikonet)
+3. Endre navnet eller adressen
+4. Klikk **Lagre**
+
+### Slette et sted
+
+> **Advarsel:** Når du sletter et sted, slettes også alle beholdere og gjenstander i det. Dette kan ikke angres.
+
+1. Gå til stedet
+2. Klikk **Slett**-knappen
+3. Bekreft slettingen i dialogen
+
+### Stedsoversikt
+
+Hver stedsside viser:
+- Totalt antall beholdere
+- Totalt antall gjenstander
+- Liste over beholdere på toppnivå
+- Nylig aktivitet
 `
+		}
 	},
 	{
 		id: 'containers',
 		titleKey: 'docs.userGuide.containers.title',
-		content: `
+		content: {
+			en: `
 ## Working with Containers
 
 Containers are versatile storage units that can hold items or other containers.
@@ -189,12 +311,68 @@ Each container automatically gets a unique QR code:
 2. Click the **QR Code** button
 3. Print or download the QR code
 4. Attach it to the physical container
+`,
+			no: `
+## Jobbe med beholdere
+
+Beholdere er fleksible oppbevaringsenheter som kan inneholde gjenstander eller andre beholdere.
+
+### Opprette en beholder
+
+1. Gå til et sted eller en overordnet beholder
+2. Klikk **Legg til beholder**
+3. Skriv inn et navn og velg en type
+4. Legg eventuelt til en beskrivelse
+5. Klikk **Opprett**
+
+### Beholdertyper
+
+Velg typen som best beskriver den fysiske beholderen:
+
+| Type | Best for |
+|------|----------|
+| Boks | Pappesker, oppbevaringsbokser |
+| Skuff | Skrivebordsskuffer, kommodeskuffer |
+| Hylle | Bokhyllehyller, garderobehyller |
+| Skap | Kjøkkenskap, baderomsskap |
+| Garderobe | Hele garderober som beholdere |
+| Kasse | Plastkasser, lagringskasser |
+| Kurv | Kurver, klesvaskkurver |
+| Annet | Alt annet som ikke passer over |
+
+### Neste beholdere
+
+Beholdere kan nestes så dypt du vil. Dette er nyttig for kompleks organisering:
+
+1. Gå til den overordnede beholderen
+2. Klikk **Legg til beholder**
+3. Den nye beholderen plasseres automatisk inni den overordnede
+
+### Flytte beholdere
+
+For å flytte en beholder:
+
+1. Gå til beholderen
+2. Klikk **Flytt**
+3. Velg ny overordnet (sted eller beholder)
+4. Klikk **Bekreft**
+
+### QR-koder
+
+Hver beholder får automatisk en unik QR-kode:
+
+1. Gå til beholderen
+2. Klikk **QR-kode**-knappen
+3. Skriv ut eller last ned QR-koden
+4. Fest den på den fysiske beholderen
 `
+		}
 	},
 	{
 		id: 'items',
 		titleKey: 'docs.userGuide.items.title',
-		content: `
+		content: {
+			en: `
 ## Managing Items
 
 Items are the individual belongings you track in StorageHub.
@@ -255,12 +433,76 @@ Mark items as seasonal for easy filtering:
 - Fall
 - Winter
 - Holiday
+`,
+			no: `
+## Administrere gjenstander
+
+Gjenstander er de enkelte eiendelene du holder oversikt over i StorageHub.
+
+### Legge til en gjenstand
+
+1. Gå til en beholder
+2. Klikk **Legg til gjenstand**
+3. Fyll inn detaljene:
+   - **Navn** (obligatorisk): Hva er dette?
+   - **Beskrivelse**: Flere detaljer
+   - **Antall**: Hvor mange har du?
+   - **Tilstand**: Hva er tilstanden?
+   - **Kjøpsdato/pris**: Valgfri sporing
+   - **Etiketter**: Kategorisering
+   - **Bilder**: Visuell referanse
+
+### Legge til bilder
+
+Bilder hjelper deg å huske og identifisere gjenstander:
+
+1. Når du oppretter eller redigerer en gjenstand, klikk **Legg til bilde**
+2. Ta et bilde eller last opp fra enheten
+3. AI kan klassifisere gjenstanden automatisk basert på bildet
+
+### Bruke etiketter
+
+Etiketter hjelper deg å kategorisere og finne gjenstander:
+
+1. Opprett etiketter fra **Etiketter**-siden
+2. Tildel farger til etiketter for visuelt skille
+3. Legg til etiketter på gjenstander når du oppretter eller redigerer
+4. Søk etter etikett for å finne relaterte gjenstander
+
+### Tilstander
+
+Hold oversikt over tilstanden på eiendelene:
+
+- **God**: I normal/funksjonell tilstand
+- **Brukbar**: Mindre slitasje eller feil
+- **Skadet**: Betydelig skade men fortsatt brukbar
+- **Trenger reparasjon**: Må fikses før bruk
+
+### Flytte gjenstander
+
+For å flytte en gjenstand til en annen beholder:
+
+1. Gå til gjenstanden
+2. Klikk **Flytt**
+3. Velg målbeholder
+4. Klikk **Bekreft**
+
+### Sesongbaserte gjenstander
+
+Marker gjenstander som sesongbaserte for enkel filtrering:
+- Vår
+- Sommer
+- Høst
+- Vinter
+- Høytid
 `
+		}
 	},
 	{
 		id: 'ai-features',
 		titleKey: 'docs.userGuide.aiFeatures.title',
-		content: `
+		content: {
+			en: `
 ## AI Features
 
 StorageHub uses artificial intelligence to help you organize faster and smarter.
@@ -296,12 +538,51 @@ Administrators can configure AI settings:
 - Set API keys
 
 See the Admin Features section for details.
+`,
+			no: `
+## AI-funksjoner
+
+StorageHub bruker kunstig intelligens for å hjelpe deg å organisere raskere og smartere.
+
+### Bildeklassifisering
+
+Når du legger til et bilde av en gjenstand, kan AI automatisk:
+
+1. **Identifisere gjenstanden**: Foreslå hva det er
+2. **Kategorisere**: Anbefale passende etiketter
+3. **Beskrive**: Generere en beskrivelse
+
+**Slik bruker du det:**
+1. Klikk **Legg til bilde** når du oppretter en gjenstand
+2. Ta eller last opp et bilde
+3. Klikk **Klassifiser med AI**
+4. Se gjennom og godta forslagene
+
+### AI-genererte sammendrag
+
+Få oversikt over beholderne dine:
+
+1. Gå til en beholder med gjenstander
+2. Klikk **Generer sammendrag**
+3. AI lager en kort oppsummering av innholdet
+
+### Konfigurasjon
+
+Administratorer kan konfigurere AI-innstillinger:
+
+- Aktivere/deaktivere AI-funksjoner
+- Velge AI-modell (GPT-4, GPT-4 Mini osv.)
+- Sette API-nøkler
+
+Se Admin-funksjoner for detaljer.
 `
+		}
 	},
 	{
 		id: 'searching',
 		titleKey: 'docs.userGuide.searching.title',
-		content: `
+		content: {
+			en: `
 ## Searching
 
 StorageHub provides powerful search capabilities to help you find anything quickly.
@@ -355,12 +636,69 @@ Narrow your results using filters:
 - **Oldest**: Oldest items first
 - **Name (A-Z)**: Alphabetical order
 - **Name (Z-A)**: Reverse alphabetical
+`,
+			no: `
+## Søk
+
+StorageHub har kraftig søk som hjelper deg å finne ting raskt.
+
+### Hurtigsøk
+
+Søkefeltet øverst gir umiddelbare resultater:
+
+1. Klikk på søkefeltet eller trykk **/** på datamaskinen
+2. Skriv inn søket ditt
+3. Resultatene vises mens du skriver
+4. Klikk på et resultat for å gå direkte dit
+
+### Søkesiden
+
+For avansert søk, gå til den dedikerte søkesiden:
+
+1. Klikk **Søk** i menyen
+2. Skriv inn søkeordene
+3. Bruk filtre for å snevre inn resultatene
+4. Sorter etter relevans, dato eller navn
+
+### Hva du kan søke i
+
+- **Gjenstander**: Etter navn, beskrivelse eller notater
+- **Beholdere**: Etter navn eller beskrivelse
+- **Steder**: Etter navn eller adresse
+- **Etiketter**: Gjenstander med spesifikke etiketter
+
+### Søketips
+
+- Bruk spesifikke ord for bedre resultater
+- Søk etter etiketter med etikettnavnet
+- Delvise ord fungerer (f.eks. "vin" finner "vinter")
+- Søk skiller ikke mellom store og små bokstaver
+
+### Filtre
+
+Snevre inn resultatene med filtre:
+
+- **Type**: Gjenstander, beholdere eller steder
+- **Sted**: Begrens til ett sted
+- **Etiketter**: Filtrer etter etikett
+- **Tilstand**: Filtrer gjenstander etter tilstand
+- **Sesong**: Filtrer etter sesong
+
+### Sorteringsalternativer
+
+- **Relevans**: Beste treff først
+- **Nyeste**: Nyopprettede først
+- **Eldste**: Eldste først
+- **Navn (A–Å)**: Alfabetisk
+- **Navn (Å–A)**: Omvendt alfabetisk
 `
+		}
 	},
 	{
 		id: 'qr-codes',
 		titleKey: 'docs.userGuide.qrCodes.title',
-		content: `
+		content: {
+			en: `
 ## QR Codes
 
 QR codes provide quick physical-to-digital access to your containers.
@@ -412,12 +750,67 @@ Configure label appearance in printer settings:
 - Label dimensions
 
 See the Printing Labels section for detailed setup.
+`,
+			no: `
+## QR-koder
+
+QR-koder gir rask tilgang fra fysiske beholdere til den digitale oversikten.
+
+### Hvordan det fungerer
+
+1. Hver beholder har en unik QR-kode
+2. Skriv ut og fest QR-koden på den fysiske beholderen
+3. Skann koden med telefonen for å se innholdet umiddelbart
+
+### Vise QR-koder
+
+1. Gå til en beholder
+2. Klikk **QR-kode**-knappen
+3. QR-koden vises i en dialog
+
+### Skrive ut QR-koder
+
+**Enkel etikett:**
+1. Vis QR-koden for en beholder
+2. Klikk **Skriv ut etikett**
+3. Velg skriver og mal
+4. Skriv ut
+
+**Flere på en gang:**
+1. Gå til **God View**
+2. Velg flere beholdere med avkrysningsboksene
+3. Klikk **Skriv ut valgte**
+4. Velg skriver og mal
+5. Skriv ut alle etikettene på én gang
+
+### Skanne QR-koder
+
+**Med mobilappen:**
+1. Trykk **Skann** i bunnmenyen
+2. Pek kameraet mot QR-koden
+3. Beholderen åpnes automatisk
+
+**Med en hvilken som helst QR-skanner:**
+- StorageHub-koder inneholder URL-er
+- En vanlig QR-skanner åpner beholderen i nettleseren
+
+### Etikettmaler
+
+Konfigurer hvordan etikettene ser ut i skriverinnstillingene:
+- Beholdernavn
+- QR-kodestørrelse
+- Tilleggsinformasjon
+- Etikettdimensjoner
+
+Se "Skrive ut etiketter" for detaljert oppsett.
 `
+		}
 	},
 	{
 		id: 'sharing',
 		titleKey: 'docs.userGuide.sharing.title',
-		content: `
+		content: {
+			en: `
 ## Sharing
 
 Share containers or locations with others using secure links.
@@ -455,12 +848,53 @@ View and manage active share links:
 - Delete links when no longer needed
 - Shared containers show nested containers and items
 - The original URL structure is not exposed
+`,
+			no: `
+## Deling
+
+Del beholdere eller steder med andre via sikre lenker.
+
+### Lage en delingslenke
+
+1. Gå til en beholder eller et sted
+2. Klikk **Del**-knappen
+3. Konfigurer delingsalternativer:
+   - **Utløp**: Når lenken slutter å virke (eller aldri)
+   - **Tillat visning av gjenstander**: Om gjenstandene skal vises
+4. Klikk **Opprett lenke**
+5. Kopier og del lenken
+
+### Funksjoner i delingslenker
+
+- **Skrivebeskyttet**: Mottakere kan se, men ikke redigere
+- **Ingen innlogging**: Alle med lenken kan se innholdet
+- **Utløpskontroll**: Sett automatisk utløp
+- **Sporing**: Se hvor mange ganger lenken er åpnet
+
+### Administrere delingslenker
+
+Vis og administrer aktive lenker:
+
+1. Gå til beholderen eller stedet
+2. Klikk **Del**
+3. Se aktive lenker under "Aktive delingslenker"
+4. Slett lenker du ikke trenger lenger
+
+### Sikkerhetshensyn
+
+- Delingslenker gir lesetilgang til alle som har dem
+- Bruk utløpsdatoer for midlertidig deling
+- Slett lenker når de ikke brukes lenger
+- Delte beholdere viser også nestede beholdere og gjenstander
+- Den opprinnelige URL-strukturen vises ikke
 `
+		}
 	},
 	{
 		id: 'reminders',
 		titleKey: 'docs.userGuide.reminders.title',
-		content: `
+		content: {
+			en: `
 ## Reminders
 
 Set reminders to help you manage seasonal items and maintenance tasks.
@@ -508,12 +942,63 @@ Set reminders to help you manage seasonal items and maintenance tasks.
 **Edit/Delete:**
 1. Click on a reminder to view details
 2. Use Edit or Delete buttons
+`,
+			no: `
+## Påminnelser
+
+Sett påminnelser for å holde styr på sesongbaserte gjenstander og vedlikehold.
+
+### Opprette en påminnelse
+
+1. Gå til **Påminnelser**-siden
+2. Klikk **Legg til påminnelse**
+3. Fyll inn detaljene:
+   - **Tittel**: Hva som skal huskes
+   - **Forfallsdato**: Når du skal bli påminnet
+   - **Gjentakende**: Sett opp gjentakelse
+   - **Knytt til gjenstand/beholder**: Valgfri kobling
+4. Klikk **Opprett**
+
+### Påminnelsestyper
+
+**Engangs:**
+- Skjer én gang
+- Bra for spesifikke oppgaver
+
+**Gjentakende:**
+- Gjentas etter en tidsplan
+- Bra for sesongbaserte ting
+- Valg: Daglig, ukentlig, månedlig, årlig
+
+### Bruksområder
+
+- **Sesongklær**: "Bytt til vinterklær" (årlig)
+- **Vedlikehold**: "Sjekk batterier i røykvarslere" (månedlig)
+- **Rotasjon**: "Skift ut nødmatlager" (kvartalsvis)
+- **Hendelser**: "Pakk frem juledekorasjoner" (årlig)
+
+### Administrere påminnelser
+
+**Vise påminnelser:**
+- **Kommende**: Snart-forfalte påminnelser
+- **Forfalt**: Påminnelser som er gått ut
+- **Fullført**: Ferdig påminnelser
+
+**Marker som fullført:**
+1. Klikk avkrysningsboksen ved siden av en påminnelse
+2. For gjentakende påminnelser opprettes neste forekomst automatisk
+
+**Rediger/slett:**
+1. Klikk på en påminnelse for å se detaljer
+2. Bruk Rediger- eller Slett-knappen
 `
+		}
 	},
 	{
 		id: 'godview',
 		titleKey: 'docs.userGuide.godview.title',
-		content: `
+		content: {
+			en: `
 ## God View
 
 God View provides a comprehensive tree view of your entire inventory.
@@ -570,12 +1055,72 @@ Use the toolbar filters to narrow the view:
 - **Enter**: Expand/collapse node
 - **Space**: Toggle selection
 - **Escape**: Clear selection
+`,
+			no: `
+## God View
+
+God View gir deg et komplett trevisning over hele beholdningen din.
+
+### Tilgang til God View
+
+Klikk **God View** i hovedmenyen.
+
+### Funksjoner
+
+**Trenavigasjon:**
+- Utvidbar/sammenleggbar trestruktur
+- Viser alle steder, beholdere og gjenstander
+- Klikk for å åpne/lukke
+- Visuelle indikatorer for beholdertyper
+
+**Innebygd redigering:**
+- Klikk på et navn for å redigere direkte
+- Trykk Enter for å lagre, Escape for å avbryte
+- Ingen sidenavigering nødvendig
+
+**Hurtighandlinger:**
+- Legg til beholdere eller gjenstander direkte fra treet
+- Slett gjenstander med bekreftelse
+- Flytt gjenstander via dra-og-slipp (kommer snart)
+
+### Masseoperasjoner
+
+**Velge gjenstander:**
+1. Klikk avkrysningsboksene for å velge
+2. Bruk "Velg alle" for å velge alle
+3. Antall valgte vises i verktøylinjen
+
+**Masseutskrift:**
+1. Velg flere beholdere
+2. Klikk **Skriv ut valgte**
+3. Alle valgte beholdere skrives ut samtidig
+
+**Masseslettin:**
+1. Velg gjenstandene som skal slettes
+2. Klikk **Slett valgte**
+3. Bekreft operasjonen
+
+### Filtrering
+
+Bruk filtrene i verktøylinjen for å snevre inn:
+- Søk i treet
+- Filtrer etter sted
+- Filtrer etter beholdertype
+
+### Hurtigtaster
+
+- **Piltaster**: Naviger i treet
+- **Enter**: Åpne/lukk node
+- **Mellomrom**: Veksle valg
+- **Escape**: Fjern valg
 `
+		}
 	},
 	{
 		id: 'printing',
 		titleKey: 'docs.userGuide.printing.title',
-		content: `
+		content: {
+			en: `
 ## Printing Labels
 
 StorageHub supports printing QR code labels to various label printers.
@@ -640,12 +1185,80 @@ Configure what appears on labels:
 - Verify correct printer type selected
 - Check label size settings
 - Update printer firmware
+`,
+			no: `
+## Skrive ut etiketter
+
+StorageHub støtter utskrift av QR-kodeetiketter til ulike etikettskrivere.
+
+### Støttede skrivere
+
+**Zebra ZPL-skrivere:**
+- Nettverkstilkoblede Zebra-skrivere
+- Bruker ZPL (Zebra Programming Language)
+- Støtter ulike etikettstørrelser
+
+**Brother QL-skrivere:**
+- Brother QL-serien
+- Nettverk eller USB
+- Støtter DK-etiketter
+
+**Generisk PDF:**
+- Lager PDF-filer
+- Skriv ut til hvilken som helst standard skriver
+- Bra for testing
+
+### Sette opp en skriver
+
+1. Gå til **Skrivere**-siden
+2. Klikk **Legg til skriver**
+3. Konfigurer:
+   - **Navn**: Et passende navn
+   - **Type**: Zebra ZPL, Brother QL eller Generisk PDF
+   - **Tilkobling**: Nettverksadresse eller filsti
+4. Klikk **Lagre**
+
+### Nettverksskrivere
+
+For nettverksskrivere:
+1. Sørg for at skriveren er på samme nettverk
+2. Skriv inn IP-adressen og porten til skriveren
+3. Eksempel: \`192.168.1.100:9100\`
+
+### Testutskrift
+
+Test alltid skriveroppsettet:
+1. Gå til skriveren i innstillingene
+2. Klikk **Testutskrift**
+3. Sjekk at testetiketten skrives ut riktig
+
+### Etikettmaler
+
+Konfigurer hva som skal vises på etikettene:
+- QR-kode (alltid inkludert)
+- Beholdernavn
+- Stedssti
+- Egendefinert tekst
+
+### Feilsøking
+
+**Ingen utskrift:**
+- Sjekk nettverkstilkoblingen
+- Sjekk skriverens IP-adresse
+- Sørg for at skriveren er online
+
+**Forvridd utskrift:**
+- Sjekk at riktig skrivertype er valgt
+- Sjekk innstillinger for etikettstørrelse
+- Oppdater fastvaren på skriveren
 `
+		}
 	},
 	{
 		id: 'settings',
 		titleKey: 'docs.userGuide.settings.title',
-		content: `
+		content: {
+			en: `
 ## Settings
 
 Customize StorageHub to your preferences.
@@ -699,12 +1312,69 @@ View your storage statistics:
 - Total containers
 - Total items
 - Storage distribution charts
+`,
+			no: `
+## Innstillinger
+
+Tilpass StorageHub etter dine ønsker.
+
+### Tilgang til innstillinger
+
+Klikk på profilbildet, og deretter **Innstillinger**.
+
+### Profil
+
+Oppdater personlig informasjon:
+- **Navn**: Visningsnavnet ditt
+- **E-post**: Kontakt-e-post (valgfritt)
+- **Passord**: Sett eller endre passord
+
+### Utseende
+
+**Tema:**
+- **Lyst**: Lys bakgrunn, mørk tekst
+- **Mørkt**: Mørk bakgrunn, lys tekst
+- **System**: Følger enhetens innstilling
+
+Temaet brukes umiddelbart i hele appen.
+
+### Språk
+
+Velg foretrukket språk:
+- **Engelsk**: Full støtte
+- **Norsk**: Full støtte
+
+Språkinnstillingen synkroniseres på alle enhetene dine.
+
+### Dataeksport
+
+Eksporter dataene dine for sikkerhetskopi eller analyse:
+
+**JSON-eksport:**
+- Fullstendig dataeksport
+- Maskinlesbart format
+- Inneholder alle steder, beholdere og gjenstander
+
+**CSV-eksport:**
+- Regnearkkompatibelt format
+- Bra for rapportering og analyse
+- Egne filer for hver datatype
+
+### Statistikk
+
+Se lagringsstatistikken din:
+- Totalt antall steder
+- Totalt antall beholdere
+- Totalt antall gjenstander
+- Fordelingsdiagrammer
 `
+		}
 	},
 	{
 		id: 'admin',
 		titleKey: 'docs.userGuide.admin.title',
-		content: `
+		content: {
+			en: `
 ## Admin Features
 
 Administrators have access to additional management features.
@@ -764,12 +1434,75 @@ View overall system metrics:
 - Total storage items
 - Database size
 - API usage
+`,
+			no: `
+## Admin-funksjoner
+
+Administratorer har tilgang til ekstra administrasjonsfunksjoner.
+
+### Tilgang til adminpanelet
+
+1. Klikk på profilbildet
+2. Velg **Adminpanel** (kun synlig for administratorer)
+
+### Brukeradministrasjon
+
+**Opprette brukere:**
+1. Klikk **Legg til bruker**
+2. Skriv inn navn og valgfritt passord
+3. Velg rolle (Admin eller bruker)
+4. Klikk **Opprett**
+
+**Redigere brukere:**
+1. Klikk på en bruker
+2. Endre detaljer
+3. Klikk **Lagre**
+
+**Slette brukere:**
+1. Klikk slett-ikonet
+2. Bekreft slettingen
+> Advarsel: Dette sletter alle brukerens data
+
+### Aktivitetslogger
+
+Se aktivitet på tvers av systemet:
+- Hvem gjorde hva og når
+- Filtrer etter bruker eller handlingstype
+- Nyttig for revisjon
+
+### AI-konfigurasjon
+
+Konfigurer AI-funksjoner:
+
+**Aktivere/deaktivere AI:**
+- Slå AI-funksjoner av eller på
+- Påvirker alle brukere
+
+**API-konfigurasjon:**
+- Sett OpenAI API-nøkkel
+- Velg modell (GPT-4, GPT-4 Mini osv.)
+- Konfigurer hastighetsgrenser
+
+**Modellvalg:**
+- GPT-4: Best kvalitet, høyere kostnad
+- GPT-4 Mini: Raskere, lavere kostnad
+- Egendefinert: Bruk hvilken som helst OpenAI-kompatibel endepunkt
+
+### Systemstatistikk
+
+Se overordnede systemmål:
+- Totalt antall brukere
+- Totalt antall gjenstander
+- Databasestørrelse
+- API-forbruk
 `
+		}
 	},
 	{
 		id: 'backup',
 		titleKey: 'docs.userGuide.backup.title',
-		content: `
+		content: {
+			en: `
 ## Backup & Restore
 
 Protect your data with backup features.
@@ -821,6 +1554,60 @@ Your data is yours:
 - JSON export is human-readable
 - CSV export works with spreadsheets
 - No vendor lock-in
+`,
+			no: `
+## Sikkerhetskopi og gjenoppretting
+
+Beskytt dataene dine med sikkerhetskopifunksjoner.
+
+### Manuell sikkerhetskopi
+
+**Eksportere data:**
+1. Gå til **Innstillinger** > **Data**
+2. Klikk **Eksporter som JSON**
+3. Lagre den nedlastede filen
+
+**Gjenopprette data:**
+- Kontakt administratoren for gjenopprettingsrutiner
+- JSON-sikkerhetskopier kan importeres av administratorer
+
+### Google Drive-integrasjon
+
+Sikkerhetskopier automatisk til Google Drive:
+
+**Oppsett (administrator):**
+1. Gå til **Adminpanelet**
+2. Naviger til **Google Drive-oppsett**
+3. Følg OAuth-autentiseringen
+4. Konfigurer sikkerhetskopiplan
+
+**Sikkerhetskopialternativer:**
+- **Manuelt**: Utløs sikkerhetskopi manuelt
+- **Daglig**: Automatisk daglig sikkerhetskopi
+- **Ukentlig**: Automatisk ukentlig sikkerhetskopi
+
+**Hva som tas sikkerhetskopi av:**
+- Alle steder
+- Alle beholdere
+- Alle gjenstander
+- Bilder av gjenstander
+- Brukerinnstillinger
+
+### Beste praksis
+
+1. **Regelmessige sikkerhetskopier**: Sett opp automatiske sikkerhetskopier
+2. **Flere kopier**: Behold sikkerhetskopier flere steder
+3. **Test gjenoppretting**: Verifiser at sikkerhetskopier faktisk fungerer
+4. **Sikker lagring**: Beskytt sikkerhetskopifilene
+
+### Dataportabilitet
+
+Dataene er dine:
+- Eksporter når du vil i standardformater
+- JSON-eksport er lesbar for mennesker
+- CSV-eksport fungerer i regneark
+- Ingen leverandørbinding
 `
+		}
 	}
 ];
