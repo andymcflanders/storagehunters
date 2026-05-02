@@ -37,11 +37,14 @@
 		if (code === lastScannedCode) return;
 		lastScannedCode = code;
 
-		// Extract QR code from URL if it's a full URL
+		// Extract QR code from URL if it's a full URL.
+		// Backend uses secrets.token_urlsafe(), so codes contain
+		// URL-safe base64 chars: A-Z a-z 0-9 _ -. Codes are
+		// case-sensitive — don't normalize.
 		let qrCode = code;
 		try {
 			const url = new URL(code);
-			const match = url.pathname.match(/\/c\/([A-Z0-9]+)/i);
+			const match = url.pathname.match(/\/c\/([A-Za-z0-9_-]+)/);
 			if (match) {
 				qrCode = match[1];
 			}
@@ -110,7 +113,8 @@
 		const form = e.target as HTMLFormElement;
 		const input = form.elements.namedItem('code') as HTMLInputElement;
 		if (input.value) {
-			goto(`/c/${input.value.toUpperCase()}`);
+			// Codes are case-sensitive base64 — do not uppercase.
+			goto(`/c/${input.value.trim()}`);
 		}
 	}
 </script>
@@ -141,8 +145,8 @@
 				type="text"
 				name="code"
 				placeholder="Enter code manually"
-				class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm uppercase placeholder:normal-case focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-				pattern="[A-Za-z0-9]+"
+				class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+				pattern="[A-Za-z0-9_-]+"
 			/>
 			<Button type="submit">Go</Button>
 		</form>
