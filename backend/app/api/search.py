@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from fastapi import APIRouter, Query
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import Text, and_, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DbSession
@@ -34,7 +34,10 @@ async def autocomplete_items(
     """
     search_term = f"%{q.lower()}%"
 
-    # Simple query with minimal joins for speed
+    # Simple query with minimal joins for speed.
+    # JSONB-cast match on ai_names/ai_descriptions catches Norwegian (and
+    # any other supported language) translations without enumerating
+    # languages here.
     query = (
         select(Item)
         .options(selectinload(Item.images))
@@ -42,6 +45,8 @@ async def autocomplete_items(
             or_(
                 func.lower(Item.name).like(search_term),
                 func.lower(Item.description).like(search_term),
+                func.lower(func.cast(Item.ai_names, Text)).like(search_term),
+                func.lower(func.cast(Item.ai_descriptions, Text)).like(search_term),
             )
         )
         .limit(limit)
@@ -149,9 +154,14 @@ def calculate_relevance_score(
     """
     Calculate relevance score for an item based on query matching.
 
+    AI-generated translations (ai_names, ai_descriptions) are ranked
+    alongside the manual fields — the Norwegian translation of an item
+    is just as canonical as the English one, so a match in either
+    should earn the same score.
+
     Scoring:
-    - Exact match in name: 100 points
-    - Exact match in description: 50 points
+    - Exact match in name (any language): 100 points
+    - Exact match in description (any language): 50 points
     - Original color match: 30 points
     - Color synonym match: 20 points
     - Original type match: 30 points
@@ -166,10 +176,18 @@ def calculate_relevance_score(
     match_type = "semantic"
     query_lower = original_query.lower()
 
-    # Get item text for matching
+    # Manual fields
     name_lower = item.name.lower()
     desc_lower = (item.description or "").lower()
     size_lower = (item.size or "").lower()
+
+    # AI translations — flatten the JSONB dicts to lowercased strings.
+    ai_names = [v.lower() for v in (item.ai_names or {}).values() if v]
+    ai_descs = [v.lower() for v in (item.ai_descriptions or {}).values() if v]
+
+    # Treat manual + AI names as one "name haystack". Same for description.
+    name_haystack = " ".join([name_lower, *ai_names])
+    desc_haystack = " ".join([desc_lower, *ai_descs])
 
     # Get all tags
     item_tags = []
@@ -181,21 +199,26 @@ def calculate_relevance_score(
         if img.ai_tags:
             ai_tags.extend([t.lower() for t in img.ai_tags])
 
-    all_item_text = f"{name_lower} {desc_lower} {' '.join(item_tags)} {' '.join(ai_tags)}"
+    all_item_text = " ".join([
+        name_haystack,
+        desc_haystack,
+        " ".join(item_tags),
+        " ".join(ai_tags),
+    ])
 
     # Exact query match in name (highest priority)
-    if query_lower in name_lower:
+    if query_lower in name_haystack:
         score += 100
         matched_terms.append(f"name:{original_query}")
         match_type = "exact"
-    elif query_lower in desc_lower:
+    elif query_lower in desc_haystack:
         score += 50
         matched_terms.append(f"description:{original_query}")
         match_type = "exact"
 
     # Color matching
     for color in parsed_colors:
-        if color in name_lower or color in desc_lower:
+        if color in name_haystack or color in desc_haystack:
             score += 30
             matched_terms.append(f"color:{color}")
             if match_type != "exact":
@@ -211,7 +234,7 @@ def calculate_relevance_score(
 
     # Item type matching
     for item_type in parsed_types:
-        if item_type in name_lower or item_type in desc_lower:
+        if item_type in name_haystack or item_type in desc_haystack:
             score += 30
             matched_terms.append(f"type:{item_type}")
             if match_type != "exact":
@@ -227,7 +250,8 @@ def calculate_relevance_score(
 
     # Size matching
     for size in parsed_sizes:
-        if size.lower() == size_lower or size.lower() in name_lower or size.lower() in desc_lower:
+        size_low = size.lower()
+        if size_low == size_lower or size_low in name_haystack or size_low in desc_haystack:
             score += 25
             matched_terms.append(f"size:{size}")
             if match_type != "exact":
@@ -291,7 +315,7 @@ async def search_items(
     - Ranks results by relevance (exact matches first, then similar, then semantic)
 
     Searches across:
-    - Item name and description
+    - Item name and description (manual + AI translations in any language)
     - Manual tags
     - AI-generated tags on images
     - Owner names
@@ -330,9 +354,15 @@ async def search_items(
                 continue
             search_term = f"%{term}%"
 
-            # Search in name and description
+            # Search in name and description (manual + AI translations).
             search_conditions.append(func.lower(Item.name).like(search_term))
             search_conditions.append(func.lower(Item.description).like(search_term))
+            search_conditions.append(
+                func.lower(func.cast(Item.ai_names, Text)).like(search_term)
+            )
+            search_conditions.append(
+                func.lower(func.cast(Item.ai_descriptions, Text)).like(search_term)
+            )
 
             # Search in tags
             tag_subquery = (
@@ -384,6 +414,8 @@ async def search_items(
         text_conditions = [
             func.lower(Item.name).like(search_term),
             func.lower(Item.description).like(search_term),
+            func.lower(func.cast(Item.ai_names, Text)).like(search_term),
+            func.lower(func.cast(Item.ai_descriptions, Text)).like(search_term),
         ]
 
         tag_subquery = (
