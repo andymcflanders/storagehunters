@@ -109,13 +109,13 @@ cd ${PROJECT_DIR}
 
 echo "==> Pulling/building containers..."
 docker compose pull --ignore-pull-failures 2>/dev/null || true
-docker compose build ${BUILD_FLAG}
+docker compose build
 
 echo "==> Stopping old containers..."
 docker compose down --remove-orphans || true
 
 echo "==> Starting new containers..."
-docker compose up -d
+docker compose up -d ${BUILD_FLAG}
 
 echo "==> Waiting for services to be healthy..."
 sleep 5
