@@ -11,7 +11,6 @@ from app.models.container import Container
 from app.models.item import Item, ItemImage
 from app.models.location import Location
 from app.models.share import ShareLink
-from app.models.pending_upload import PendingUpload
 from app.schemas.container import (
     ContainerCreate,
     ContainerResponse,
@@ -349,20 +348,12 @@ async def delete_container(
 
     # Helper to delete related records for a container
     async def delete_container_relations(cont_id: UUID):
-        """Delete share links and pending uploads for a container."""
-        # Delete share links
+        """Delete share links for a container."""
         share_links_result = await db.execute(
             select(ShareLink).where(ShareLink.container_id == cont_id)
         )
         for share_link in share_links_result.scalars().all():
             await db.delete(share_link)
-
-        # Delete pending uploads
-        pending_result = await db.execute(
-            select(PendingUpload).where(PendingUpload.container_id == cont_id)
-        )
-        for pending in pending_result.scalars().all():
-            await db.delete(pending)
 
     if mode == "recursive":
         # Delete all items and their images recursively

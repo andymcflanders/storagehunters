@@ -62,15 +62,6 @@ services:
       MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
-      FASTSAM_URL: http://fastsam:8001
-      FASTSAM_ENABLED: "true"
-      # Segmentation settings
-      SEGMENTATION_ENABLED: ${SEGMENTATION_ENABLED:-true}
-      SEGMENTATION_PROVIDER: ${SEGMENTATION_PROVIDER:-local}
-      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN:-}
-      REPLICATE_SAM_MODEL: ${REPLICATE_SAM_MODEL:-meta/sam-2-base}
-      SEGMENTATION_CONFIDENCE_THRESHOLD: ${SEGMENTATION_CONFIDENCE_THRESHOLD:-0.5}
-      SEGMENTATION_MIN_AREA_RATIO: ${SEGMENTATION_MIN_AREA_RATIO:-1.0}
     volumes:
       - uploads_data:/app/uploads
       - certs_data:/app/certs
@@ -93,7 +84,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: storagehub-celery
-    command: celery -A app.worker.celery_app worker --loglevel=info -Q celery,ai,segmentation,default
+    command: celery -A app.worker.celery_app worker --loglevel=info -Q celery,ai,default
     healthcheck:
       disable: true
     environment:
@@ -104,15 +95,6 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       UPLOAD_DIR: /app/uploads
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
-      FASTSAM_URL: http://fastsam:8001
-      FASTSAM_ENABLED: "true"
-      # Segmentation settings
-      SEGMENTATION_ENABLED: ${SEGMENTATION_ENABLED:-true}
-      SEGMENTATION_PROVIDER: ${SEGMENTATION_PROVIDER:-local}
-      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN:-}
-      REPLICATE_SAM_MODEL: ${REPLICATE_SAM_MODEL:-meta/sam-2-base}
-      SEGMENTATION_CONFIDENCE_THRESHOLD: ${SEGMENTATION_CONFIDENCE_THRESHOLD:-0.5}
-      SEGMENTATION_MIN_AREA_RATIO: ${SEGMENTATION_MIN_AREA_RATIO:-1.0}
     volumes:
       - uploads_data:/app/uploads
     depends_on:
@@ -143,23 +125,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
-
-  # FastSAM Segmentation Service
-  fastsam:
-    build:
-      context: ./fastsam
-      dockerfile: Dockerfile
-    container_name: storagehub-fastsam
-    environment:
-      DEVICE: cpu
-      MODEL_PATH: FastSAM-s.pt
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
     restart: unless-stopped
 
   # Frontend (SvelteKit)

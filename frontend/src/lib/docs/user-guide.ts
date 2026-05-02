@@ -279,15 +279,6 @@ When you add a photo to an item, AI can automatically:
 3. Click **Classify with AI**
 4. Review and accept the suggestions
 
-### Smart Segmentation
-
-For photos with multiple items:
-
-1. Upload a photo containing multiple objects
-2. Click **Segment Items**
-3. AI identifies individual items in the photo
-4. Create separate items from each detected object
-
 ### AI-Generated Summaries
 
 Get insights about your containers:

@@ -78,7 +78,6 @@ StorageHub is built with a modern, scalable architecture designed for reliabilit
 **AI Service:**
 - OpenAI API integration
 - Image classification
-- Object segmentation
 
 **Print Service:**
 - Label generation

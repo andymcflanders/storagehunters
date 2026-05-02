@@ -91,34 +91,6 @@ export interface ActivityLogFilters {
 	days?: number;
 }
 
-export type SegmentationProvider = 'local' | 'replicate';
-
-export interface SegmentationSettings {
-	enabled: boolean;
-	provider: SegmentationProvider;
-	replicate_api_token_set: boolean;
-	replicate_model: string;
-	confidence_threshold: number;
-	min_area_ratio: number;
-}
-
-export interface SegmentationSettingsUpdate {
-	enabled?: boolean;
-	provider?: SegmentationProvider;
-	replicate_api_token?: string;
-	replicate_model?: string;
-	confidence_threshold?: number;
-	min_area_ratio?: number;
-}
-
-export interface SegmentationHealth {
-	enabled: boolean;
-	provider: string | null;
-	status: string;
-	model: string | null;
-	error: string | null;
-}
-
 export async function getSystemStats(): Promise<SystemStats> {
 	return get<SystemStats>('/admin/stats');
 }
@@ -158,34 +130,6 @@ export async function getActivityLogs(filters: ActivityLogFilters = {}): Promise
 
 	const url = params.toString() ? `/admin/activity?${params}` : '/admin/activity';
 	return get<ActivityLogResponse>(url);
-}
-
-// Segmentation settings
-export async function getSegmentationSettings(): Promise<SegmentationSettings> {
-	return get<SegmentationSettings>('/admin/segmentation');
-}
-
-export async function updateSegmentationSettings(
-	data: SegmentationSettingsUpdate
-): Promise<SegmentationSettings> {
-	// Use PUT for this endpoint
-	const response = await fetch('/api/admin/segmentation', {
-		method: 'PUT',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(data),
-		credentials: 'include'
-	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ detail: 'Update failed' }));
-		throw new Error(error.detail || 'Update failed');
-	}
-
-	return response.json();
-}
-
-export async function checkSegmentationHealth(): Promise<SegmentationHealth> {
-	return get<SegmentationHealth>('/admin/segmentation/health');
 }
 
 // OpenAI settings

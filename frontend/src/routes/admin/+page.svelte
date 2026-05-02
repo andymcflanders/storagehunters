@@ -5,7 +5,7 @@
 	import { toast } from '$lib/stores/toast';
 	import { admin, ssl, backup } from '$lib/api';
 	import { Card, Button } from '$lib/components';
-	import type { SystemStats, AdminUser, ActivityLogItem, SegmentationSettings, SegmentationHealth, OpenAISettings } from '$lib/api/admin';
+	import type { SystemStats, AdminUser, ActivityLogItem, OpenAISettings } from '$lib/api/admin';
 	import type { SSLStatus, SSLMode } from '$lib/api/ssl';
 	import type { BackupHistory, BackupPreview, ProviderStatus, RemoteBackup, BackupSchedule } from '$lib/api/backup';
 
@@ -51,19 +51,8 @@
 		email: ''
 	};
 
-	// AI/Segmentation state
-	let segmentationSettings: SegmentationSettings | null = null;
-	let segmentationHealth: SegmentationHealth | null = null;
+	// AI loading state (shared between OpenAI panel and tab loader)
 	let loadingAI = false;
-	let savingAI = false;
-	let aiFormData = {
-		enabled: true,
-		provider: 'local' as 'local' | 'replicate',
-		replicate_api_token: '',
-		replicate_model: 'meta/sam-2-base',
-		confidence_threshold: 0.5,
-		min_area_ratio: 1.0
-	};
 
 	// OpenAI settings state
 	let openaiSettings: OpenAISettings | null = null;
@@ -213,7 +202,7 @@
 			loadActivity();
 		} else if (tabId === 'ssl' && !sslStatus) {
 			loadSSLStatus();
-		} else if (tabId === 'ai' && !segmentationSettings) {
+		} else if (tabId === 'ai' && !openaiSettings) {
 			loadAISettings();
 		} else if (tabId === 'backups' && backups.length === 0) {
 			loadBackups();
@@ -319,19 +308,6 @@
 	async function loadAISettings() {
 		loadingAI = true;
 		try {
-			// Load segmentation settings
-			segmentationSettings = await admin.getSegmentationSettings();
-			segmentationHealth = await admin.checkSegmentationHealth();
-			aiFormData = {
-				enabled: segmentationSettings.enabled,
-				provider: segmentationSettings.provider,
-				replicate_api_token: '',  // Don't show existing token
-				replicate_model: segmentationSettings.replicate_model,
-				confidence_threshold: segmentationSettings.confidence_threshold,
-				min_area_ratio: segmentationSettings.min_area_ratio
-			};
-
-			// Load OpenAI settings
 			openaiSettings = await admin.getOpenAISettings();
 			openaiFormData = {
 				vision_enabled: openaiSettings.vision_enabled,
@@ -347,43 +323,6 @@
 			toast.error('Failed to load AI settings');
 		} finally {
 			loadingAI = false;
-		}
-	}
-
-	async function checkAIHealth() {
-		try {
-			segmentationHealth = await admin.checkSegmentationHealth();
-		} catch (error) {
-			toast.error('Failed to check AI service health');
-		}
-	}
-
-	async function handleSaveAISettings() {
-		savingAI = true;
-		try {
-			const updateData: admin.SegmentationSettingsUpdate = {
-				enabled: aiFormData.enabled,
-				provider: aiFormData.provider,
-				replicate_model: aiFormData.replicate_model,
-				confidence_threshold: aiFormData.confidence_threshold,
-				min_area_ratio: aiFormData.min_area_ratio
-			};
-
-			// Only include token if provided
-			if (aiFormData.replicate_api_token) {
-				updateData.replicate_api_token = aiFormData.replicate_api_token;
-			}
-
-			segmentationSettings = await admin.updateSegmentationSettings(updateData);
-			toast.success('AI settings saved');
-
-			// Refresh health status
-			await checkAIHealth();
-		} catch (error: unknown) {
-			const message = error instanceof Error ? error.message : 'Failed to save settings';
-			toast.error(message);
-		} finally {
-			savingAI = false;
 		}
 	}
 
@@ -1581,215 +1520,6 @@
 					<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600"></div>
 				</div>
 			{:else}
-				<!-- Health Status -->
-				<Card>
-					<div class="flex items-center justify-between">
-						<div>
-							<h3 class="text-lg font-semibold text-slate-900">Segmentation Service Status</h3>
-							<p class="mt-1 text-sm text-slate-500">
-								AI-powered image segmentation for multi-item detection
-							</p>
-						</div>
-						<button
-							on:click={checkAIHealth}
-							class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-							title="Refresh status"
-						>
-							<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-							</svg>
-						</button>
-					</div>
-
-					{#if segmentationHealth}
-						<div class="mt-4 flex items-center gap-3">
-							{#if segmentationHealth.status === 'healthy'}
-								<span class="flex h-3 w-3 rounded-full bg-green-500"></span>
-								<span class="text-sm font-medium text-green-700">Service is healthy</span>
-							{:else if segmentationHealth.status === 'disabled'}
-								<span class="flex h-3 w-3 rounded-full bg-slate-400"></span>
-								<span class="text-sm font-medium text-slate-600">Service is disabled</span>
-							{:else if segmentationHealth.status === 'unhealthy'}
-								<span class="flex h-3 w-3 rounded-full bg-red-500"></span>
-								<span class="text-sm font-medium text-red-700">Service is unhealthy</span>
-							{:else}
-								<span class="flex h-3 w-3 rounded-full bg-amber-500"></span>
-								<span class="text-sm font-medium text-amber-700">
-									{segmentationHealth.error || 'Unknown status'}
-								</span>
-							{/if}
-						</div>
-
-						{#if segmentationHealth.provider && segmentationHealth.model}
-							<p class="mt-2 text-sm text-slate-500">
-								Provider: <span class="font-medium">{segmentationHealth.provider}</span> |
-								Model: <span class="font-medium">{segmentationHealth.model}</span>
-							</p>
-						{/if}
-					{/if}
-				</Card>
-
-				<!-- Settings Form -->
-				<Card>
-					<h3 class="text-lg font-semibold text-slate-900">Segmentation Settings</h3>
-					<p class="mt-1 text-sm text-slate-500">
-						Configure how image segmentation works for multi-item detection.
-					</p>
-
-					<div class="mt-6 space-y-6">
-						<!-- Enable Toggle -->
-						<div class="flex items-center justify-between">
-							<div>
-								<label class="text-sm font-medium text-slate-700">Enable Segmentation</label>
-								<p class="text-xs text-slate-500">Allow detecting multiple items per photo</p>
-							</div>
-							<label class="relative inline-flex cursor-pointer items-center">
-								<input type="checkbox" bind:checked={aiFormData.enabled} class="peer sr-only" />
-								<div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300"></div>
-							</label>
-						</div>
-
-						<!-- Provider Selection -->
-						<div>
-							<label for="ai-provider" class="mb-1.5 block text-sm font-medium text-slate-700">
-								Provider
-							</label>
-							<select
-								id="ai-provider"
-								bind:value={aiFormData.provider}
-								class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-							>
-								<option value="local">Local (FastSAM Docker container)</option>
-								<option value="replicate">Replicate (Cloud API)</option>
-							</select>
-							<p class="mt-1 text-xs text-slate-500">
-								{#if aiFormData.provider === 'local'}
-									Runs locally in Docker. Requires the fastsam container to be running.
-								{:else}
-									Uses Replicate's cloud API. Requires API token. Pay-per-use pricing.
-								{/if}
-							</p>
-						</div>
-
-						<!-- Replicate Settings -->
-						{#if aiFormData.provider === 'replicate'}
-							<div class="rounded-lg bg-blue-50 p-4">
-								<p class="text-sm text-blue-800">
-									<strong>Replicate</strong> provides cloud-based SAM models with GPU acceleration.
-									Get your API token at <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener" class="underline">replicate.com</a>.
-								</p>
-							</div>
-
-							<div>
-								<label for="replicate-token" class="mb-1.5 block text-sm font-medium text-slate-700">
-									API Token
-									{#if segmentationSettings?.replicate_api_token_set}
-										<span class="text-green-600">(configured)</span>
-									{/if}
-								</label>
-								<input
-									id="replicate-token"
-									type="password"
-									bind:value={aiFormData.replicate_api_token}
-									placeholder={segmentationSettings?.replicate_api_token_set ? '••••••••••••••••' : 'r8_...'}
-									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-								/>
-								<p class="mt-1 text-xs text-slate-500">
-									Leave blank to keep existing token
-								</p>
-							</div>
-
-							<div>
-								<label for="replicate-model" class="mb-1.5 block text-sm font-medium text-slate-700">
-									SAM Model
-								</label>
-								<select
-									id="replicate-model"
-									bind:value={aiFormData.replicate_model}
-									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-								>
-									<option value="meta/sam-2-base">SAM 2 Base (recommended)</option>
-									<option value="meta/sam-2-large">SAM 2 Large (higher quality)</option>
-									<option value="adirik/grounded-sam">Grounded SAM (text-guided)</option>
-								</select>
-							</div>
-						{/if}
-
-						<!-- Advanced Settings -->
-						<details class="group">
-							<summary class="cursor-pointer text-sm font-medium text-slate-700">
-								Advanced Settings
-								<svg class="ml-1 inline h-4 w-4 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-								</svg>
-							</summary>
-							<div class="mt-4 space-y-4">
-								<div>
-									<label for="confidence" class="mb-1.5 block text-sm font-medium text-slate-700">
-										Confidence Threshold: {aiFormData.confidence_threshold}
-									</label>
-									<input
-										id="confidence"
-										type="range"
-										min="0.1"
-										max="0.95"
-										step="0.05"
-										bind:value={aiFormData.confidence_threshold}
-										class="w-full"
-									/>
-									<p class="mt-1 text-xs text-slate-500">
-										Higher values = fewer but more confident detections
-									</p>
-								</div>
-
-								<div>
-									<label for="min-area" class="mb-1.5 block text-sm font-medium text-slate-700">
-										Min Area Ratio: {aiFormData.min_area_ratio}%
-									</label>
-									<input
-										id="min-area"
-										type="range"
-										min="0.5"
-										max="10"
-										step="0.5"
-										bind:value={aiFormData.min_area_ratio}
-										class="w-full"
-									/>
-									<p class="mt-1 text-xs text-slate-500">
-										Minimum object size as % of image. Filters out small objects.
-									</p>
-								</div>
-							</div>
-						</details>
-
-						<div class="flex justify-end pt-4">
-							<Button on:click={handleSaveAISettings} loading={savingAI}>
-								Save Settings
-							</Button>
-						</div>
-					</div>
-				</Card>
-
-				<!-- Help -->
-				<Card>
-					<h3 class="text-lg font-semibold text-slate-900">About Image Segmentation</h3>
-					<div class="mt-4 space-y-3 text-sm text-slate-600">
-						<p>
-							<strong>What is segmentation?</strong> AI segmentation detects objects in photos
-							and removes backgrounds, creating clean transparent images for each item.
-						</p>
-						<p>
-							<strong>Multi-item mode:</strong> When enabled during photo capture, the AI will
-							detect multiple items in a single photo and create separate inventory entries for each.
-						</p>
-						<p>
-							<strong>Local vs Cloud:</strong> Local processing (FastSAM) is free but requires
-							the Docker container to run. Cloud processing (Replicate) is faster with GPU
-							acceleration but has per-image costs.
-						</p>
-					</div>
-				</Card>
-
 				<!-- OpenAI Classification Settings -->
 				<Card>
 					<div class="flex items-center justify-between">

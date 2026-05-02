@@ -45,19 +45,6 @@ class Settings(BaseSettings):
     default_label_width_mm: float = 51.0
     default_label_height_mm: float = 25.0
 
-    # Segmentation Settings
-    segmentation_enabled: bool = True
-    segmentation_provider: str = "local"  # "local" or "replicate"
-    segmentation_confidence_threshold: float = 0.5
-    segmentation_min_area_ratio: float = 1.0  # Minimum 1% of image area
-
-    # Local FastSAM (when segmentation_provider = "local")
-    fastsam_url: str = "http://fastsam:8001"
-
-    # Replicate (when segmentation_provider = "replicate")
-    replicate_api_token: str = ""
-    replicate_sam_model: str = "meta/sam-2-base"  # or "adirik/grounded-sam", etc.
-
     @property
     def max_upload_size_bytes(self) -> int:
         """Get max upload size in bytes."""

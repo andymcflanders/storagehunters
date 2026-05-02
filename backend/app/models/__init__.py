@@ -14,7 +14,6 @@ from app.models.backup import (
 from app.models.container import Container
 from app.models.item import Item, ItemImage, ItemTag, RelatedItems
 from app.models.location import Location
-from app.models.pending_upload import PendingUpload, UploadStatus
 from app.models.printer import Printer
 from app.models.reminder import Reminder, ReminderType
 from app.models.share import ShareLink
@@ -40,8 +39,6 @@ __all__ = [
     "ReminderType",
     "SSLConfig",
     "SSLMode",
-    "PendingUpload",
-    "UploadStatus",
     "APIKey",
     "APIKeyScope",
     "Webhook",

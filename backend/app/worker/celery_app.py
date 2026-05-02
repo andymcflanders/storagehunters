@@ -35,16 +35,11 @@ celery_app.conf.task_routes = {
     "app.worker.tasks.process_image_ai": {"queue": "ai"},
     "app.worker.tasks.process_item_ai": {"queue": "ai"},
     "app.worker.tasks.batch_process_item_images": {"queue": "ai"},
-    "app.worker.tasks.segment_pending_upload": {"queue": "segmentation"},
     "app.worker.tasks.*": {"queue": "default"},
 }
 
-# Longer timeout for segmentation tasks (model inference can be slow)
+# Backups can take a while; give them extra headroom.
 celery_app.conf.task_annotations = {
-    "app.worker.tasks.segment_pending_upload": {
-        "time_limit": 600,  # 10 minutes
-        "soft_time_limit": 540,  # 9 minutes
-    },
     "app.worker.tasks.run_scheduled_backup": {
         "time_limit": 1800,  # 30 minutes for backups
         "soft_time_limit": 1740,  # 29 minutes

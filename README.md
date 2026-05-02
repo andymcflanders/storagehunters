@@ -13,7 +13,6 @@ A self-hosted web application for tracking personal belongings across multiple s
 
 ### AI Features
 - **AI Image Classification**: Automatic item identification using OpenAI Vision
-- **Multi-Item Detection**: Upload a photo of multiple items, AI separates them automatically
 - **Configurable AI Models**: Choose models, adjust temperature, max tokens, and view cost estimates
 - **Bilingual Support**: AI-generated descriptions in English and Norwegian
 - **Smart Search**: Natural language search with color and synonym understanding
@@ -43,7 +42,7 @@ A self-hosted web application for tracking personal belongings across multiple s
 
 ### Admin Features
 - **User Management**: Create and manage user accounts with role-based access
-- **AI Configuration**: Configure OpenAI models and segmentation providers
+- **AI Configuration**: Configure OpenAI models, temperature, max tokens, and view cost estimates
 - **System Statistics**: Dashboard with usage metrics and growth trends
 
 ## Tech Stack

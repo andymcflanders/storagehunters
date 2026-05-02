@@ -189,15 +189,6 @@ Items are the individual belongings you're tracking.
 5. Review and edit as needed
 6. Click **Save**
 
-**Method 3: Bulk Upload (Segmentation)**
-1. Navigate to a container
-2. Click **Quick Add** or use the camera icon
-3. Take a photo of multiple items together
-4. Enable "Multi-item mode"
-5. AI detects and separates each item
-6. Review items in the Review page
-7. Confirm or edit each item
-
 ### Item Properties
 
 | Property | Description | Options |
@@ -263,25 +254,6 @@ When you upload an image, AI automatically:
 3. Creates a detailed description
 4. Adds relevant tags
 5. Provides translations (English & Norwegian)
-
-### Multi-Item Detection
-
-For photos with multiple items:
-1. Upload the image with "Multi-item mode" enabled
-2. AI segments each object separately
-3. Creates individual items for each
-4. Items are flagged for review
-
-### Review Workflow
-
-Items created by AI segmentation need review:
-1. Go to **Review** page
-2. See all pending items
-3. For each item:
-   - Edit name/description if needed
-   - Confirm to approve
-   - Delete if incorrectly detected
-4. Confirmed items become regular inventory
 
 ### Reprocessing Images
 
@@ -671,12 +643,6 @@ Dashboard shows:
 
 ### AI Settings
 
-**Segmentation Settings:**
-- Enable/disable multi-item detection
-- Choose provider (Local FastSAM or Replicate API)
-- Configure confidence threshold and minimum area
-- Check service health status
-
 **OpenAI Classification Settings:**
 Configure the AI models used for item classification:
 
@@ -798,11 +764,7 @@ Each backup includes:
    - Upload photos instead of typing
    - Review and refine AI suggestions
 
-2. **Use Multi-Item Mode**
-   - Photograph items together
-   - AI separates them automatically
-
-3. **Search Naturally**
+2. **Search Naturally**
    - "mom's winter coat" works!
    - Use colors and descriptions
 

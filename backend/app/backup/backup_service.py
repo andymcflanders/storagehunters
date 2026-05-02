@@ -179,7 +179,6 @@ class BackupService:
                 "ai_tags": img.ai_tags,
                 "ai_description": img.ai_description,
                 "ai_processed": img.ai_processed,
-                "is_segmented": img.is_segmented,
                 "created_at": img.created_at.isoformat() if img.created_at else None,
             }
             item_image_map[item_id].append(img_data)
@@ -752,7 +751,6 @@ class BackupService:
                                     ai_tags=img_data.get("ai_tags"),
                                     ai_description=img_data.get("ai_description"),
                                     ai_processed=img_data.get("ai_processed", False),
-                                    is_segmented=img_data.get("is_segmented", False),
                                 )
                                 db.add(new_image)
                                 statistics["images_restored"] += 1

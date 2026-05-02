@@ -22,8 +22,6 @@ StorageHub is a comprehensive inventory management system designed for household
 
 **AI Services:**
 - OpenAI Vision API for item classification
-- FastSAM for image segmentation
-- Replicate API (alternative segmentation provider)
 
 **Infrastructure:**
 - Docker Compose orchestration
@@ -200,18 +198,6 @@ Configuration for OpenAI models (singleton table).
 | summary_temperature | Float | Summary temperature (default: 0.3) |
 | summary_enabled | Boolean | Enable AI summaries |
 
-#### SegmentationSettings
-Configuration for image segmentation (singleton table).
-
-| Field | Type | Description |
-|-------|------|-------------|
-| id | UUID | Primary key |
-| enabled | Boolean | Enable segmentation feature |
-| provider | Enum | LOCAL, REPLICATE |
-| replicate_model | String | Replicate model identifier |
-| confidence_threshold | Float | Minimum confidence for detection |
-| min_area_ratio | Float | Minimum object area ratio |
-
 #### BackupConfig
 Configuration for automatic backups (singleton table).
 
@@ -270,13 +256,6 @@ Configuration for automatic backups (singleton table).
 - Adjustable max tokens and temperature
 - Real-time cost estimation per operation
 - Settings stored in database with caching
-
-**Image Segmentation:**
-- Upload a single image containing multiple items
-- AI detects and segments individual objects
-- Creates separate items for each detected object
-- Review workflow for AI-created items
-- Two providers: Local FastSAM or Replicate API
 
 **Container Summaries:**
 - AI-generated content descriptions for labels
@@ -372,9 +351,9 @@ Configuration for automatic backups (singleton table).
 - Old/new value comparison
 
 **AI Configuration:**
-- Segmentation provider selection
-- Service health monitoring
-- Enable/disable features
+- OpenAI model selection (vision and summary)
+- Per-feature enable/disable toggles
+- Cost estimate display
 
 ### 8. Data Export
 
@@ -473,10 +452,9 @@ Most endpoints require authentication via session cookie. Public endpoints:
 | `/api/shares` | Share link management |
 | `/api/printers` | Printer configuration |
 | `/api/inventory` | God View tree data |
-| `/api/uploads` | Image upload and segmentation |
 | `/api/activity` | Activity logs |
 | `/api/export` | Data export |
-| `/api/admin` | Admin operations (users, AI settings, segmentation) |
+| `/api/admin` | Admin operations (users, AI settings) |
 | `/api/admin/openai` | OpenAI model configuration |
 | `/api/backup` | Backup and restore operations |
 | `/api/ssl` | SSL configuration |
@@ -491,14 +469,11 @@ Most endpoints require authentication via session cookie. Public endpoints:
 |-------|---------|
 | celery | Default queue |
 | ai | AI processing tasks |
-| segmentation | Image segmentation |
 | default | General tasks |
 
 ### Task Types
 
 - **process_item_image**: AI classification of uploaded images
-- **segment_image**: Object detection and segmentation
-- **create_items_from_segments**: Item creation from segmented objects
 - **create_backup**: Create database backup
 - **cleanup_old_backups**: Remove backups exceeding retention limit
 - **upload_backup_to_drive**: Sync backup to Google Drive
@@ -510,7 +485,6 @@ Most endpoints require authentication via session cookie. Public endpoints:
 ### Upload Directory Structure
 ```
 uploads/
-├── temp/                    # Temporary uploads for segmentation
 ├── 2025/
 │   └── 12/
 │       └── {item_id}/
@@ -548,7 +522,6 @@ Images are served via nginx at `/uploads/{filepath}`
 | postgres | 5432 | Database |
 | redis | 6379 | Cache/queue |
 | celery | - | Background workers |
-| fastsam | 8001 | Segmentation service |
 
 ### Environment Variables
 
@@ -556,7 +529,6 @@ Key configuration via environment:
 - `DATABASE_URL` - PostgreSQL connection
 - `REDIS_URL` - Redis connection
 - `OPENAI_API_KEY` - For AI features
-- `REPLICATE_API_TOKEN` - Alternative AI provider
 - `SECRET_KEY` - Session encryption
 - `UPLOAD_DIR` - File storage path
 
@@ -575,8 +547,9 @@ Managed via Alembic. Current migrations:
 8. Add segmentation support
 9. Add Norwegian AI fields
 10. Add primary_image_id to items
-11. Add segmentation_settings table
+11. Add API keys and webhooks
 12. Add backup_config table
 13. Add ai_settings table (OpenAI configuration)
+14. Remove segmentation feature
 
 Run migrations: `alembic upgrade head`

@@ -50,7 +50,6 @@ class ItemImageResponse(BaseModel):
     ai_tags: list[str]
     ai_description: str | None
     ai_processed: bool
-    is_segmented: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -83,7 +82,6 @@ class ItemResponse(BaseModel):
     ai_description_no: str | None = None
     ai_processed: bool = False
     needs_review: bool = False
-    source_upload_id: UUID | None = None
     primary_image_id: UUID | None = None
     created_at: datetime
     updated_at: datetime

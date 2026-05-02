@@ -1,1 +1,0 @@
-"""FastSAM segmentation service."""

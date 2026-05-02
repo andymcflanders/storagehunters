@@ -64,9 +64,6 @@ class User(Base):
     items: Mapped[list["Item"]] = relationship(  # type: ignore[name-defined]
         "Item", back_populates="owner", foreign_keys="Item.owner_id"
     )
-    pending_uploads: Mapped[list["PendingUpload"]] = relationship(  # type: ignore[name-defined]
-        "PendingUpload", back_populates="uploader"
-    )
     api_keys: Mapped[list["APIKey"]] = relationship(  # type: ignore[name-defined]
         "APIKey", back_populates="user", cascade="all, delete-orphan"
     )

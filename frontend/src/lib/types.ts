@@ -141,7 +141,6 @@ export interface Item {
 	ai_description_no: string | null;
 	ai_processed: boolean;
 	needs_review: boolean;
-	source_upload_id: string | null;
 	primary_image_id: string | null;
 	created_at: string;
 	updated_at: string;
@@ -176,7 +175,6 @@ export interface ItemImage {
 	ai_tags: string[];
 	ai_description: string | null;
 	ai_processed: boolean;
-	is_segmented: boolean;
 	created_at: string;
 }
 
@@ -277,24 +275,6 @@ export interface BatchPrintResult {
 		success: boolean;
 		message: string;
 	}>;
-}
-
-// Upload types
-export type UploadStatus = 'pending' | 'processing' | 'completed' | 'failed';
-
-export interface PendingUpload {
-	id: string;
-	container_id: string;
-	status: UploadStatus;
-	multi_item_mode: boolean;
-	items_created: number;
-	error_message: string | null;
-	created_at: string;
-	processed_at: string | null;
-}
-
-export interface PendingUploadWithItems extends PendingUpload {
-	item_ids: string[];
 }
 
 // God View types
