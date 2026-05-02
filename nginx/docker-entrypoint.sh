@@ -19,6 +19,28 @@ check_certs() {
     return 1
 }
 
+# Generate a bootstrap self-signed certificate so HTTPS works on first boot.
+# The admin can later replace this via the SSL panel (custom upload or Let's
+# Encrypt). Re-runs are no-ops once a valid cert exists.
+generate_bootstrap_cert() {
+    echo "Generating bootstrap self-signed certificate..."
+    mkdir -p "$CERT_DIR"
+    openssl req -x509 -nodes -newkey rsa:2048 \
+        -keyout "$KEY_FILE" \
+        -out "$CERT_FILE" \
+        -days 365 \
+        -subj "/CN=storagehub-bootstrap" \
+        -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
+        2>/dev/null
+    chmod 600 "$KEY_FILE"
+    echo "Bootstrap certificate generated."
+}
+
+# Ensure a cert exists before initial nginx config
+if ! check_certs; then
+    generate_bootstrap_cert
+fi
+
 # Function to configure nginx based on SSL availability
 configure_nginx() {
     cp "$NGINX_CONF_TEMPLATE" "$NGINX_CONF"
