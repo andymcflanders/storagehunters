@@ -49,6 +49,14 @@ admin name email password:
 genkey:
     @openssl rand -hex 32
 
+# Run svelte-check (frontend type-check) in an ephemeral container
+check:
+    docker run --rm \
+      -v "$(pwd)/frontend:/src:ro" \
+      -w /work \
+      node:20-alpine \
+      sh -c "cp -r /src/. /work/ && rm -rf node_modules .svelte-kit && npm install --legacy-peer-deps --no-audit --no-fund --silent && npm run check"
+
 # DESTRUCTIVE: stop services and wipe all data volumes
 reset:
     @echo "This will delete the database, uploads, and certs. Press Ctrl+C to cancel."

@@ -139,6 +139,10 @@
 			"fall": "Høst",
 			"winter": "Vinter",
 			"holiday": "Høytid"
+		},
+		"filters": {
+			"allConditions": "Alle tilstander",
+			"allSeasons": "Alle sesonger"
 		}
 	},
 	"tags": {

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import type { GodViewUserInfo, GodViewLocation, Condition, Seasonal } from '$lib/types';
+	import { _ } from '$lib/i18n';
+	import { CONDITION_KEYS, SEASONAL_KEYS } from '$lib/utils/itemEnums';
 
 	export let users: GodViewUserInfo[] = [];
 	export let locations: GodViewLocation[] = [];
@@ -46,22 +48,20 @@
 		clearSelection: void;
 	}>();
 
-	const conditionOptions: { value: Condition | ''; label: string }[] = [
-		{ value: '', label: 'All Conditions' },
-		{ value: 'good', label: 'Good' },
-		{ value: 'fair', label: 'Fair' },
-		{ value: 'damaged', label: 'Damaged' },
-		{ value: 'needs_repair', label: 'Needs Repair' }
+	$: conditionOptions = [
+		{ value: '' as const, label: $_('items.filters.allConditions') },
+		...(Object.keys(CONDITION_KEYS) as Condition[]).map((value) => ({
+			value,
+			label: $_(CONDITION_KEYS[value])
+		}))
 	];
 
-	const seasonalOptions: { value: Seasonal | ''; label: string }[] = [
-		{ value: '', label: 'All Seasons' },
-		{ value: 'none', label: 'None' },
-		{ value: 'spring', label: 'Spring' },
-		{ value: 'summer', label: 'Summer' },
-		{ value: 'fall', label: 'Fall' },
-		{ value: 'winter', label: 'Winter' },
-		{ value: 'holiday', label: 'Holiday' }
+	$: seasonalOptions = [
+		{ value: '' as const, label: $_('items.filters.allSeasons') },
+		...(Object.keys(SEASONAL_KEYS) as Seasonal[]).map((value) => ({
+			value,
+			label: $_(SEASONAL_KEYS[value])
+		}))
 	];
 
 	// Build flat list of all containers with their location context

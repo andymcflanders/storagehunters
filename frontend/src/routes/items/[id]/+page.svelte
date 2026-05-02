@@ -6,8 +6,9 @@
 	import { toast } from '$lib/stores/toast';
 	import { items, users } from '$lib/api';
 	import { Breadcrumb, Button, Card, Input, Modal } from '$lib/components';
-	import { locale } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import { getLocalizedAI } from '$lib/utils/localized';
+	import { CONDITION_KEYS, SEASONAL_KEYS } from '$lib/utils/itemEnums';
 	import type { ItemWithDetails, ItemUpdate, User, Condition, Seasonal } from '$lib/types';
 
 	let item: ItemWithDetails | null = null;
@@ -249,25 +250,15 @@
 		return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
 	}) ?? [];
 
-	function formatCondition(condition: string): string {
-		return condition.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-	}
+	$: conditions = (Object.keys(CONDITION_KEYS) as Condition[]).map((value) => ({
+		value,
+		label: $_(CONDITION_KEYS[value])
+	}));
 
-	const conditions: { value: Condition; label: string }[] = [
-		{ value: 'good', label: 'Good' },
-		{ value: 'fair', label: 'Fair' },
-		{ value: 'damaged', label: 'Damaged' },
-		{ value: 'needs_repair', label: 'Needs Repair' }
-	];
-
-	const seasons: { value: Seasonal; label: string }[] = [
-		{ value: 'none', label: 'None' },
-		{ value: 'spring', label: 'Spring' },
-		{ value: 'summer', label: 'Summer' },
-		{ value: 'fall', label: 'Fall' },
-		{ value: 'winter', label: 'Winter' },
-		{ value: 'holiday', label: 'Holiday' }
-	];
+	$: seasons = (Object.keys(SEASONAL_KEYS) as Seasonal[]).map((value) => ({
+		value,
+		label: $_(SEASONAL_KEYS[value])
+	}));
 </script>
 
 <svelte:head>
@@ -542,7 +533,7 @@
 										 item.condition === 'fair' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
 										 item.condition === 'damaged' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
 										 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}">
-										{formatCondition(item.condition)}
+										{$_(CONDITION_KEYS[item.condition])}
 									</span>
 								</dd>
 							</div>
@@ -557,7 +548,7 @@
 									<dt class="text-slate-500 dark:text-slate-400">Season</dt>
 									<dd>
 										<span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-											{item.seasonal.charAt(0).toUpperCase() + item.seasonal.slice(1)}
+											{$_(SEASONAL_KEYS[item.seasonal])}
 										</span>
 									</dd>
 								</div>

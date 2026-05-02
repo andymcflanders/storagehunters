@@ -6,6 +6,8 @@
 	export let disabled = false;
 	export let loading = false;
 	export let type: 'button' | 'submit' | 'reset' = 'button';
+	let className = '';
+	export { className as class };
 
 	const dispatch = createEventDispatcher();
 
@@ -31,7 +33,7 @@
 
 <button
 	{type}
-	class="{variants[variant]} {sizes[size]}"
+	class="{variants[variant]} {sizes[size]} {className}"
 	disabled={disabled || loading}
 	on:click={handleClick}
 >

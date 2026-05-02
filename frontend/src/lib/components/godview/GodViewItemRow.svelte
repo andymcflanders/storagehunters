@@ -4,6 +4,8 @@
 	import InlineEditSelect from './InlineEditSelect.svelte';
 	import GodViewItemExpanded from './GodViewItemExpanded.svelte';
 	import type { GodViewItem, GodViewUserInfo, Condition, Seasonal } from '$lib/types';
+	import { _ } from '$lib/i18n';
+	import { CONDITION_KEYS, SEASONAL_KEYS } from '$lib/utils/itemEnums';
 
 	export let item: GodViewItem;
 	export let users: GodViewUserInfo[];
@@ -17,21 +19,31 @@
 		toggleExpand: { id: string };
 	}>();
 
-	const conditionOptions: { value: Condition; label: string; color: string }[] = [
-		{ value: 'good', label: 'Good', color: 'text-green-600 dark:text-green-400' },
-		{ value: 'fair', label: 'Fair', color: 'text-yellow-600 dark:text-yellow-400' },
-		{ value: 'damaged', label: 'Damaged', color: 'text-red-600 dark:text-red-400' },
-		{ value: 'needs_repair', label: 'Needs Repair', color: 'text-orange-600 dark:text-orange-400' }
-	];
+	const CONDITION_COLORS: Record<Condition, string> = {
+		good: 'text-green-600 dark:text-green-400',
+		fair: 'text-yellow-600 dark:text-yellow-400',
+		damaged: 'text-red-600 dark:text-red-400',
+		needs_repair: 'text-orange-600 dark:text-orange-400'
+	};
+	const SEASONAL_COLORS: Record<Seasonal, string> = {
+		none: 'text-slate-500',
+		spring: 'text-green-600 dark:text-green-400',
+		summer: 'text-yellow-600 dark:text-yellow-400',
+		fall: 'text-orange-600 dark:text-orange-400',
+		winter: 'text-blue-600 dark:text-blue-400',
+		holiday: 'text-red-600 dark:text-red-400'
+	};
 
-	const seasonalOptions: { value: Seasonal; label: string; color: string }[] = [
-		{ value: 'none', label: 'None', color: 'text-slate-500' },
-		{ value: 'spring', label: 'Spring', color: 'text-green-600 dark:text-green-400' },
-		{ value: 'summer', label: 'Summer', color: 'text-yellow-600 dark:text-yellow-400' },
-		{ value: 'fall', label: 'Fall', color: 'text-orange-600 dark:text-orange-400' },
-		{ value: 'winter', label: 'Winter', color: 'text-blue-600 dark:text-blue-400' },
-		{ value: 'holiday', label: 'Holiday', color: 'text-red-600 dark:text-red-400' }
-	];
+	$: conditionOptions = (Object.keys(CONDITION_KEYS) as Condition[]).map((value) => ({
+		value,
+		label: $_(CONDITION_KEYS[value]),
+		color: CONDITION_COLORS[value]
+	}));
+	$: seasonalOptions = (Object.keys(SEASONAL_KEYS) as Seasonal[]).map((value) => ({
+		value,
+		label: $_(SEASONAL_KEYS[value]),
+		color: SEASONAL_COLORS[value]
+	}));
 
 	function handleFieldSave(field: string, value: string) {
 		dispatch('update', { id: item.id, field, value });

@@ -139,6 +139,10 @@
 			"fall": "Fall",
 			"winter": "Winter",
 			"holiday": "Holiday"
+		},
+		"filters": {
+			"allConditions": "All Conditions",
+			"allSeasons": "All Seasons"
 		}
 	},
 	"tags": {
