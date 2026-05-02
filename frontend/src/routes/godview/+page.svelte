@@ -6,7 +6,7 @@
 	import GodViewLocationRow from '$lib/components/godview/GodViewLocationRow.svelte';
 	import DeleteContainerModal from '$lib/components/godview/DeleteContainerModal.svelte';
 	import { BatchPrintModal, PrintModal } from '$lib/components/print';
-	import { Button, Input, Modal } from '$lib/components';
+	import { Button, Input, Modal, SinglePhotoCapture } from '$lib/components';
 	import { _ } from '$lib/i18n';
 	import { CONTAINER_TYPES, CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
 	import type { DeleteMode } from '$lib/api/containers';
@@ -476,11 +476,6 @@
 		showCreateContainerModal = true;
 	}
 
-	function handleNewContainerImagePick(event: Event) {
-		const target = event.target as HTMLInputElement;
-		newContainerImage = target.files?.[0] ?? null;
-	}
-
 	async function submitCreateContainer() {
 		if (!newContainer.name.trim()) return;
 		creatingContainer = true;
@@ -809,14 +804,8 @@
 		/>
 
 		<div>
-			<label for="gv-container-image" class="label">{$_('containers.image')}</label>
-			<input
-				id="gv-container-image"
-				type="file"
-				accept="image/*"
-				on:change={handleNewContainerImagePick}
-				class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-primary-700 hover:file:bg-primary-100 dark:text-slate-300 dark:file:bg-primary-900/30 dark:file:text-primary-300"
-			/>
+			<label class="label">{$_('containers.image')}</label>
+			<SinglePhotoCapture bind:value={newContainerImage} />
 		</div>
 	</form>
 

@@ -5,7 +5,7 @@
 	import { user } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
 	import { locations, containers } from '$lib/api';
-	import { ContainerCard, Breadcrumb, Button, Card, Input, Modal } from '$lib/components';
+	import { ContainerCard, Breadcrumb, Button, Card, Input, Modal, SinglePhotoCapture } from '$lib/components';
 	import { _ } from '$lib/i18n';
 	import { CONTAINER_TYPES, CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
 	import type { LocationWithContainers, ContainerCreate } from '$lib/types';
@@ -75,10 +75,6 @@
 		}
 	}
 
-	function handleImageChange(event: Event) {
-		const target = event.target as HTMLInputElement;
-		newContainerImage = target.files?.[0] ?? null;
-	}
 </script>
 
 <svelte:head>
@@ -179,14 +175,8 @@
 		/>
 
 		<div>
-			<label for="container-image" class="label">{$_('containers.image')}</label>
-			<input
-				id="container-image"
-				type="file"
-				accept="image/*"
-				on:change={handleImageChange}
-				class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-primary-700 hover:file:bg-primary-100 dark:text-slate-300 dark:file:bg-primary-900/30 dark:file:text-primary-300"
-			/>
+			<label class="label">{$_('containers.image')}</label>
+			<SinglePhotoCapture bind:value={newContainerImage} />
 		</div>
 	</form>
 

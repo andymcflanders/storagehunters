@@ -5,7 +5,7 @@
 	import { user } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
 	import { containers, items } from '$lib/api';
-	import { ItemCard, ContainerCard, Breadcrumb, Button, Card, Input, Modal, ShareModal } from '$lib/components';
+	import { ItemCard, ContainerCard, Breadcrumb, Button, Card, Input, Modal, ShareModal, CameraCapture } from '$lib/components';
 	import { PrintModal } from '$lib/components/print';
 	import { _ } from '$lib/i18n';
 	import { CONTAINER_TYPES, CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
@@ -28,7 +28,7 @@
 	};
 
 	let editData: ContainerUpdate = {};
-	let imageFileInput: HTMLInputElement;
+	let showImageCamera = false;
 
 	$: containerId = $page.params.id!;
 
@@ -103,9 +103,9 @@
 		}
 	}
 
-	async function handleImagePick(event: Event) {
-		const target = event.target as HTMLInputElement;
-		const file = target.files?.[0];
+	async function handleCameraCapture(event: CustomEvent<{ photos: File[] }>) {
+		const file = event.detail.photos[0];
+		showImageCamera = false;
 		if (!file || !container) return;
 		uploadingImage = true;
 		try {
@@ -116,8 +116,6 @@
 			toast.error('Failed to upload image');
 		} finally {
 			uploadingImage = false;
-			// Reset so picking the same file again still triggers `change`.
-			target.value = '';
 		}
 	}
 
@@ -198,13 +196,6 @@
 		</div>
 
 		<!-- Hero Image -->
-		<input
-			bind:this={imageFileInput}
-			type="file"
-			accept="image/*"
-			class="hidden"
-			on:change={handleImagePick}
-		/>
 		{#if container.image_url}
 			<Card padding="none">
 				<div class="relative">
@@ -214,7 +205,7 @@
 						class="aspect-[3/2] w-full rounded-xl object-cover"
 					/>
 					<div class="absolute right-3 top-3 flex gap-2">
-						<Button variant="secondary" loading={uploadingImage} on:click={() => imageFileInput.click()}>
+						<Button variant="secondary" loading={uploadingImage} on:click={() => (showImageCamera = true)}>
 							{$_('containers.replaceImage')}
 						</Button>
 						<Button variant="danger" loading={uploadingImage} on:click={handleRemoveImage}>
@@ -227,11 +218,23 @@
 			<Card>
 				<div class="flex items-center justify-between">
 					<p class="text-sm text-slate-500 dark:text-slate-400">{$_('containers.image')}</p>
-					<Button variant="secondary" loading={uploadingImage} on:click={() => imageFileInput.click()}>
-						{$_('containers.chooseImage')}
+					<Button variant="secondary" loading={uploadingImage} on:click={() => (showImageCamera = true)}>
+						{$_('containers.takePhoto')}
 					</Button>
 				</div>
 			</Card>
+		{/if}
+
+		<!-- Camera overlay for hero image capture -->
+		{#if showImageCamera}
+			<div class="fixed inset-0 z-[100] bg-black">
+				<CameraCapture
+					active={showImageCamera}
+					maxPhotosPerItem={1}
+					on:capture={handleCameraCapture}
+					on:cancel={() => (showImageCamera = false)}
+				/>
+			</div>
 		{/if}
 
 		<!-- QR Code -->

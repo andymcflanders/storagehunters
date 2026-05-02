@@ -13,4 +13,5 @@ export { default as ShareModal } from './ShareModal.svelte';
 export { default as QuickAdd } from './QuickAdd.svelte';
 export { default as MobileHome } from './MobileHome.svelte';
 export { default as CameraCapture } from './CameraCapture.svelte';
+export { default as SinglePhotoCapture } from './SinglePhotoCapture.svelte';
 export * from './ui';

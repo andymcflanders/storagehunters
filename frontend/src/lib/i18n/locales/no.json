@@ -131,6 +131,8 @@
 		"chooseImage": "Velg bilde…",
 		"removeImage": "Fjern bilde",
 		"replaceImage": "Bytt bilde",
+		"takePhoto": "Ta bilde",
+		"retakePhoto": "Ta nytt bilde",
 		"types": {
 			"box": "Boks",
 			"drawer": "Skuff",

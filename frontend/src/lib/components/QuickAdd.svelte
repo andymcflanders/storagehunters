@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { toast } from '$lib/stores/toast';
 	import { locations, containers, items } from '$lib/api';
-	import { Button, Input, Modal, Card, CameraCapture } from '$lib/components';
+	import { Button, Input, Modal, Card, CameraCapture, SinglePhotoCapture } from '$lib/components';
 	import { _, locale } from '$lib/i18n';
 	import { getLocalizedAI } from '$lib/utils/localized';
 	import { CONTAINER_TYPES, CONTAINER_TYPE_KEYS } from '$lib/utils/itemEnums';
@@ -152,10 +152,6 @@
 		}
 	}
 
-	function handleContainerImagePick(event: Event) {
-		const target = event.target as HTMLInputElement;
-		newContainerImage = target.files?.[0] ?? null;
-	}
 
 	function handleBatch(event: CustomEvent<{ items: File[][] }>) {
 		const batchPhotos = event.detail.items;
@@ -708,14 +704,8 @@
 					/>
 
 					<div>
-						<label for="qa-container-image" class="label">{$_('containers.image')}</label>
-						<input
-							id="qa-container-image"
-							type="file"
-							accept="image/*"
-							on:change={handleContainerImagePick}
-							class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-primary-700 hover:file:bg-primary-100 dark:text-slate-300 dark:file:bg-primary-900/30 dark:file:text-primary-300"
-						/>
+						<label class="label">{$_('containers.image')}</label>
+						<SinglePhotoCapture bind:value={newContainerImage} />
 					</div>
 				</div>
 			{/if}

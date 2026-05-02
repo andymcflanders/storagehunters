@@ -131,6 +131,8 @@
 		"chooseImage": "Choose image…",
 		"removeImage": "Remove image",
 		"replaceImage": "Replace image",
+		"takePhoto": "Take photo",
+		"retakePhoto": "Retake",
 		"types": {
 			"box": "Box",
 			"drawer": "Drawer",
