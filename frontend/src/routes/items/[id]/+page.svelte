@@ -178,6 +178,39 @@
 		}
 	}
 
+	let applyingOwner = false;
+	let dismissingOwner = false;
+
+	async function applyOwnerSuggestion() {
+		if (!item?.suggested_owner) return;
+		applyingOwner = true;
+		try {
+			await items.updateItem(item.id, {
+				owner_id: item.suggested_owner.id,
+				clear_suggestion: true
+			});
+			toast.success(`Assigned to ${item.suggested_owner.name}`);
+			await loadItem();
+		} catch {
+			toast.error('Failed to assign owner');
+		} finally {
+			applyingOwner = false;
+		}
+	}
+
+	async function dismissOwnerSuggestion() {
+		if (!item?.suggested_owner) return;
+		dismissingOwner = true;
+		try {
+			await items.updateItem(item.id, { clear_suggestion: true });
+			await loadItem();
+		} catch {
+			toast.error('Failed to dismiss suggestion');
+		} finally {
+			dismissingOwner = false;
+		}
+	}
+
 	async function handleDelete() {
 		if (!item) return;
 		if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
@@ -302,6 +335,37 @@
 					<Button size="sm" on:click={() => { startEdit(); applyAISuggestion(); }}>
 						Apply & Edit
 					</Button>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Owner suggestion banner -->
+		{#if item.suggested_owner && !item.owner_id && !editMode}
+			<div class="rounded-lg bg-purple-50 border border-purple-200 p-4 dark:bg-purple-900/20 dark:border-purple-800">
+				<div class="flex items-start justify-between gap-4">
+					<div>
+						<p class="font-medium text-purple-800 dark:text-purple-200">
+							Suggested owner: <strong>{item.suggested_owner.name}</strong>
+						</p>
+						{#if item.owner_suggestion_reason}
+							<p class="text-sm text-purple-600 dark:text-purple-400 mt-1 italic">
+								"{item.owner_suggestion_reason}"
+							</p>
+						{/if}
+					</div>
+					<div class="flex shrink-0 gap-2">
+						<Button size="sm" loading={applyingOwner} on:click={applyOwnerSuggestion}>
+							Assign to {item.suggested_owner.name}
+						</Button>
+						<Button
+							size="sm"
+							variant="secondary"
+							loading={dismissingOwner}
+							on:click={dismissOwnerSuggestion}
+						>
+							Dismiss
+						</Button>
+					</div>
 				</div>
 			</div>
 		{/if}

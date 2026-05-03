@@ -56,6 +56,14 @@ class Item(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    # AI's guess at the most likely owner, based on item size/motif and
+    # the user's age + gender. Surfaced as a suggestion banner on the
+    # item detail page; never auto-applied to owner_id. Cleared when
+    # the user dismisses or applies the suggestion.
+    suggested_owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    owner_suggestion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     size: Mapped[str | None] = mapped_column(String(50), nullable=True)
     condition: Mapped[ConditionEnum] = mapped_column(
         Enum(ConditionEnum, name="condition_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
@@ -95,6 +103,9 @@ class Item(Base):
     )
     owner: Mapped["User | None"] = relationship(  # type: ignore[name-defined]
         "User", back_populates="items", foreign_keys=[owner_id]
+    )
+    suggested_owner: Mapped["User | None"] = relationship(  # type: ignore[name-defined]
+        "User", foreign_keys=[suggested_owner_id]
     )
     images: Mapped[list["ItemImage"]] = relationship(
         "ItemImage", back_populates="item", cascade="all, delete-orphan",

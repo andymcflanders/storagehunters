@@ -39,6 +39,9 @@ class ItemUpdate(BaseModel):
     condition: ConditionEnum | None = None
     seasonal: SeasonalEnum | None = None
     value_estimate: Decimal | None = None
+    # Set true to clear the AI owner suggestion (banner dismissed or
+    # applied). Apply path: send {owner_id: ..., clear_suggestion: true}.
+    clear_suggestion: bool = False
 
 
 class ItemImageResponse(BaseModel):
@@ -81,6 +84,8 @@ class ItemResponse(BaseModel):
     ai_processed: bool = False
     needs_review: bool = False
     primary_image_id: UUID | None = None
+    suggested_owner_id: UUID | None = None
+    owner_suggestion_reason: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -111,5 +116,6 @@ class ItemWithDetails(ItemResponse):
     images: list[ItemImageResponse] = []
     tags: list[TagInfo] = []
     owner: OwnerInfo | None = None
+    suggested_owner: OwnerInfo | None = None
     path: list[ContainerPath] = []
     related_items: list["ItemResponse"] = []

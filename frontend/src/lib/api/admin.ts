@@ -171,6 +171,8 @@ export interface OpenAISettings {
 	summary_temperature: number;
 	summary_cost_estimate: CostEstimate;
 
+	owner_suggestion_enabled: boolean;
+
 	vision_models: ModelOption[];
 	text_models: ModelOption[];
 
@@ -187,6 +189,8 @@ export interface OpenAISettingsUpdate {
 	summary_model?: string;
 	summary_max_tokens?: number;
 	summary_temperature?: number;
+
+	owner_suggestion_enabled?: boolean;
 }
 
 export async function getOpenAISettings(): Promise<OpenAISettings> {

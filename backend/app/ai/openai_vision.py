@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from app.ai.base import BaseClassifier, ClassificationResult
+from app.ai.base import BaseClassifier, CandidateOwner, ClassificationResult
 from app.config import get_settings
 
 settings = get_settings()
@@ -37,16 +37,46 @@ def _language_label(code: str) -> str:
     return LANGUAGE_NAMES.get(code, code)
 
 
-def build_classification_prompt(languages: list[str], image_count: int) -> str:
+def _candidate_block(candidates: list[CandidateOwner]) -> str:
+    """Render the candidate-owner section of the prompt.
+
+    Empty string when no candidates — the prompt builder then omits
+    every owner-related field so the model doesn't try to fill them.
+    """
+    if not candidates:
+        return ""
+
+    lines = []
+    for c in candidates:
+        bits = [f'id: "{c.id}"', f'name: "{c.name}"']
+        if c.gender:
+            bits.append(f"gender: {c.gender}")
+        if c.age is not None:
+            bits.append(f"age: {c.age}")
+        else:
+            bits.append("age: unknown")
+        lines.append("  - " + ", ".join(bits))
+
+    return "\n".join(lines)
+
+
+def build_classification_prompt(
+    languages: list[str],
+    image_count: int,
+    candidates: list[CandidateOwner] | None = None,
+) -> str:
     """Construct the classification prompt for the configured languages.
 
     The prompt asks GPT to return a JSON object with one `name_<code>`
     and one `description_<code>` field per supported language, plus
     shared fields (tags, size, seasonal). The parser pulls the
-    translations out by prefix.
+    translations out by prefix. When `candidates` is non-empty, the
+    prompt also asks for an owner suggestion based on each candidate's
+    age + gender vs the item's size and motif.
     """
     if not languages:
         languages = ["en"]
+    candidates = candidates or []
 
     name_lines = "\n".join(
         f'  "name_{code}": "Short item name in {_language_label(code)} (2-5 words)",'
@@ -78,6 +108,32 @@ def build_classification_prompt(languages: list[str], image_count: int) -> str:
         )
         desc_guidance = "1-2 sentences combining details from all images"
 
+    owner_field_lines = ""
+    owner_section = ""
+    if candidates:
+        owner_field_lines = (
+            ',\n  "suggested_owner_id": "<id from candidates list, or null>",'
+            '\n  "owner_confidence": 0.0,'
+            '\n  "owner_reason": "<one short sentence, or null>"'
+        )
+        owner_section = f"""
+
+CANDIDATE OWNERS (members of this household):
+{_candidate_block(candidates)}
+
+For SUGGESTED_OWNER_ID:
+- Pick the candidate whose age + gender most clearly fits this item, based on
+  size and motif (e.g. children's size 98 with a dinosaur print fits a
+  toddler boy; size 42 wool socks fit any adult).
+- Return the candidate's literal `id` value, exactly as listed above.
+- Return null when the item is generic enough that multiple candidates
+  could equally own it (household items, adult-sized basics where
+  several adults match), or when nothing fits well. **Do not guess.**
+- owner_confidence is 0.0–1.0; use < 0.5 only when you are unsure.
+- owner_reason is one short sentence pointing at the specific signals
+  you used (e.g. "size 98 + dinosaur motif fits a toddler boy"). Return
+  null when suggested_owner_id is null."""
+
     return f"""{intro}
 
 Return a JSON object with:
@@ -86,8 +142,8 @@ Return a JSON object with:
   "tags": ["tag1", "tag2", ...],
 {desc_lines}
   "size": "Size in EU format or null",
-  "seasonal": "none|spring|summer|fall|winter|holiday"
-}}
+  "seasonal": "none|spring|summer|fall|winter|holiday"{owner_field_lines}
+}}{owner_section}
 
 For NAME (in every language listed above):
 - Keep it short and descriptive (2-5 words)
@@ -157,7 +213,11 @@ class OpenAIVisionClassifier(BaseClassifier):
         self.languages = languages or ["en", "no"]
         self.api_url = "https://api.openai.com/v1/chat/completions"
 
-    async def classify(self, images: list[bytes]) -> ClassificationResult:
+    async def classify(
+        self,
+        images: list[bytes],
+        candidate_owners: list[CandidateOwner] | None = None,
+    ) -> ClassificationResult:
         """Classify one or more images of the same item using OpenAI Vision API."""
         if not self.api_key:
             raise ValueError("OpenAI API key not configured")
@@ -170,7 +230,11 @@ class OpenAIVisionClassifier(BaseClassifier):
             "Content-Type": "application/json",
         }
 
-        prompt = build_classification_prompt(self.languages, image_count=len(images))
+        prompt = build_classification_prompt(
+            self.languages,
+            image_count=len(images),
+            candidates=candidate_owners,
+        )
         content: list[dict] = [{"type": "text", "text": prompt}]
 
         for image_bytes in images:
@@ -200,7 +264,7 @@ class OpenAIVisionClassifier(BaseClassifier):
             response.raise_for_status()
             data = response.json()
 
-        return self._parse_response(data)
+        return self._parse_response(data, candidate_owners or [])
 
     def _detect_image_type(self, image_bytes: bytes) -> str:
         """Detect image MIME type from magic bytes."""
@@ -215,7 +279,11 @@ class OpenAIVisionClassifier(BaseClassifier):
         else:
             return "image/jpeg"
 
-    def _parse_response(self, data: dict[str, Any]) -> ClassificationResult:
+    def _parse_response(
+        self,
+        data: dict[str, Any],
+        candidates: list[CandidateOwner],
+    ) -> ClassificationResult:
         """Parse OpenAI API response into ClassificationResult."""
         try:
             content = data["choices"][0]["message"]["content"]
@@ -247,6 +315,27 @@ class OpenAIVisionClassifier(BaseClassifier):
             if seasonal not in valid_seasons:
                 seasonal = "none"
 
+            # Owner suggestion. Defensively validate the model's id
+            # against the candidates we sent — models occasionally
+            # hallucinate a UUID, and silently dropping that is safer
+            # than persisting a dangling reference.
+            suggested_owner_id: str | None = None
+            owner_confidence = 0.0
+            owner_reason: str | None = None
+            if candidates:
+                raw_id = parsed.get("suggested_owner_id")
+                valid_ids = {c.id for c in candidates}
+                if isinstance(raw_id, str) and raw_id in valid_ids:
+                    suggested_owner_id = raw_id
+                    owner_reason_raw = parsed.get("owner_reason")
+                    if isinstance(owner_reason_raw, str) and owner_reason_raw.strip():
+                        owner_reason = owner_reason_raw.strip()
+                    try:
+                        owner_confidence = float(parsed.get("owner_confidence", 0.0))
+                    except (TypeError, ValueError):
+                        owner_confidence = 0.0
+                    owner_confidence = max(0.0, min(1.0, owner_confidence))
+
             return ClassificationResult(
                 names=names,
                 descriptions=descriptions,
@@ -254,6 +343,9 @@ class OpenAIVisionClassifier(BaseClassifier):
                 size=size,
                 seasonal=seasonal,
                 confidence=0.9,
+                suggested_owner_id=suggested_owner_id,
+                owner_confidence=owner_confidence,
+                owner_reason=owner_reason,
                 raw_response=data,
             )
 

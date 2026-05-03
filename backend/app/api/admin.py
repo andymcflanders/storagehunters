@@ -149,6 +149,10 @@ class OpenAISettings(BaseModel):
     summary_temperature: float
     summary_cost_estimate: CostEstimate
 
+    # AI owner suggestion (Phase 2 of profile users): when on, the
+    # vision classifier also picks a likely owner from non-admin users.
+    owner_suggestion_enabled: bool
+
     # Available model options
     vision_models: list[ModelOption]
     text_models: list[ModelOption]
@@ -169,6 +173,7 @@ class OpenAISettingsUpdate(BaseModel):
     summary_model: str | None = None
     summary_max_tokens: int | None = None
     summary_temperature: float | None = None
+    owner_suggestion_enabled: bool | None = None
     # Pass an empty string to clear the persisted key.
     openai_api_key: str | None = None
 
@@ -631,6 +636,7 @@ async def get_openai_settings(
             estimated_output_tokens=summary_cost["estimated_output_tokens"],
             estimated_cost_usd=summary_cost["estimated_cost_usd"],
         ),
+        owner_suggestion_enabled=ai_settings.owner_suggestion_enabled,
         vision_models=[ModelOption(**m) for m in VISION_MODELS],
         text_models=[ModelOption(**m) for m in TEXT_MODELS],
         api_key_set=bool(ai_settings.openai_api_key or config.openai_api_key),
@@ -706,6 +712,9 @@ async def update_openai_settings(
             )
         ai_settings.summary_temperature = data.summary_temperature
 
+    if data.owner_suggestion_enabled is not None:
+        ai_settings.owner_suggestion_enabled = data.owner_suggestion_enabled
+
     if data.openai_api_key is not None:
         # Empty string clears the persisted key (falls back to env var).
         ai_settings.openai_api_key = data.openai_api_key.strip() or None
@@ -744,6 +753,7 @@ async def update_openai_settings(
             estimated_output_tokens=summary_cost["estimated_output_tokens"],
             estimated_cost_usd=summary_cost["estimated_cost_usd"],
         ),
+        owner_suggestion_enabled=ai_settings.owner_suggestion_enabled,
         vision_models=[ModelOption(**m) for m in VISION_MODELS],
         text_models=[ModelOption(**m) for m in TEXT_MODELS],
         api_key_set=bool(ai_settings.openai_api_key or config.openai_api_key),

@@ -119,6 +119,7 @@ async def get_item(item_id: UUID, db: DbSession) -> ItemWithDetails:
             selectinload(Item.images),
             selectinload(Item.item_tags).selectinload(ItemTag.tag),
             selectinload(Item.owner),
+            selectinload(Item.suggested_owner),
         )
     )
     item = result.scalar_one_or_none()
@@ -152,11 +153,20 @@ async def get_item(item_id: UUID, db: DbSession) -> ItemWithDetails:
             id=item.owner.id, name=item.owner.name, avatar_url=item.owner.avatar_url
         )
 
+    suggested_owner = None
+    if item.suggested_owner:
+        suggested_owner = OwnerInfo(
+            id=item.suggested_owner.id,
+            name=item.suggested_owner.name,
+            avatar_url=item.suggested_owner.avatar_url,
+        )
+
     return ItemWithDetails(
         **ItemResponse.model_validate(item).model_dump(),
         images=images,
         tags=tags,
         owner=owner,
+        suggested_owner=suggested_owner,
         path=path,
         related_items=[],
     )
@@ -182,12 +192,26 @@ async def update_item(
     new_values = {}
     update_data = item_data.model_dump(exclude_unset=True)
 
+    # clear_suggestion is a write-only flag, not a column; pop it before
+    # the generic field loop below.
+    clear_suggestion = update_data.pop("clear_suggestion", False)
+
     for field, value in update_data.items():
         old_value = getattr(item, field)
         if old_value != value:
             old_values[field] = str(old_value) if old_value else None
             new_values[field] = str(value) if value else None
             setattr(item, field, value)
+
+    if clear_suggestion:
+        item.suggested_owner_id = None
+        item.owner_suggestion_reason = None
+    elif "owner_id" in update_data and item.owner_id is not None:
+        # User picked an owner manually — drop the suggestion so it
+        # doesn't sit in the DB forever pointing at a now-irrelevant
+        # candidate.
+        item.suggested_owner_id = None
+        item.owner_suggestion_reason = None
 
     if old_values:
         logger = ActivityLogger(db)

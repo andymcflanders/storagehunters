@@ -166,6 +166,8 @@ export interface Item {
 	ai_processed: boolean;
 	needs_review: boolean;
 	primary_image_id: string | null;
+	suggested_owner_id: string | null;
+	owner_suggestion_reason: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -185,11 +187,12 @@ export interface ItemUpdate {
 	name?: string;
 	description?: string;
 	container_id?: string;
-	owner_id?: string;
+	owner_id?: string | null;
 	size?: string;
 	condition?: Condition;
 	seasonal?: Seasonal;
 	value_estimate?: number;
+	clear_suggestion?: boolean;
 }
 
 export interface ItemImage {
@@ -217,6 +220,7 @@ export interface ItemWithDetails extends Item {
 	images: ItemImage[];
 	tags: Tag[];
 	owner: OwnerInfo | null;
+	suggested_owner: OwnerInfo | null;
 	path: PathElement[];
 	related_items: Item[];
 }

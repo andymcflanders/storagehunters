@@ -36,7 +36,11 @@ class MockClassifier(BaseClassifier):
         self.delay = delay
         self.languages = languages or ["en"]
 
-    async def classify(self, images: list[bytes]) -> ClassificationResult:
+    async def classify(
+        self,
+        images: list[bytes],
+        candidate_owners: list | None = None,
+    ) -> ClassificationResult:
         """Generate mock classification based on combined image hashes."""
         import asyncio
         await asyncio.sleep(self.delay)

@@ -194,6 +194,14 @@ class AISettings(Base):
         default=True,
         nullable=False,
     )
+    # When true, the vision classifier also picks the most likely owner
+    # (matching item size + motif against each non-admin user's age and
+    # gender) and stores it on the item as a non-binding suggestion.
+    owner_suggestion_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
 
     # Languages the AI should generate content in (ISO codes, e.g. ["en", "no"]).
     # The OpenAI prompt asks for one name + description per language.

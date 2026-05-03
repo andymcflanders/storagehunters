@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_sync_db
 from app.models.item import Item, ItemImage, ItemTag, SeasonalEnum
 from app.models.tag import Tag
+from app.models.user import User, UserRole
 from app.worker.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,48 @@ def get_ai_classifier():
     """Get the configured AI classifier."""
     from app.ai import get_classifier
     return get_classifier()
+
+
+def _load_candidate_owners(db) -> list:
+    """Build the candidate-owner list passed to the vision classifier.
+
+    Includes every non-admin user (full members + profile users), since
+    "size 42 wool socks" should suggest the parent and "size 98 dinosaur
+    tee" should suggest the toddler. Admins are excluded — they're not
+    typical item owners in a household setup.
+
+    Returns an empty list when the AI settings toggle is off, so the
+    classifier prompt skips the owner section entirely.
+    """
+    from app.ai import _load_ai_settings_sync
+    from app.ai.base import CandidateOwner
+    from datetime import date as _date
+
+    if not _load_ai_settings_sync().owner_suggestion_enabled:
+        return []
+
+    result = db.execute(
+        select(User).where(User.role != UserRole.ADMIN, User.is_active == True)  # noqa: E712
+    )
+    users = result.scalars().all()
+
+    today = _date.today()
+    candidates = []
+    for u in users:
+        age: int | None = None
+        if u.birthdate:
+            age = today.year - u.birthdate.year - (
+                (today.month, today.day) < (u.birthdate.month, u.birthdate.day)
+            )
+        candidates.append(
+            CandidateOwner(
+                id=str(u.id),
+                name=u.name,
+                gender=u.gender.value if u.gender else None,
+                age=age,
+            )
+        )
+    return candidates
 
 
 def _process_item_sync(item_id: UUID) -> dict:
@@ -69,10 +112,15 @@ def _process_item_sync(item_id: UUID) -> dict:
         if not image_bytes_list:
             return {"status": "error", "message": "No image files found"}
 
-        # Classify all images together (async call wrapped in asyncio.run)
+        # Classify all images together (async call wrapped in asyncio.run).
+        # Candidates are non-admin household members; the classifier may
+        # return a suggested_owner_id matching one of them.
+        candidates = _load_candidate_owners(db)
         classifier = get_ai_classifier()
         try:
-            classification = asyncio.run(classifier.classify(image_bytes_list))
+            classification = asyncio.run(
+                classifier.classify(image_bytes_list, candidate_owners=candidates)
+            )
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
@@ -80,6 +128,17 @@ def _process_item_sync(item_id: UUID) -> dict:
         item.ai_names = dict(classification.names)
         item.ai_descriptions = dict(classification.descriptions)
         item.ai_processed = True
+
+        # Persist AI owner suggestion. Only set when the user hasn't
+        # already picked an owner — once owner_id is set, we don't want
+        # the classifier overwriting that on a re-run.
+        if classification.suggested_owner_id and item.owner_id is None:
+            from uuid import UUID as _UUID
+            try:
+                item.suggested_owner_id = _UUID(classification.suggested_owner_id)
+                item.owner_suggestion_reason = classification.owner_reason
+            except (ValueError, TypeError):
+                pass
 
         # Update size if extracted and not already set
         if classification.size and not item.size:

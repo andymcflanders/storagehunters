@@ -42,6 +42,7 @@ class CachedAISettings:
     supported_languages: tuple[str, ...] = ("en", "no")
     default_language: str = "en"
     openai_api_key: str | None = None
+    owner_suggestion_enabled: bool = True
 
 
 # Module-level cache
@@ -92,6 +93,7 @@ def _load_ai_settings_sync() -> CachedAISettings:
                     supported_languages=tuple(settings.supported_languages or ("en",)),
                     default_language=settings.default_language or "en",
                     openai_api_key=settings.openai_api_key,
+                    owner_suggestion_enabled=settings.owner_suggestion_enabled,
                 )
             else:
                 # Use defaults if no settings exist yet

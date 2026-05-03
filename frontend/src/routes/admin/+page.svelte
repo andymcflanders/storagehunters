@@ -68,7 +68,8 @@
 		summary_enabled: true,
 		summary_model: 'gpt-4o-mini',
 		summary_max_tokens: 150,
-		summary_temperature: 0.3
+		summary_temperature: 0.3,
+		owner_suggestion_enabled: true
 	};
 
 	// Language settings — which languages the AI generates content in.
@@ -325,7 +326,8 @@
 				summary_enabled: openaiSettings.summary_enabled,
 				summary_model: openaiSettings.summary_model,
 				summary_max_tokens: openaiSettings.summary_max_tokens,
-				summary_temperature: openaiSettings.summary_temperature
+				summary_temperature: openaiSettings.summary_temperature,
+				owner_suggestion_enabled: openaiSettings.owner_suggestion_enabled ?? true
 			};
 			languageSettings = await admin.getLanguageSettings();
 		} catch (error) {
@@ -391,7 +393,8 @@
 				summary_enabled: openaiFormData.summary_enabled,
 				summary_model: openaiFormData.summary_model,
 				summary_max_tokens: openaiFormData.summary_max_tokens,
-				summary_temperature: openaiFormData.summary_temperature
+				summary_temperature: openaiFormData.summary_temperature,
+				owner_suggestion_enabled: openaiFormData.owner_suggestion_enabled
 			};
 
 			openaiSettings = await admin.updateOpenAISettings(updateData);
@@ -1822,6 +1825,28 @@
 									<p class="mt-1 text-xs text-slate-500">
 										~{openaiSettings.summary_cost_estimate.estimated_input_tokens} input + {openaiSettings.summary_cost_estimate.estimated_output_tokens} output tokens
 									</p>
+								</div>
+							</div>
+
+							<!-- AI Owner Suggestion -->
+							<div class="rounded-lg border border-slate-200 p-4">
+								<div class="flex items-center justify-between">
+									<div>
+										<h4 class="font-medium text-slate-900">AI Owner Suggestion</h4>
+										<p class="text-xs text-slate-500">
+											When classifying an item, also pick the most likely owner from
+											non-admin users using their birthdate + gender. Surfaced as a
+											banner on the item page; never auto-assigns.
+										</p>
+									</div>
+									<label class="relative inline-flex cursor-pointer items-center">
+										<input
+											type="checkbox"
+											bind:checked={openaiFormData.owner_suggestion_enabled}
+											class="peer sr-only"
+										/>
+										<div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300"></div>
+									</label>
 								</div>
 							</div>
 
