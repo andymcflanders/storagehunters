@@ -5,13 +5,14 @@ This document provides comprehensive documentation for the StorageHub API, with 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Authentication](#authentication)
-3. [Home Assistant Integration API](#home-assistant-integration-api)
-4. [Webhooks](#webhooks)
-5. [Core API Reference](#core-api-reference)
-6. [Error Handling](#error-handling)
-7. [Rate Limiting](#rate-limiting)
-8. [Examples](#examples)
+2. [First-Run Setup](#first-run-setup)
+3. [Authentication](#authentication)
+4. [Home Assistant Integration API](#home-assistant-integration-api)
+5. [Webhooks](#webhooks)
+6. [Core API Reference](#core-api-reference)
+7. [Error Handling](#error-handling)
+8. [Rate Limiting](#rate-limiting)
+9. [Examples](#examples)
 
 ---
 
@@ -40,6 +41,66 @@ Content-Type: application/json
 
 ---
 
+## First-Run Setup
+
+A clean install (empty users table) exposes two public endpoints used by
+the in-app `/setup` wizard. Both bypass authentication because there's
+no user to authenticate as yet.
+
+### Probe Setup Status
+
+```http
+GET /api/setup/status
+```
+
+Response:
+
+```json
+{
+  "needs_setup": true
+}
+```
+
+The frontend layout calls this on first load and redirects to `/setup`
+when `needs_setup` is true.
+
+### Complete Setup
+
+One-shot bootstrap. Creates the first admin, optionally persists an
+OpenAI API key, optionally configures supported AI languages, optionally
+creates a first location, and returns a session cookie so the new admin
+lands logged in.
+
+```http
+POST /api/setup/complete
+Content-Type: application/json
+
+{
+  "admin_name": "Admin",
+  "admin_email": "admin@example.com",
+  "admin_password": "strong-password",
+  "admin_language": "en",
+  "openai_api_key": "sk-...",
+  "supported_languages": ["en", "no"],
+  "default_language": "en",
+  "first_location": {
+    "name": "Home",
+    "description": "Main residence",
+    "address": null
+  }
+}
+```
+
+`admin_email` and `admin_password` are required — admins sign in via
+email + password rather than the household card grid. Everything else
+is optional.
+
+The endpoint returns **409 Conflict** if any user already exists, so
+the public route can't be re-used to inject a second admin after
+onboarding completes.
+
+---
+
 ## Authentication
 
 StorageHub supports two authentication methods:
@@ -48,15 +109,32 @@ StorageHub supports two authentication methods:
 
 Used by the web interface. Requires logging in and uses HTTP-only cookies.
 
+The login endpoint accepts **either** `user_id` (household members tap
+their card on the login screen) **or** `email` (admin sign-in via the
+"Administer this instance" link, since admins are hidden from the card
+grid). Email lookup is case-insensitive. A wrong identifier and a wrong
+password both return the same 401 — no account-enumeration leak.
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
 
+# Card-tap path (household users)
 {
   "user_id": "uuid-of-user",
   "password": "optional-password"
 }
+
+# Admin path (email sign-in)
+{
+  "email": "admin@example.com",
+  "password": "your-password"
+}
 ```
+
+The login screen calls `GET /api/users?include_admins=false` to populate
+the household card grid; admins are excluded by default through that
+filter.
 
 ### 2. API Key Authentication (Recommended for Home Assistant)
 
@@ -267,7 +345,7 @@ Response:
   {
     "id": "uuid",
     "name": "Holiday Decorations",
-    "qr_code": "SH-ABC123",
+    "qr_code": "aOXfG4Td_nQ",
     "location_name": "Garage",
     "item_count": 45,
     "child_container_count": 3
@@ -280,7 +358,7 @@ Response:
 Useful for NFC/QR scanning automations:
 
 ```http
-GET /api/ha/containers/qr/SH-ABC123
+GET /api/ha/containers/qr/aOXfG4Td_nQ
 X-API-Key: your-api-key
 ```
 
@@ -466,21 +544,28 @@ Cookie: session_token=your-session
 |--------|----------|-------------|
 | GET | `/api/locations` | List all locations |
 | POST | `/api/locations` | Create location |
-| GET | `/api/locations/{id}` | Get location details |
+| GET | `/api/locations/{id}` | Get location with top-level containers |
 | PATCH | `/api/locations/{id}` | Update location |
 | DELETE | `/api/locations/{id}` | Delete location |
-| GET | `/api/locations/stats` | Get dashboard stats |
+| GET | `/api/locations/stats` | Dashboard counts (locations, containers, items, photos) |
 
 ### Containers
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/containers` | List containers |
-| POST | `/api/containers` | Create container |
-| GET | `/api/containers/{id}` | Get container |
-| PATCH | `/api/containers/{id}` | Update container |
-| DELETE | `/api/containers/{id}` | Delete container |
-| GET | `/api/containers/{id}/qr` | Get QR code image |
+| POST | `/api/containers` | Create container (`container_type` optional) |
+| GET | `/api/containers/{id}` | Get container with items, child containers, breadcrumb path |
+| PATCH | `/api/containers/{id}` | Update container (name, type, notes, parent) |
+| DELETE | `/api/containers/{id}` | Delete container (`?mode=fail|recursive|transfer`) |
+| GET | `/api/containers/{id}/qr` | Get QR code image (PNG) |
+| GET | `/api/containers/qr/{qr_code}` | Look up by QR token |
+| POST | `/api/containers/{id}/image` | Upload (or replace) the hero image (multipart `file`) |
+| DELETE | `/api/containers/{id}/image` | Remove the hero image |
+
+The container response carries `container_type` (`box`, `drawer`,
+`shelf`, `cabinet`, `closet`, `bin`, `basket`, `other`, or `null`) and
+`image_url` (computed from the stored relative path).
 
 ### Items
 
@@ -488,11 +573,23 @@ Cookie: session_token=your-session
 |--------|----------|-------------|
 | GET | `/api/items` | List items |
 | POST | `/api/items` | Create item |
-| GET | `/api/items/{id}` | Get item |
+| GET | `/api/items/{id}` | Get item with images, tags, related items, path |
 | PATCH | `/api/items/{id}` | Update item |
 | DELETE | `/api/items/{id}` | Delete item |
 | POST | `/api/items/{id}/images` | Upload image |
 | DELETE | `/api/items/{id}/images/{image_id}` | Remove image |
+| POST | `/api/items/{id}/images/{image_id}/set-primary` | Set hero image |
+| POST | `/api/items/{id}/images/{image_id}/reprocess` | Re-run AI on a single image |
+| POST | `/api/items/{id}/process-all-images` | Re-run AI across every image |
+| POST | `/api/items/{id}/move` | Move to a different container |
+| POST | `/api/items/{id}/tags` | Attach a tag |
+| DELETE | `/api/items/{id}/tags/{tag_id}` | Detach a tag |
+
+Item responses carry `ai_names` and `ai_descriptions` as JSONB dicts
+keyed by ISO language code (e.g. `{"en": "Red Sweater", "no": "Rød Genser"}`).
+The set of keys depends on `AISettings.supported_languages` at the time
+of generation; clients should fall back through the user's locale →
+default language → first available value.
 
 ### Search
 
@@ -543,6 +640,54 @@ Cookie: session_token=your-session
 | DELETE | `/api/webhooks/{id}` | Delete webhook |
 | POST | `/api/webhooks/{id}/test` | Test webhook |
 | GET | `/api/webhooks/{id}/deliveries` | Delivery history |
+
+### Admin
+
+All admin endpoints require an authenticated session belonging to a
+user with `role=admin`.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/stats` | System-wide statistics |
+| GET | `/api/admin/users` | List users (with admin-only fields) |
+| POST | `/api/admin/users` | Create a user |
+| PATCH | `/api/admin/users/{id}` | Update a user |
+| DELETE | `/api/admin/users/{id}` | Delete a user |
+| GET | `/api/admin/activity` | Activity log feed |
+| GET | `/api/admin/openai` | Read OpenAI configuration (model + key status) |
+| PUT | `/api/admin/openai` | Update OpenAI config (models, tokens, temp, persisted API key) |
+| GET | `/api/admin/languages` | Read AI language config |
+| PUT | `/api/admin/languages` | Update `supported_languages` and `default_language` |
+
+`PUT /api/admin/openai` accepts an optional `openai_api_key` field — pass
+an empty string to clear the persisted key (falls back to the
+`OPENAI_API_KEY` env var). The persisted key takes precedence over the
+env var for both the vision classifier and the semantic search query
+parser.
+
+`PUT /api/admin/languages` body shape:
+
+```json
+{
+  "supported_languages": ["en", "no", "de"],
+  "default_language": "en"
+}
+```
+
+The OpenAI prompt builder iterates `supported_languages`, so adding a
+new code makes the next item ingestion produce names + descriptions in
+that language without any code change. `default_language` must be
+present in `supported_languages`.
+
+### Setup
+
+Public endpoints used by the first-run wizard. See
+[First-Run Setup](#first-run-setup) above.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/setup/status` | Returns `{needs_setup: bool}`, no auth |
+| POST | `/api/setup/complete` | One-shot bootstrap (409 if any user exists) |
 
 ---
 
@@ -708,7 +853,7 @@ curl -H "X-API-Key: shub_xxx" http://storagehub.local/api/ha/stats
 curl -H "X-API-Key: shub_xxx" "http://storagehub.local/api/ha/search?q=red%20jacket"
 
 # Get container by QR code
-curl -H "X-API-Key: shub_xxx" http://storagehub.local/api/ha/containers/qr/SH-ABC123
+curl -H "X-API-Key: shub_xxx" http://storagehub.local/api/ha/containers/qr/aOXfG4Td_nQ
 
 # Create a webhook
 curl -X POST http://storagehub.local/api/webhooks \

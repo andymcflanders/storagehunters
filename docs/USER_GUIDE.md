@@ -27,13 +27,41 @@ Welcome to StorageHub! This guide will help you organize and manage your belongi
 
 ## Getting Started
 
+### First-Run Setup (admins only)
+
+When you visit a freshly-deployed StorageHub instance, the app detects the
+empty database and redirects you to a setup wizard. The wizard walks you
+through:
+
+1. **Welcome** — short intro
+2. **Administrator account** — name, email, password, and your interface
+   language. This account is for setup and configuration only — keep it
+   separate from your household identity. You'll add household users
+   afterwards.
+3. **AI features** (skippable) — paste an OpenAI API key and pick the
+   languages you want the AI to generate item names and descriptions in
+   (defaults to English + Norwegian). Both can be changed later under
+   Admin → AI Settings.
+4. **First location** (skippable) — name your first storage location.
+5. **Done** — click "Open StorageHub" and you land on the dashboard,
+   already signed in.
+
+The wizard is one-shot — once an admin exists, `/setup` redirects back
+to the app and the bootstrap endpoint refuses any further calls.
+
 ### Logging In
 
-1. Navigate to your StorageHub URL
-2. Enter your email and password
-3. Click **Login**
+The login screen has two paths:
 
-If you don't have an account, contact your administrator to create one.
+- **Household members**: tap your card on the user grid; if the account
+  has a password, type it in the modal.
+- **Administrators**: click the **Administer this instance** link below
+  the grid and sign in with email + password. Admin accounts are
+  intentionally hidden from the card grid so they don't get used as
+  everyday accounts.
+
+If you don't have an account, ask an admin to create one — or, if the
+instance hasn't been onboarded yet, run the wizard above.
 
 ### Dashboard Overview
 
@@ -120,10 +148,27 @@ Containers are the boxes, bins, shelves, or any storage unit that holds your ite
 1. Navigate to a location
 2. Click **+ Add Container**
 3. Enter the container name
-4. Optionally add notes
-5. Click **Create**
+4. **Optionally pick a type** — Box, Drawer, Shelf, Cabinet, Closet,
+   Bin, Basket, or Other. The type shows up as a small badge on the
+   container card and detail page.
+5. **Optionally take a hero image** — tap "Take photo" to use the
+   device camera. The image is shown as a thumbnail on the container
+   card and full-size on the detail page. You can also add or replace
+   the image later from the container detail page.
+6. Optionally add notes
+7. Click **Create**
 
 A unique QR code is automatically generated!
+
+### Editing a Container
+
+From the container detail page:
+
+- **Edit** button (top-right) — change the name, type, or notes.
+- **Hero image** — when no image is set, the inline card has a
+  "Take photo" button. With an image, **Replace image** swaps it,
+  **Remove image** clears it. Camera access works on phones, laptops,
+  and any browser that supports `getUserMedia`.
 
 ### Creating Nested Containers
 
@@ -253,7 +298,13 @@ When you upload an image, AI automatically:
 2. Generates a descriptive name
 3. Creates a detailed description
 4. Adds relevant tags
-5. Provides translations (English & Norwegian)
+5. Provides translations in every language listed under
+   **Admin → AI Settings → Languages** (defaults to English + Norwegian;
+   add codes like `de` or `sv` to extend without a code change)
+
+The user's profile language picks which translation is shown in the UI;
+items fall back to the configured default language when the user's
+locale is missing.
 
 ### Reprocessing Images
 
@@ -781,7 +832,8 @@ Each backup includes:
 ### Maintenance
 
 1. **Review Periodically**
-   - Check the Review page for pending items
+   - Filter God View by `Needs Review = Yes` to find items the AI
+     flagged or that you marked manually
    - Update conditions as items age
 
 2. **Set Reminders**
@@ -814,7 +866,9 @@ Each backup includes:
 ### Images Not Processing
 - Check file size (max 20MB)
 - Supported formats: JPG, PNG
-- Wait for AI processing (check Review page)
+- Wait for AI processing — items show an "Analyzing…" badge until done.
+  AI requires `OPENAI_API_KEY` set either via the env var or
+  Admin → AI Settings; without it, items get mock-classified placeholders.
 
 ### QR Code Not Scanning
 - Ensure good lighting

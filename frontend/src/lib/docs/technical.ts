@@ -218,7 +218,7 @@ StorageHub uses a relational database with the following entity relationships.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
+| id | UUID | Primary key |
 | name | String(100) | Display name |
 | password_hash | String(255) | Bcrypt hash (nullable) |
 | role | Enum | 'admin' or 'user' |
@@ -231,10 +231,10 @@ StorageHub uses a relational database with the following entity relationships.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
+| id | UUID | Primary key |
 | name | String(200) | Location name |
 | address | String(500) | Physical address |
-| user_id | Integer | Foreign key to User |
+| user_id | UUID | Foreign key to User |
 | created_at | DateTime | Creation timestamp |
 | updated_at | DateTime | Last update timestamp |
 
@@ -242,14 +242,14 @@ StorageHub uses a relational database with the following entity relationships.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
-| name | String(200) | Container name |
-| description | Text | Optional description |
-| type | Enum | Container type |
-| location_id | Integer | Foreign key to Location |
-| parent_id | Integer | Self-referential FK (nullable) |
-| user_id | Integer | Foreign key to User |
-| qr_code | String(100) | Unique QR code identifier |
+| id | UUID | Primary key |
+| name | String(255) | Container name |
+| notes | Text | Optional notes |
+| container_type | String(32) | Optional category (\`box\`, \`drawer\`, \`shelf\`, \`cabinet\`, \`closet\`, \`bin\`, \`basket\`, \`other\`) |
+| image_filepath | Text | Optional hero image (relative path under upload dir; served as \`image_url\`) |
+| location_id | UUID | Foreign key to Location |
+| parent_container_id | UUID | Self-referential FK (nullable) |
+| qr_code | String(32) | Unique URL-safe base64 token |
 | created_at | DateTime | Creation timestamp |
 | updated_at | DateTime | Last update timestamp |
 
@@ -257,17 +257,20 @@ StorageHub uses a relational database with the following entity relationships.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
-| name | String(200) | Item name |
-| description | Text | Optional description |
-| quantity | Integer | Number of items |
-| condition | Enum | Item condition |
-| purchase_date | Date | When purchased |
-| purchase_price | Decimal | Cost |
-| seasonal | Enum | Seasonal category |
-| container_id | Integer | Foreign key to Container |
-| user_id | Integer | Foreign key to User |
-| notes | Text | Additional notes |
+| id | UUID | Primary key |
+| name | String(255) | Item name |
+| description | Text | Manual description |
+| size | String(50) | Size info |
+| condition | Enum | \`good\` / \`fair\` / \`damaged\` / \`needs_repair\` |
+| seasonal | Enum | \`none\` / \`spring\` / \`summer\` / \`fall\` / \`winter\` / \`holiday\` |
+| value_estimate | Decimal | Estimated value |
+| owner_id | UUID | Foreign key to User (nullable) |
+| container_id | UUID | Foreign key to Container |
+| ai_names | JSONB | AI-generated names keyed by ISO language code, e.g. \`{"en": "Red Sweater", "no": "Rød Genser"}\` |
+| ai_descriptions | JSONB | AI-generated descriptions, same shape as \`ai_names\` |
+| ai_processed | Boolean | Whether the AI pipeline has finished |
+| needs_review | Boolean | Flag for the godview filter / Home Assistant stats |
+| primary_image_id | UUID | Hero image selection |
 | created_at | DateTime | Creation timestamp |
 | updated_at | DateTime | Last update timestamp |
 
@@ -275,24 +278,24 @@ StorageHub uses a relational database with the following entity relationships.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
+| id | UUID | Primary key |
 | name | String(50) | Tag name |
 | color | String(7) | Hex color code |
-| user_id | Integer | Foreign key to User |
+| user_id | UUID | Foreign key to User |
 
 ### ItemTag (Junction Table)
 
 | Column | Type | Description |
 |--------|------|-------------|
-| item_id | Integer | Foreign key to Item |
-| tag_id | Integer | Foreign key to Tag |
+| item_id | UUID | Foreign key to Item |
+| tag_id | UUID | Foreign key to Tag |
 
 ### ItemPhoto Model
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
-| item_id | Integer | Foreign key to Item |
+| id | UUID | Primary key |
+| item_id | UUID | Foreign key to Item |
 | filename | String(255) | Stored filename |
 | original_name | String(255) | Original filename |
 | mime_type | String(50) | File MIME type |
@@ -303,10 +306,10 @@ StorageHub uses a relational database with the following entity relationships.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
+| id | UUID | Primary key |
 | token | String(100) | Unique share token |
-| container_id | Integer | FK to Container (nullable) |
-| location_id | Integer | FK to Location (nullable) |
+| container_id | UUID | FK to Container (nullable) |
+| location_id | UUID | FK to Location (nullable) |
 | allow_item_view | Boolean | Show items flag |
 | expires_at | DateTime | Expiration (nullable) |
 | view_count | Integer | Access counter |
@@ -317,30 +320,51 @@ StorageHub uses a relational database with the following entity relationships.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
+| id | UUID | Primary key |
 | title | String(200) | Reminder title |
 | description | Text | Optional details |
 | due_date | DateTime | When due |
 | is_recurring | Boolean | Repeat flag |
 | recurrence_pattern | String(50) | Cron-like pattern |
 | is_completed | Boolean | Completion status |
-| item_id | Integer | FK to Item (nullable) |
-| container_id | Integer | FK to Container (nullable) |
-| user_id | Integer | Foreign key to User |
+| item_id | UUID | FK to Item (nullable) |
+| container_id | UUID | FK to Container (nullable) |
+| user_id | UUID | Foreign key to User |
 | created_at | DateTime | Creation timestamp |
 
 ### Printer Model
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | Integer | Primary key |
+| id | UUID | Primary key |
 | name | String(100) | Printer name |
 | printer_type | Enum | Zebra, Brother, PDF |
 | connection_type | Enum | Network, USB, File |
 | address | String(255) | Connection address |
-| user_id | Integer | Foreign key to User |
+| user_id | UUID | Foreign key to User |
 | is_default | Boolean | Default printer flag |
 | settings | JSON | Printer-specific config |
+
+### AISettings (singleton)
+
+A single-row config table read by the AI classifier and the semantic
+search query parser. Updated from Admin → AI Settings or by the
+\`/api/setup/complete\` wizard.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| vision_model | String(100) | OpenAI vision model id (default \`gpt-4o\`) |
+| vision_max_tokens | Integer | Response token cap for classification |
+| vision_temperature | Float | Sampling temperature |
+| vision_enabled | Boolean | Toggle vision classification |
+| summary_model | String(100) | OpenAI text model for label summaries |
+| summary_max_tokens | Integer | Response token cap for summaries |
+| summary_temperature | Float | Sampling temperature |
+| summary_enabled | Boolean | Toggle AI summaries |
+| supported_languages | String[] | ISO codes the AI generates content in (default \`{en, no}\`) |
+| default_language | String(10) | Fallback locale when a translation is missing |
+| openai_api_key | Text | Persisted API key. Wins over \`OPENAI_API_KEY\` env var |
 `,
 			no: `
 ## Databasemodeller
@@ -394,7 +418,7 @@ StorageHub bruker en relasjonsdatabase med følgende entitetsforhold.
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
+| id | UUID | Primærnøkkel |
 | name | String(100) | Visningsnavn |
 | password_hash | String(255) | Bcrypt-hash (kan være null) |
 | role | Enum | 'admin' eller 'user' |
@@ -407,10 +431,10 @@ StorageHub bruker en relasjonsdatabase med følgende entitetsforhold.
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
+| id | UUID | Primærnøkkel |
 | name | String(200) | Stedsnavn |
 | address | String(500) | Fysisk adresse |
-| user_id | Integer | Fremmednøkkel til User |
+| user_id | UUID | Fremmednøkkel til User |
 | created_at | DateTime | Opprettet |
 | updated_at | DateTime | Sist oppdatert |
 
@@ -418,14 +442,14 @@ StorageHub bruker en relasjonsdatabase med følgende entitetsforhold.
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
-| name | String(200) | Beholdernavn |
-| description | Text | Valgfri beskrivelse |
-| type | Enum | Beholdertype |
-| location_id | Integer | Fremmednøkkel til Location |
-| parent_id | Integer | Selvreferanse (kan være null) |
-| user_id | Integer | Fremmednøkkel til User |
-| qr_code | String(100) | Unik QR-kode |
+| id | UUID | Primærnøkkel |
+| name | String(255) | Beholdernavn |
+| notes | Text | Valgfrie notater |
+| container_type | String(32) | Valgfri kategori (\`box\`, \`drawer\`, \`shelf\`, \`cabinet\`, \`closet\`, \`bin\`, \`basket\`, \`other\`) |
+| image_filepath | Text | Valgfritt hovedbilde (relativ sti, eksponeres som \`image_url\`) |
+| location_id | UUID | Fremmednøkkel til Location |
+| parent_container_id | UUID | Selvreferanse (kan være null) |
+| qr_code | String(32) | Unik URL-trygg base64-token |
 | created_at | DateTime | Opprettet |
 | updated_at | DateTime | Sist oppdatert |
 
@@ -433,17 +457,20 @@ StorageHub bruker en relasjonsdatabase med følgende entitetsforhold.
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
-| name | String(200) | Gjenstandsnavn |
-| description | Text | Valgfri beskrivelse |
-| quantity | Integer | Antall |
-| condition | Enum | Tilstand |
-| purchase_date | Date | Kjøpsdato |
-| purchase_price | Decimal | Pris |
-| seasonal | Enum | Sesongkategori |
-| container_id | Integer | Fremmednøkkel til Container |
-| user_id | Integer | Fremmednøkkel til User |
-| notes | Text | Notater |
+| id | UUID | Primærnøkkel |
+| name | String(255) | Gjenstandsnavn |
+| description | Text | Manuell beskrivelse |
+| size | String(50) | Størrelsesinfo |
+| condition | Enum | \`good\` / \`fair\` / \`damaged\` / \`needs_repair\` |
+| seasonal | Enum | \`none\` / \`spring\` / \`summer\` / \`fall\` / \`winter\` / \`holiday\` |
+| value_estimate | Decimal | Estimert verdi |
+| owner_id | UUID | Fremmednøkkel til User (kan være null) |
+| container_id | UUID | Fremmednøkkel til Container |
+| ai_names | JSONB | AI-genererte navn etter ISO-språkkode, f.eks. \`{"en": "Red Sweater", "no": "Rød Genser"}\` |
+| ai_descriptions | JSONB | AI-genererte beskrivelser, samme form som \`ai_names\` |
+| ai_processed | Boolean | Om AI-prosesseringen er fullført |
+| needs_review | Boolean | Markert for gjennomgang |
+| primary_image_id | UUID | Hovedbildevalg |
 | created_at | DateTime | Opprettet |
 | updated_at | DateTime | Sist oppdatert |
 
@@ -451,24 +478,24 @@ StorageHub bruker en relasjonsdatabase med følgende entitetsforhold.
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
+| id | UUID | Primærnøkkel |
 | name | String(50) | Etikettnavn |
 | color | String(7) | Hex-fargekode |
-| user_id | Integer | Fremmednøkkel til User |
+| user_id | UUID | Fremmednøkkel til User |
 
 ### ItemTag (koblingstabell)
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| item_id | Integer | Fremmednøkkel til Item |
-| tag_id | Integer | Fremmednøkkel til Tag |
+| item_id | UUID | Fremmednøkkel til Item |
+| tag_id | UUID | Fremmednøkkel til Tag |
 
 ### ItemPhoto-modell
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
-| item_id | Integer | Fremmednøkkel til Item |
+| id | UUID | Primærnøkkel |
+| item_id | UUID | Fremmednøkkel til Item |
 | filename | String(255) | Lagret filnavn |
 | original_name | String(255) | Opprinnelig filnavn |
 | mime_type | String(50) | MIME-type |
@@ -479,44 +506,65 @@ StorageHub bruker en relasjonsdatabase med følgende entitetsforhold.
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
+| id | UUID | Primærnøkkel |
 | token | String(100) | Unikt delingstoken |
-| container_id | Integer | FK til Container (kan være null) |
-| location_id | Integer | FK til Location (kan være null) |
+| container_id | UUID | FK til Container (kan være null) |
+| location_id | UUID | FK til Location (kan være null) |
 | allow_item_view | Boolean | Vis gjenstander |
 | expires_at | DateTime | Utløp (kan være null) |
 | view_count | Integer | Antall visninger |
-| created_by | Integer | Fremmednøkkel til User |
+| created_by | UUID | Fremmednøkkel til User |
 | created_at | DateTime | Opprettet |
 
 ### Reminder-modell
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
+| id | UUID | Primærnøkkel |
 | title | String(200) | Påminnelsestittel |
 | description | Text | Valgfrie detaljer |
 | due_date | DateTime | Forfallsdato |
 | is_recurring | Boolean | Gjentakende |
 | recurrence_pattern | String(50) | Cron-lignende mønster |
 | is_completed | Boolean | Fullført |
-| item_id | Integer | FK til Item (kan være null) |
-| container_id | Integer | FK til Container (kan være null) |
-| user_id | Integer | Fremmednøkkel til User |
+| item_id | UUID | FK til Item (kan være null) |
+| container_id | UUID | FK til Container (kan være null) |
+| user_id | UUID | Fremmednøkkel til User |
 | created_at | DateTime | Opprettet |
 
 ### Printer-modell
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| id | Integer | Primærnøkkel |
+| id | UUID | Primærnøkkel |
 | name | String(100) | Skrivernavn |
 | printer_type | Enum | Zebra, Brother, PDF |
 | connection_type | Enum | Network, USB, File |
 | address | String(255) | Tilkoblingsadresse |
-| user_id | Integer | Fremmednøkkel til User |
+| user_id | UUID | Fremmednøkkel til User |
 | is_default | Boolean | Standardskriver |
 | settings | JSON | Skriverkonfigurasjon |
+
+### AISettings (singleton)
+
+Singleton-rad som styrer AI-klassifisereren og det semantiske
+søkeparserne. Oppdateres fra Admin → AI-innstillinger eller via
+\`/api/setup/complete\`-veiviseren.
+
+| Kolonne | Type | Beskrivelse |
+|---------|------|-------------|
+| id | UUID | Primærnøkkel |
+| vision_model | String(100) | OpenAI vision-modell-ID (standard \`gpt-4o\`) |
+| vision_max_tokens | Integer | Maks responstokens for klassifisering |
+| vision_temperature | Float | Sampling-temperatur |
+| vision_enabled | Boolean | Slå klassifisering av/på |
+| summary_model | String(100) | OpenAI tekstmodell for etikettsammendrag |
+| summary_max_tokens | Integer | Maks responstokens for sammendrag |
+| summary_temperature | Float | Sampling-temperatur |
+| summary_enabled | Boolean | Slå sammendrag av/på |
+| supported_languages | String[] | ISO-koder AI genererer innhold i (standard \`{en, no}\`) |
+| default_language | String(10) | Reservespråk når en oversettelse mangler |
+| openai_api_key | Text | Lagret API-nøkkel. Tar forrang over \`OPENAI_API_KEY\`-miljøvariabel |
 `
 		}
 	},
@@ -895,7 +943,6 @@ GET /api/search?q=jacket&type=item&location=1&tag=3
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | /api/ai/classify | Classify image |
-| POST | /api/ai/segment | Segment objects |
 | POST | /api/ai/summarize | Summarize container |
 
 ### Admin
@@ -1051,7 +1098,6 @@ GET /api/search?q=jacket&type=item&location=1&tag=3
 | Metode | Endepunkt | Beskrivelse |
 |--------|-----------|-------------|
 | POST | /api/ai/classify | Klassifiser bilde |
-| POST | /api/ai/segment | Segmenter objekter |
 | POST | /api/ai/summarize | Oppsummer beholder |
 
 ### Admin
