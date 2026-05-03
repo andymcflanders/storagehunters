@@ -1,10 +1,10 @@
 """User and authentication schemas."""
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class UserRole(str, Enum):
@@ -21,6 +21,14 @@ class Language(str, Enum):
     NO = "no"
 
 
+class Gender(str, Enum):
+    """Demographic gender used for AI owner suggestion."""
+
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
+
+
 class UserBase(BaseModel):
     """Base user schema."""
 
@@ -35,6 +43,15 @@ class UserCreate(UserBase):
     password: str | None = Field(None, min_length=4)
     role: UserRole = UserRole.USER
     language: Language = Language.EN
+    is_profile: bool = False
+    birthdate: date | None = None
+    gender: Gender | None = None
+
+    @model_validator(mode="after")
+    def _no_admin_profiles(self):
+        if self.is_profile and self.role == UserRole.ADMIN:
+            raise ValueError("Admins cannot be profiles")
+        return self
 
 
 class UserUpdate(BaseModel):
@@ -47,6 +64,9 @@ class UserUpdate(BaseModel):
     role: UserRole | None = None
     language: Language | None = None
     is_active: bool | None = None
+    is_profile: bool | None = None
+    birthdate: date | None = None
+    gender: Gender | None = None
 
 
 class UserResponse(BaseModel):
@@ -60,6 +80,9 @@ class UserResponse(BaseModel):
     role: UserRole
     language: Language
     is_active: bool
+    is_profile: bool = False
+    birthdate: date | None = None
+    gender: Gender | None = None
     created_at: datetime
     updated_at: datetime
 

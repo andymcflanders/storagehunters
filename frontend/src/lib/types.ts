@@ -5,6 +5,7 @@
 // User types
 export type UserRole = 'admin' | 'user';
 export type Language = 'en' | 'no';
+export type Gender = 'male' | 'female' | 'other';
 
 export interface User {
 	id: string;
@@ -15,6 +16,9 @@ export interface User {
 	role: UserRole;
 	language: Language;
 	is_active: boolean;
+	is_profile: boolean;
+	birthdate: string | null;
+	gender: Gender | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -24,6 +28,9 @@ export interface UserCreate {
 	email?: string;
 	requires_password?: boolean;
 	password?: string;
+	is_profile?: boolean;
+	birthdate?: string | null;
+	gender?: Gender | null;
 }
 
 export interface UserUpdate {
@@ -32,6 +39,9 @@ export interface UserUpdate {
 	requires_password?: boolean;
 	password?: string;
 	language?: Language;
+	is_profile?: boolean;
+	birthdate?: string | null;
+	gender?: Gender | null;
 }
 
 export interface SessionResponse {

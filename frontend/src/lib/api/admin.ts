@@ -5,6 +5,7 @@
 import { get, post, patch, del } from './client';
 
 export type UserRole = 'admin' | 'user';
+export type Gender = 'male' | 'female' | 'other';
 
 export interface SystemStats {
 	total_users: number;
@@ -25,6 +26,9 @@ export interface AdminUser {
 	role: UserRole;
 	is_active: boolean;
 	requires_password: boolean;
+	is_profile?: boolean;
+	birthdate?: string | null;
+	gender?: Gender | null;
 	created_at: string;
 	updated_at: string;
 	item_count: number;
@@ -44,6 +48,9 @@ export interface CreateUserRequest {
 	role?: UserRole;
 	requires_password?: boolean;
 	password?: string | null;
+	is_profile?: boolean;
+	birthdate?: string | null;
+	gender?: Gender | null;
 }
 
 export interface UpdateUserRequest {
@@ -53,6 +60,9 @@ export interface UpdateUserRequest {
 	is_active?: boolean;
 	requires_password?: boolean;
 	password?: string | null;
+	is_profile?: boolean;
+	birthdate?: string | null;
+	gender?: Gender | null;
 }
 
 export interface ActivityLogItem {

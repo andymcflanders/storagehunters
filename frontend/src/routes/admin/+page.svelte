@@ -32,7 +32,10 @@
 		role: 'user' as 'admin' | 'user',
 		requires_password: false,
 		password: '',
-		is_active: true
+		is_active: true,
+		is_profile: false,
+		birthdate: '' as string,
+		gender: '' as '' | 'male' | 'female' | 'other'
 	};
 	let savingUser = false;
 
@@ -409,7 +412,10 @@
 			role: 'user',
 			requires_password: false,
 			password: '',
-			is_active: true
+			is_active: true,
+			is_profile: false,
+			birthdate: '',
+			gender: ''
 		};
 		showUserModal = true;
 	}
@@ -422,7 +428,10 @@
 			role: u.role,
 			requires_password: u.requires_password,
 			password: '',
-			is_active: u.is_active
+			is_active: u.is_active,
+			is_profile: u.is_profile ?? false,
+			birthdate: u.birthdate || '',
+			gender: (u.gender ?? '') as '' | 'male' | 'female' | 'other'
 		};
 		showUserModal = true;
 	}
@@ -441,7 +450,10 @@
 					email: userFormData.email || null,
 					role: userFormData.role,
 					requires_password: userFormData.requires_password,
-					is_active: userFormData.is_active
+					is_active: userFormData.is_active,
+					is_profile: userFormData.is_profile,
+					birthdate: userFormData.birthdate || null,
+					gender: userFormData.gender || null
 				};
 				if (userFormData.password) {
 					updateData.password = userFormData.password;
@@ -454,7 +466,10 @@
 					email: userFormData.email || null,
 					role: userFormData.role,
 					requires_password: userFormData.requires_password,
-					password: userFormData.password || null
+					password: userFormData.password || null,
+					is_profile: userFormData.is_profile,
+					birthdate: userFormData.birthdate || null,
+					gender: userFormData.gender || null
 				});
 				toast.success('User created');
 			}
@@ -2538,13 +2553,14 @@
 						<input
 							type="checkbox"
 							bind:checked={userFormData.requires_password}
-							class="h-4 w-4 rounded border-slate-300 text-primary-600"
+							disabled={userFormData.is_profile}
+							class="h-4 w-4 rounded border-slate-300 text-primary-600 disabled:opacity-50"
 						/>
 						<span class="text-sm text-slate-700">Require password to login</span>
 					</label>
 				</div>
 
-				{#if userFormData.requires_password}
+				{#if userFormData.requires_password && !userFormData.is_profile}
 					<div>
 						<label for="user-password" class="mb-1.5 block text-sm font-medium text-slate-700">
 							{editingUser ? 'New Password (leave blank to keep current)' : 'Password'}
@@ -2556,6 +2572,53 @@
 							required={!editingUser && userFormData.requires_password}
 							class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 						/>
+					</div>
+				{/if}
+
+				{#if userFormData.role !== 'admin'}
+					<div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+						<label class="flex items-start gap-2">
+							<input
+								type="checkbox"
+								bind:checked={userFormData.is_profile}
+								on:change={() => {
+									if (userFormData.is_profile) userFormData.requires_password = false;
+								}}
+								class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600"
+							/>
+							<span class="text-sm text-slate-700">
+								<span class="font-medium">Profile (no login)</span>
+								<span class="block text-xs text-slate-500">
+									For household members who own items but never sign in (e.g. small kids).
+									Hidden from the login screen.
+								</span>
+							</span>
+						</label>
+					</div>
+
+					<div class="grid grid-cols-2 gap-3">
+						<div>
+							<label for="user-birthdate" class="mb-1.5 block text-sm font-medium text-slate-700">Birthdate</label>
+							<input
+								id="user-birthdate"
+								type="date"
+								bind:value={userFormData.birthdate}
+								class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+							/>
+						</div>
+						<div>
+							<label for="user-gender" class="mb-1.5 block text-sm font-medium text-slate-700">Gender</label>
+							<select
+								id="user-gender"
+								bind:value={userFormData.gender}
+								class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+							>
+								<option value="">—</option>
+								<option value="male">Male</option>
+								<option value="female">Female</option>
+								<option value="other">Other</option>
+							</select>
+						</div>
 					</div>
 				{/if}
 

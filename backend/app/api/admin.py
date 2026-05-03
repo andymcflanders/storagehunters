@@ -1,6 +1,6 @@
 """Admin API endpoints."""
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -44,6 +44,9 @@ class UserListItem(BaseModel):
     role: str
     is_active: bool
     requires_password: bool
+    is_profile: bool = False
+    birthdate: date | None = None
+    gender: str | None = None
     created_at: datetime
     updated_at: datetime
     item_count: int
@@ -70,6 +73,9 @@ class AdminUserUpdate(BaseModel):
     is_active: bool | None = None
     requires_password: bool | None = None
     password: str | None = None
+    is_profile: bool | None = None
+    birthdate: date | None = None
+    gender: str | None = None  # "male" / "female" / "other"
 
 
 class AdminUserCreate(BaseModel):
@@ -80,6 +86,9 @@ class AdminUserCreate(BaseModel):
     role: str = "user"
     requires_password: bool = False
     password: str | None = None
+    is_profile: bool = False
+    birthdate: date | None = None
+    gender: str | None = None  # "male" / "female" / "other"
 
 
 class ActivityLogItem(BaseModel):
@@ -276,6 +285,9 @@ async def list_users_admin(
                 role=user.role.value if hasattr(user.role, "value") else str(user.role),
                 is_active=user.is_active,
                 requires_password=user.requires_password,
+                is_profile=user.is_profile,
+                birthdate=user.birthdate,
+                gender=user.gender.value if user.gender else None,
                 created_at=user.created_at,
                 updated_at=user.updated_at,
                 item_count=item_count or 0,
@@ -317,6 +329,16 @@ async def create_user_admin(
 
     role = UserRole.ADMIN if data.role == "admin" else UserRole.USER
 
+    if data.is_profile and role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admins cannot be marked as profile users",
+        )
+
+    from app.models.user import Gender as GenderModel
+
+    gender_value = GenderModel(data.gender) if data.gender else None
+
     user = User(
         name=data.name,
         email=data.email,
@@ -324,6 +346,9 @@ async def create_user_admin(
         requires_password=data.requires_password,
         password_hash=password_hash,
         is_active=True,
+        is_profile=data.is_profile,
+        birthdate=data.birthdate,
+        gender=gender_value,
     )
 
     db.add(user)
@@ -337,6 +362,9 @@ async def create_user_admin(
         role=user.role.value if hasattr(user.role, "value") else str(user.role),
         is_active=user.is_active,
         requires_password=user.requires_password,
+        is_profile=user.is_profile,
+        birthdate=user.birthdate,
+        gender=user.gender.value if user.gender else None,
         created_at=user.created_at,
         updated_at=user.updated_at,
         item_count=0,
@@ -399,6 +427,19 @@ async def update_user_admin(
     if data.password is not None:
         ph = PasswordHasher()
         user.password_hash = ph.hash(data.password)
+    if data.is_profile is not None:
+        user.is_profile = data.is_profile
+    if data.birthdate is not None:
+        user.birthdate = data.birthdate
+    if data.gender is not None:
+        from app.models.user import Gender as GenderModel
+        user.gender = GenderModel(data.gender)
+
+    if user.is_profile and user.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admins cannot be marked as profile users",
+        )
 
     await db.commit()
     await db.refresh(user)
@@ -424,6 +465,9 @@ async def update_user_admin(
         role=user.role.value if hasattr(user.role, "value") else str(user.role),
         is_active=user.is_active,
         requires_password=user.requires_password,
+        is_profile=user.is_profile,
+        birthdate=user.birthdate,
+        gender=user.gender.value if user.gender else None,
         created_at=user.created_at,
         updated_at=user.updated_at,
         item_count=item_count or 0,
@@ -468,8 +512,6 @@ async def list_activity_admin(
     days: int = Query(30, ge=1, le=365),
 ) -> ActivityLogResponse:
     """List activity logs (admin only)."""
-    from datetime import datetime, timedelta
-
     cutoff = datetime.utcnow() - timedelta(days=days)
 
     # Base query

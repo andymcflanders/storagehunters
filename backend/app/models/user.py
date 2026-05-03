@@ -2,9 +2,9 @@
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -24,6 +24,14 @@ class Language(str, enum.Enum):
 
     EN = "en"
     NO = "no"
+
+
+class Gender(str, enum.Enum):
+    """Demographic gender used for AI owner suggestion."""
+
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
 
 
 class User(Base):
@@ -50,6 +58,18 @@ class User(Base):
         nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Profiles are household members who own items but never log in
+    # (small kids, pets, anyone you track but who shouldn't appear on
+    # the login screen). Hidden from /api/users when include_profiles
+    # is false.
+    is_profile: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Optional demographic context. Used by the AI item classifier
+    # (Phase 2) to suggest the most likely owner for a given item.
+    birthdate: Mapped[date | None] = mapped_column(Date, nullable=True)
+    gender: Mapped[Gender | None] = mapped_column(
+        Enum(Gender, name="gender_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

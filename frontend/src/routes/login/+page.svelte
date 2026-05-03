@@ -29,8 +29,9 @@
 
 		try {
 			// Hide admins from the household grid; they sign in via the
-			// dedicated email + password modal below.
-			userList = await users.listUsers({ includeAdmins: false });
+			// dedicated email + password modal below. Profile users (e.g.
+			// small kids) own items but never log in, so hide them too.
+			userList = await users.listUsers({ includeAdmins: false, includeProfiles: false });
 		} finally {
 			loading = false;
 		}

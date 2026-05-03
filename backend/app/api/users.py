@@ -25,11 +25,22 @@ async def list_users(
             "user-card grid — they sign in via email + password instead."
         ),
     ),
+    include_profiles: bool = Query(
+        True,
+        description=(
+            "If false, omit profile users (household members who own items "
+            "but don't log in — typically small kids). The login screen "
+            "passes include_profiles=false so they don't appear on the "
+            "card grid; owner pickers leave it at the default true."
+        ),
+    ),
 ) -> list[UserResponse]:
-    """List users (admins by default; optionally hide them)."""
+    """List users; optionally hide admins and/or profile users."""
     query = select(User).order_by(User.name)
     if not include_admins:
         query = query.where(User.role != UserRole.ADMIN)
+    if not include_profiles:
+        query = query.where(User.is_profile == False)  # noqa: E712
     result = await db.execute(query)
     users = result.scalars().all()
     return [UserResponse.model_validate(u) for u in users]
@@ -65,6 +76,9 @@ async def create_user(
         requires_password=user_data.requires_password,
         role=role,
         language=language,
+        is_profile=user_data.is_profile,
+        birthdate=user_data.birthdate,
+        gender=user_data.gender,
     )
 
     if user_data.password and user_data.requires_password:
@@ -126,6 +140,22 @@ async def update_user(
     if user_data.language is not None:
         from app.models.user import Language
         user.language = Language.NO if user_data.language.value == "no" else Language.EN
+    if user_data.is_profile is not None:
+        user.is_profile = user_data.is_profile
+    if user_data.birthdate is not None:
+        user.birthdate = user_data.birthdate
+    if user_data.gender is not None:
+        from app.models.user import Gender
+        user.gender = Gender(user_data.gender.value)
+
+    # Guard the same invariant we enforce on create: an admin can't be
+    # marked as a profile (a profile-flagged admin couldn't actually log
+    # in via either path).
+    if user.is_profile and user.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admins cannot be marked as profile users",
+        )
 
     await db.flush()
     await db.refresh(user)

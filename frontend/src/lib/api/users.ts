@@ -5,11 +5,15 @@
 import { get, post, patch, del, upload } from './client';
 import type { User, UserCreate, UserUpdate } from '$lib/types';
 
-export async function listUsers(options?: { includeAdmins?: boolean }): Promise<User[]> {
-	if (options?.includeAdmins === false) {
-		return get<User[]>('/users?include_admins=false');
-	}
-	return get<User[]>('/users');
+export async function listUsers(options?: {
+	includeAdmins?: boolean;
+	includeProfiles?: boolean;
+}): Promise<User[]> {
+	const params = new URLSearchParams();
+	if (options?.includeAdmins === false) params.set('include_admins', 'false');
+	if (options?.includeProfiles === false) params.set('include_profiles', 'false');
+	const qs = params.toString();
+	return get<User[]>(qs ? `/users?${qs}` : '/users');
 }
 
 export async function createUser(data: UserCreate): Promise<User> {
