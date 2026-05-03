@@ -324,7 +324,7 @@
 								type="checkbox"
 								checked={filterLocationIds.has(location.id)}
 								on:change={() => toggleLocation(location.id)}
-								class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+								class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
 							/>
 							<span class="text-sm text-slate-700 dark:text-slate-300">{location.name}</span>
 							<span class="ml-auto text-xs text-slate-400">{location.item_count} items</span>
@@ -372,7 +372,7 @@
 								type="checkbox"
 								checked={filterContainerIds.has(container.id)}
 								on:change={() => toggleContainer(container.id)}
-								class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+								class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
 							/>
 							<span class="text-sm text-slate-700 dark:text-slate-300">{container.name}</span>
 							<span class="ml-auto text-xs text-slate-400">{container.locationName}</span>

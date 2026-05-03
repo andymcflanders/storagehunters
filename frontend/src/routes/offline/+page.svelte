@@ -9,7 +9,7 @@
 </svelte:head>
 
 <div class="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-	<div class="rounded-full bg-slate-100 p-6">
+	<div class="rounded-full bg-slate-100 dark:bg-slate-700 p-6">
 		<svg class="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 			<path
 				stroke-linecap="round"
@@ -20,8 +20,8 @@
 		</svg>
 	</div>
 
-	<h1 class="mt-6 text-2xl font-bold text-slate-900">You're offline</h1>
-	<p class="mt-2 max-w-sm text-slate-500">
+	<h1 class="mt-6 text-2xl font-bold text-slate-900 dark:text-white">You're offline</h1>
+	<p class="mt-2 max-w-sm text-slate-500 dark:text-slate-400">
 		Please check your internet connection and try again. Some features may be available from cache.
 	</p>
 

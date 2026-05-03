@@ -180,7 +180,7 @@
 <div class="relative overflow-hidden rounded-xl bg-black">
 	{#if errorMessage}
 		<div class="flex aspect-[4/3] flex-col items-center justify-center bg-slate-900 p-6 text-center">
-			<svg class="h-12 w-12 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+			<svg class="h-12 w-12 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"

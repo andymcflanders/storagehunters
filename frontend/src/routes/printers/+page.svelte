@@ -192,8 +192,8 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-2xl font-bold text-slate-900">Printers</h1>
-			<p class="mt-1 text-slate-500">Configure label printers for container labels</p>
+			<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Printers</h1>
+			<p class="mt-1 text-slate-500 dark:text-slate-400">Configure label printers for container labels</p>
 		</div>
 		<Button on:click={openCreateModal}>
 			<svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,8 +220,8 @@
 						d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
 					/>
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-slate-900">No printers configured</h3>
-				<p class="mt-2 text-slate-500">Add a printer to start printing container labels.</p>
+				<h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-white">No printers configured</h3>
+				<p class="mt-2 text-slate-500 dark:text-slate-400">Add a printer to start printing container labels.</p>
 				<div class="mt-6">
 					<Button on:click={openCreateModal}>Add Your First Printer</Button>
 				</div>
@@ -239,7 +239,7 @@
 										{printer.printer_type === 'zebra_zpl'
 										? 'bg-blue-100 text-blue-600'
 										: printer.printer_type === 'brother_ql'
-											? 'bg-green-100 text-green-600'
+											? 'bg-green-100 text-green-600 dark:text-green-400'
 											: printer.printer_type === 'network_ipp'
 												? 'bg-orange-100 text-orange-600'
 												: 'bg-purple-100 text-purple-600'}"
@@ -254,33 +254,33 @@
 									</svg>
 								</div>
 								<div>
-									<h3 class="font-semibold text-slate-900">
+									<h3 class="font-semibold text-slate-900 dark:text-white">
 										{printer.name}
 										{#if printer.is_default}
 											<span
-												class="ml-2 inline-flex items-center rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700"
+												class="ml-2 inline-flex items-center rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:text-primary-300"
 											>
 												Default
 											</span>
 										{/if}
 									</h3>
-									<p class="text-sm text-slate-500">{getPrinterTypeLabel(printer.printer_type)}</p>
+									<p class="text-sm text-slate-500 dark:text-slate-400">{getPrinterTypeLabel(printer.printer_type)}</p>
 								</div>
 							</div>
 						</div>
 
 						<div class="mt-4 flex-1 space-y-2 text-sm">
 							<div class="flex justify-between">
-								<span class="text-slate-500">Connection:</span>
-								<span class="text-slate-700">{getConnectionTypeLabel(printer.connection_type)}</span>
+								<span class="text-slate-500 dark:text-slate-400">Connection:</span>
+								<span class="text-slate-700 dark:text-slate-300">{getConnectionTypeLabel(printer.connection_type)}</span>
 							</div>
 							<div class="flex justify-between">
-								<span class="text-slate-500">Address:</span>
-								<span class="truncate text-slate-700" title={printer.address}>{printer.address}</span>
+								<span class="text-slate-500 dark:text-slate-400">Address:</span>
+								<span class="truncate text-slate-700 dark:text-slate-300" title={printer.address}>{printer.address}</span>
 							</div>
 							<div class="flex justify-between">
-								<span class="text-slate-500">Label Size:</span>
-								<span class="text-slate-700">{printer.label_width_mm} x {printer.label_height_mm} mm</span>
+								<span class="text-slate-500 dark:text-slate-400">Label Size:</span>
+								<span class="text-slate-700 dark:text-slate-300">{printer.label_width_mm} x {printer.label_height_mm} mm</span>
 							</div>
 						</div>
 
@@ -300,7 +300,7 @@
 							{/if}
 							<div class="ml-auto flex gap-1">
 								<button
-									class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+									class="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
 									on:click={() => openEditModal(printer)}
 								>
 									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -347,11 +347,11 @@
 		<Input label="Printer Name" placeholder="e.g., Office Label Printer" bind:value={formData.name} required id="printer-name" />
 
 		<div>
-			<label for="printer-type" class="mb-1.5 block text-sm font-medium text-slate-700">Printer Type</label>
+			<label for="printer-type" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Printer Type</label>
 			<select
 				id="printer-type"
 				bind:value={formData.printer_type}
-				class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+				class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 			>
 				{#each printerTypes as type}
 					<option value={type.value}>{type.label} - {type.description}</option>
@@ -361,11 +361,11 @@
 
 		{#if formData.printer_type !== 'generic_pdf'}
 			<div>
-				<label for="connection-type" class="mb-1.5 block text-sm font-medium text-slate-700">Connection Type</label>
+				<label for="connection-type" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Connection Type</label>
 				<select
 					id="connection-type"
 					bind:value={formData.connection_type}
-					class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+					class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 				>
 					{#each connectionTypes as type}
 						<option value={type.value}>{type.label}</option>
@@ -400,8 +400,8 @@
 		</div>
 
 		<label class="flex items-center gap-2">
-			<input type="checkbox" bind:checked={formData.is_default} class="h-4 w-4 rounded border-slate-300 text-primary-600" />
-			<span class="text-sm text-slate-700">Set as default printer</span>
+			<input type="checkbox" bind:checked={formData.is_default} class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400" />
+			<span class="text-sm text-slate-700 dark:text-slate-300">Set as default printer</span>
 		</label>
 	</form>
 

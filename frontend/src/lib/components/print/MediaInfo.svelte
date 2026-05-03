@@ -48,7 +48,7 @@
 						{#if suggestion.detected.media_type !== 'unknown'}
 							<span
 								class="px-2 py-0.5 rounded text-xs {suggestion.detected.media_type === 'die_cut'
-									? 'bg-blue-100 text-blue-700'
+									? 'bg-blue-100 text-blue-700 dark:text-blue-300'
 									: 'bg-purple-100 text-purple-700'}"
 							>
 								{suggestion.detected.media_type === 'die_cut' ? 'Die-cut' : 'Continuous'}

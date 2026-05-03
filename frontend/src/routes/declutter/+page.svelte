@@ -244,7 +244,7 @@
 				</select>
 			</div>
 			<div class="flex items-center justify-between gap-2">
-				<a href="/declutter/discard" class="text-sm text-primary-600 hover:underline">
+				<a href="/declutter/discard" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
 					Discard pile →
 				</a>
 				{#if filterCount > 0}
@@ -262,7 +262,7 @@
 
 	<div class="relative flex-1 overflow-hidden">
 		{#if loading}
-			<div class="flex h-full items-center justify-center text-slate-500">Loading…</div>
+			<div class="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading…</div>
 		{:else if current === null}
 			<div class="flex h-full flex-col items-center justify-center text-center">
 				<p class="text-lg font-medium text-slate-700 dark:text-slate-200">You're all caught up.</p>
@@ -298,15 +298,15 @@
 
 					{#if dominantDirection === 'right'}
 						<div class="pointer-events-none absolute inset-0 flex items-start justify-end p-3" style="opacity: {dragOpacity}">
-							<span class="rotate-12 rounded-md border-4 border-emerald-500 bg-emerald-100/80 px-3 py-1 text-xl font-extrabold uppercase tracking-wider text-emerald-700">Love</span>
+							<span class="rotate-12 rounded-md border-4 border-emerald-500 bg-emerald-100/80 px-3 py-1 text-xl font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Love</span>
 						</div>
 					{:else if dominantDirection === 'left'}
 						<div class="pointer-events-none absolute inset-0 flex items-start justify-start p-3" style="opacity: {dragOpacity}">
-							<span class="-rotate-12 rounded-md border-4 border-red-500 bg-red-100/80 px-3 py-1 text-xl font-extrabold uppercase tracking-wider text-red-700">Toss</span>
+							<span class="-rotate-12 rounded-md border-4 border-red-500 bg-red-100/80 px-3 py-1 text-xl font-extrabold uppercase tracking-wider text-red-700 dark:text-red-300">Toss</span>
 						</div>
 					{:else if dominantDirection === 'up'}
 						<div class="pointer-events-none absolute inset-0 flex items-end justify-center p-3" style="opacity: {dragOpacity}">
-							<span class="rounded-md border-4 border-amber-500 bg-amber-100/80 px-3 py-1 text-xl font-extrabold uppercase tracking-wider text-amber-700">Maybe</span>
+							<span class="rounded-md border-4 border-amber-500 bg-amber-100/80 px-3 py-1 text-xl font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">Maybe</span>
 						</div>
 					{/if}
 				</div>
@@ -349,7 +349,7 @@
 					{/if}
 
 					{#if current.previous_decision}
-						<p class="mt-2 text-xs italic text-slate-500">
+						<p class="mt-2 text-xs italic text-slate-500 dark:text-slate-400">
 							Previously: {current.previous_decision}
 						</p>
 					{/if}
@@ -400,13 +400,13 @@
 				undecideds come back in a few months.
 			</p>
 		</div>
-		<div class="flex items-center gap-3 text-sm text-slate-500">
+		<div class="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
 			{#if reviewedThisSession > 0}
 				<span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
 					{reviewedThisSession} reviewed
 				</span>
 			{/if}
-			<a href="/declutter/discard" class="text-primary-600 hover:underline">
+			<a href="/declutter/discard" class="text-primary-600 dark:text-primary-400 hover:underline">
 				Discard pile →
 			</a>
 		</div>
@@ -455,7 +455,7 @@
 	</div>
 
 	{#if loading}
-		<div class="py-12 text-center text-slate-500">Loading…</div>
+		<div class="py-12 text-center text-slate-500 dark:text-slate-400">Loading…</div>
 	{:else if current === null}
 		<Card>
 			<div class="py-12 text-center">
@@ -495,15 +495,15 @@
 
 						{#if dominantDirection === 'right'}
 							<div class="pointer-events-none absolute inset-0 flex items-start justify-end p-4" style="opacity: {dragOpacity}">
-								<span class="rotate-12 rounded-md border-4 border-emerald-500 bg-emerald-100/80 px-4 py-2 text-2xl font-extrabold uppercase tracking-wider text-emerald-700">Love</span>
+								<span class="rotate-12 rounded-md border-4 border-emerald-500 bg-emerald-100/80 px-4 py-2 text-2xl font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Love</span>
 							</div>
 						{:else if dominantDirection === 'left'}
 							<div class="pointer-events-none absolute inset-0 flex items-start justify-start p-4" style="opacity: {dragOpacity}">
-								<span class="-rotate-12 rounded-md border-4 border-red-500 bg-red-100/80 px-4 py-2 text-2xl font-extrabold uppercase tracking-wider text-red-700">Toss</span>
+								<span class="-rotate-12 rounded-md border-4 border-red-500 bg-red-100/80 px-4 py-2 text-2xl font-extrabold uppercase tracking-wider text-red-700 dark:text-red-300">Toss</span>
 							</div>
 						{:else if dominantDirection === 'up'}
 							<div class="pointer-events-none absolute inset-0 flex items-end justify-center p-4" style="opacity: {dragOpacity}">
-								<span class="rounded-md border-4 border-amber-500 bg-amber-100/80 px-4 py-2 text-2xl font-extrabold uppercase tracking-wider text-amber-700">Maybe</span>
+								<span class="rounded-md border-4 border-amber-500 bg-amber-100/80 px-4 py-2 text-2xl font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">Maybe</span>
 							</div>
 						{/if}
 					</div>
@@ -546,7 +546,7 @@
 						{/if}
 
 						{#if current.previous_decision}
-							<p class="mt-3 text-xs italic text-slate-500">
+							<p class="mt-3 text-xs italic text-slate-500 dark:text-slate-400">
 								Previously: {current.previous_decision}
 							</p>
 						{/if}

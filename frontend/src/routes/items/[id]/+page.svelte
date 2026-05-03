@@ -482,7 +482,7 @@
 								{#if aiSuggestedName && editData.name !== aiSuggestedName}
 									<button
 										type="button"
-										class="mt-1 text-xs text-primary-600 hover:underline"
+										class="mt-1 text-xs text-primary-600 dark:text-primary-400 hover:underline"
 										on:click={applyAISuggestion}
 									>
 										Use AI suggestion: "{aiSuggestedName}"

@@ -102,7 +102,7 @@
 	{#if showDropdown && (searchResults.length > 0 || isSearching)}
 		<div class="absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800 overflow-hidden">
 			{#if isSearching}
-				<div class="p-4 text-center text-slate-500">
+				<div class="p-4 text-center text-slate-500 dark:text-slate-400">
 					<div class="inline-block h-5 w-5 animate-spin rounded-full border-2 border-primary-600 border-t-transparent"></div>
 				</div>
 			{:else}
@@ -125,7 +125,7 @@
 							</div>
 							<div class="flex-1 min-w-0">
 								<p class="font-medium text-slate-900 dark:text-white truncate text-sm">{item.name}</p>
-								<p class="text-xs text-slate-500 truncate">{item.path.map(p => p.name).join(' › ')}</p>
+								<p class="text-xs text-slate-500 dark:text-slate-400 truncate">{item.path.map(p => p.name).join(' › ')}</p>
 							</div>
 							<svg class="h-4 w-4 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

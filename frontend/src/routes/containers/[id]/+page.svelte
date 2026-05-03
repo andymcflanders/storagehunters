@@ -157,14 +157,14 @@
 		<!-- Header -->
 		<div class="flex items-start justify-between">
 			<div class="flex-1">
-				<h1 class="text-2xl font-bold text-slate-900">{container.name}</h1>
+				<h1 class="text-2xl font-bold text-slate-900 dark:text-white">{container.name}</h1>
 				{#if container.container_type}
 					<span class="mt-1 inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
 						{$_(CONTAINER_TYPE_KEYS[container.container_type])}
 					</span>
 				{/if}
 				{#if container.notes}
-					<p class="mt-1 text-slate-500">{container.notes}</p>
+					<p class="mt-1 text-slate-500 dark:text-slate-400">{container.notes}</p>
 				{/if}
 			</div>
 			<div class="flex gap-2">
@@ -243,12 +243,12 @@
 				<img
 					src={containers.getContainerQRUrl(container.id)}
 					alt="QR Code"
-					class="h-24 w-24 rounded-lg border border-slate-200"
+					class="h-24 w-24 rounded-lg border border-slate-200 dark:border-slate-700"
 				/>
 				<div>
-					<p class="text-sm font-medium text-slate-500">{$_('containers.quickAccessCode')}</p>
-					<p class="mt-1 font-mono text-lg text-slate-900">{container.qr_code}</p>
-					<p class="mt-2 text-sm text-slate-500">{$_('containers.quickAccessHelp')}</p>
+					<p class="text-sm font-medium text-slate-500 dark:text-slate-400">{$_('containers.quickAccessCode')}</p>
+					<p class="mt-1 font-mono text-lg text-slate-900 dark:text-white">{container.qr_code}</p>
+					<p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{$_('containers.quickAccessHelp')}</p>
 				</div>
 			</div>
 		</Card>
@@ -256,7 +256,7 @@
 		<!-- Child Containers -->
 		{#if container.child_containers.length > 0}
 			<div>
-				<h2 class="mb-4 text-lg font-semibold text-slate-900">{$_('containers.nestedContainers')}</h2>
+				<h2 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{$_('containers.nestedContainers')}</h2>
 				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{#each container.child_containers as child}
 						<ContainerCard container={child} />
@@ -267,15 +267,15 @@
 
 		<!-- Items -->
 		<div>
-			<h2 class="mb-4 text-lg font-semibold text-slate-900">{$_('items.title')} ({container.items.length})</h2>
+			<h2 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{$_('items.title')} ({container.items.length})</h2>
 			{#if container.items.length === 0}
 				<Card>
 					<div class="py-12 text-center">
 						<svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
 						</svg>
-						<h3 class="mt-4 text-lg font-medium text-slate-900">{$_('containers.noItems')}</h3>
-						<p class="mt-2 text-slate-500">{$_('containers.addItemsHelp')}</p>
+						<h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-white">{$_('containers.noItems')}</h3>
+						<p class="mt-2 text-slate-500 dark:text-slate-400">{$_('containers.addItemsHelp')}</p>
 						<Button class="mt-4" on:click={() => (showCreateModal = true)}>{$_('items.addItem')}</Button>
 					</div>
 				</Card>

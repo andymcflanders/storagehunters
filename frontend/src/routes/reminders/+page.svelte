@@ -158,7 +158,7 @@
 				<input
 					type="checkbox"
 					bind:checked={showCompleted}
-					class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+					class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
 				/>
 				Show completed
 			</label>
@@ -249,7 +249,7 @@
 							{#if !reminder.is_completed}
 								<button
 									on:click={() => handleComplete(reminder)}
-									class="rounded-lg p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+									class="rounded-lg p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
 									title="Mark complete"
 								>
 									<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,7 +259,7 @@
 							{/if}
 							<button
 								on:click={() => handleDelete(reminder)}
-								class="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+								class="rounded-lg p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
 								title="Delete"
 							>
 								<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -331,7 +331,7 @@
 						<input
 							type="checkbox"
 							bind:checked={newIsRecurring}
-							class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+							class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
 						/>
 						<span class="text-sm text-slate-700 dark:text-slate-300">Recurring reminder</span>
 					</label>

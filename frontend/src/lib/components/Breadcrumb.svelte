@@ -6,7 +6,7 @@
 </script>
 
 <nav class="flex items-center gap-2 text-sm">
-	<a href="/" class="text-slate-500 hover:text-slate-700">
+	<a href="/" class="text-slate-500 dark:text-slate-400 hover:text-slate-700">
 		<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 			<path
 				stroke-linecap="round"
@@ -23,7 +23,7 @@
 		</svg>
 		<a
 			href="/{element.type === 'location' ? 'locations' : 'containers'}/{element.id}"
-			class="text-slate-500 hover:text-slate-700"
+			class="text-slate-500 dark:text-slate-400 hover:text-slate-700"
 		>
 			{element.name}
 		</a>
@@ -33,6 +33,6 @@
 		<svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 		</svg>
-		<span class="font-medium text-slate-900">{currentName}</span>
+		<span class="font-medium text-slate-900 dark:text-white">{currentName}</span>
 	{/if}
 </nav>

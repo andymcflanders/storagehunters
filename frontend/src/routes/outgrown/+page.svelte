@@ -100,7 +100,7 @@
 	</div>
 
 	{#if loading}
-		<div class="py-12 text-center text-slate-500">Loading…</div>
+		<div class="py-12 text-center text-slate-500 dark:text-slate-400">Loading…</div>
 	{:else if items.length === 0}
 		<Card>
 			<div class="py-12 text-center">
@@ -116,7 +116,7 @@
 				<section>
 					<h2 class="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
 						{group.ownerName}
-						<span class="ml-2 text-sm font-normal text-slate-500">
+						<span class="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
 							{group.items.length} {group.items.length === 1 ? 'item' : 'items'}
 						</span>
 					</h2>
@@ -143,7 +143,7 @@
 											>
 												{item.name}
 											</a>
-											<p class="mt-0.5 text-sm text-slate-500">
+											<p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
 												{#if item.size}Size {item.size} · {/if}
 												Outgrown {formatAge(item.months_outgrown)} ago
 												{#if item.is_suggested_owner}

@@ -100,8 +100,8 @@
 
 <div class="space-y-6">
 	<div>
-		<h1 class="text-2xl font-bold text-slate-900">Search</h1>
-		<p class="mt-1 text-slate-500">Find items across all your storage locations</p>
+		<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Search</h1>
+		<p class="mt-1 text-slate-500 dark:text-slate-400">Find items across all your storage locations</p>
 	</div>
 
 	<!-- Search Bar -->
@@ -124,7 +124,7 @@
 	<!-- Filters Panel -->
 	{#if showFilters}
 		<Card>
-			<h3 class="mb-4 font-semibold text-slate-900">Filters</h3>
+			<h3 class="mb-4 font-semibold text-slate-900 dark:text-white">Filters</h3>
 			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<!-- Location Filter -->
 				<div>
@@ -207,13 +207,13 @@
 				<svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-slate-900">No results found</h3>
-				<p class="mt-2 text-slate-500">Try searching with different keywords or adjusting your filters</p>
+				<h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-white">No results found</h3>
+				<p class="mt-2 text-slate-500 dark:text-slate-400">Try searching with different keywords or adjusting your filters</p>
 			</div>
 		</Card>
 	{:else if results.length > 0}
 		<div class="flex items-center justify-between">
-			<p class="text-sm text-slate-500">
+			<p class="text-sm text-slate-500 dark:text-slate-400">
 				Found <strong>{total}</strong> {total === 1 ? 'item' : 'items'}
 			</p>
 		</div>
@@ -223,7 +223,7 @@
 				<a href="/items/{item.id}" class="block">
 					<Card hover padding="none">
 						<!-- Thumbnail -->
-						<div class="aspect-square w-full overflow-hidden rounded-t-xl bg-slate-100">
+						<div class="aspect-square w-full overflow-hidden rounded-t-xl bg-slate-100 dark:bg-slate-700">
 							{#if item.thumbnail_url}
 								<img src={item.thumbnail_url} alt={item.name} class="h-full w-full object-cover" />
 							{:else}
@@ -237,10 +237,10 @@
 
 						<!-- Content -->
 						<div class="p-4">
-							<h3 class="font-medium text-slate-900 line-clamp-1">{item.name}</h3>
+							<h3 class="font-medium text-slate-900 dark:text-white line-clamp-1">{item.name}</h3>
 
 							<!-- Path -->
-							<p class="mt-1 text-xs text-slate-500 line-clamp-1">
+							<p class="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
 								{item.path.map(p => p.name).join(' > ')}
 							</p>
 
@@ -248,7 +248,7 @@
 							{#if item.matching_tags.length > 0}
 								<div class="mt-2 flex flex-wrap gap-1">
 									{#each item.matching_tags.slice(0, 3) as tag}
-										<span class="inline-flex items-center rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
+										<span class="inline-flex items-center rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:text-primary-300">
 											{tag}
 										</span>
 									{/each}
@@ -265,8 +265,8 @@
 				<svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-slate-900">Search for items</h3>
-				<p class="mt-2 text-slate-500">Enter a search term to find items by name, description, or tags</p>
+				<h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-white">Search for items</h3>
+				<p class="mt-2 text-slate-500 dark:text-slate-400">Enter a search term to find items by name, description, or tags</p>
 			</div>
 		</Card>
 	{/if}

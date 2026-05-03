@@ -6,7 +6,7 @@
 </script>
 
 <button
-	class="group flex w-full flex-col items-center gap-3 rounded-xl bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md {selected
+	class="group flex w-full flex-col items-center gap-3 rounded-xl bg-white dark:bg-slate-800 p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md {selected
 		? 'ring-2 ring-primary-500'
 		: ''}"
 	on:click
@@ -23,11 +23,11 @@
 	</div>
 
 	<!-- Name -->
-	<span class="text-lg font-medium text-slate-900">{user.name}</span>
+	<span class="text-lg font-medium text-slate-900 dark:text-white">{user.name}</span>
 
 	<!-- Password indicator -->
 	{#if user.requires_password}
-		<div class="flex items-center gap-1 text-xs text-slate-500">
+		<div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
 			<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path
 					stroke-linecap="round"

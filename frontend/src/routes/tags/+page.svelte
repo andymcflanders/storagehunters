@@ -120,8 +120,8 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-2xl font-bold text-slate-900">Tags</h1>
-			<p class="mt-1 text-slate-500">Manage tags for organizing your items</p>
+			<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Tags</h1>
+			<p class="mt-1 text-slate-500 dark:text-slate-400">Manage tags for organizing your items</p>
 		</div>
 		<div class="flex gap-2">
 			{#if selectedTags.size >= 2}
@@ -150,22 +150,22 @@
 				<svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-slate-900">No tags yet</h3>
-				<p class="mt-2 text-slate-500">Tags will appear here as you add items with AI classification or create them manually.</p>
+				<h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-white">No tags yet</h3>
+				<p class="mt-2 text-slate-500 dark:text-slate-400">Tags will appear here as you add items with AI classification or create them manually.</p>
 			</div>
 		</Card>
 	{:else}
 		<!-- User-created Tags -->
 		{#if userTags.length > 0}
 			<div>
-				<h2 class="mb-4 text-lg font-semibold text-slate-900">Manual Tags</h2>
+				<h2 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Manual Tags</h2>
 				<div class="flex flex-wrap gap-2">
 					{#each userTags as tag}
 						<button
 							class="group inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all
 								{selectedTags.has(tag.id)
 									? 'bg-primary-600 text-white'
-									: 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"
+									: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200'}"
 							on:click={() => toggleTagSelection(tag.id)}
 						>
 							{tag.name}
@@ -186,9 +186,9 @@
 		<!-- AI-generated Tags -->
 		{#if aiTags.length > 0}
 			<div>
-				<h2 class="mb-4 text-lg font-semibold text-slate-900">
+				<h2 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
 					AI-Generated Tags
-					<span class="ml-2 text-sm font-normal text-slate-500">({aiTags.length})</span>
+					<span class="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">({aiTags.length})</span>
 				</h2>
 				<div class="flex flex-wrap gap-2">
 					{#each aiTags as tag}
@@ -196,7 +196,7 @@
 							class="group inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all
 								{selectedTags.has(tag.id)
 									? 'bg-primary-600 text-white'
-									: 'bg-blue-50 text-blue-700 hover:bg-blue-100'}"
+									: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100'}"
 							on:click={() => toggleTagSelection(tag.id)}
 						>
 							<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -239,7 +239,7 @@
 
 <!-- Merge Modal -->
 <Modal open={showMergeModal} title="Merge Tags" on:close={() => (showMergeModal = false)}>
-	<p class="mb-4 text-slate-600">
+	<p class="mb-4 text-slate-600 dark:text-slate-400">
 		Select the target tag. All other selected tags will be merged into it.
 	</p>
 
@@ -247,18 +247,18 @@
 		{#each Array.from(selectedTags) as tagId}
 			{@const tag = tagList.find(t => t.id === tagId)}
 			{#if tag}
-				<label class="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-slate-50
-					{mergeTargetId === tagId ? 'border-primary-500 bg-primary-50' : 'border-slate-200'}">
+				<label class="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50
+					{mergeTargetId === tagId ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-slate-200 dark:border-slate-700'}">
 					<input
 						type="radio"
 						name="merge-target"
 						value={tagId}
 						bind:group={mergeTargetId}
-						class="h-4 w-4 text-primary-600"
+						class="h-4 w-4 text-primary-600 dark:text-primary-400"
 					/>
 					<span class="font-medium">{tag.name}</span>
 					{#if mergeTargetId === tagId}
-						<span class="ml-auto text-xs text-primary-600">Target</span>
+						<span class="ml-auto text-xs text-primary-600 dark:text-primary-400">Target</span>
 					{/if}
 				</label>
 			{/if}

@@ -385,7 +385,7 @@
 					</p>
 				</div>
 				{#if step === 'batch-review'}
-					<button class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" on:click={handleClose}>
+					<button class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" on:click={handleClose}>
 						<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
@@ -474,13 +474,13 @@
 										/>
 									{/each}
 								</div>
-								<p class="mt-2 text-xs text-slate-500">
+								<p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
 									{batchItem.photos.length} photo{batchItem.photos.length > 1 ? 's' : ''}
 								</p>
 							</div>
 						{/each}
 
-						<p class="text-sm text-slate-500 text-center">
+						<p class="text-sm text-slate-500 dark:text-slate-400 text-center">
 							{batchItems.length} item{batchItems.length > 1 ? 's' : ''} ready to save. AI will analyze and suggest names.
 						</p>
 					</div>
@@ -529,7 +529,7 @@
 			{:else if step === 'select-location'}
 				<!-- Location selection -->
 				<div class="space-y-2">
-					<p class="text-sm text-slate-500 mb-4">Where are these items stored?</p>
+					<p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Where are these items stored?</p>
 
 					<!-- Create new location option -->
 					<button
@@ -544,13 +544,13 @@
 							</div>
 							<div>
 								<p class="font-medium text-slate-700 dark:text-slate-300">New location</p>
-								<p class="text-sm text-slate-500">Create a new storage location</p>
+								<p class="text-sm text-slate-500 dark:text-slate-400">Create a new storage location</p>
 							</div>
 						</div>
 					</button>
 
 					{#if locationList.length === 0}
-						<div class="py-4 text-center text-slate-500">
+						<div class="py-4 text-center text-slate-500 dark:text-slate-400">
 							<p>No locations yet</p>
 						</div>
 					{:else}
@@ -568,7 +568,7 @@
 									<div>
 										<p class="font-medium text-slate-900 dark:text-white">{location.name}</p>
 										{#if location.description}
-											<p class="text-sm text-slate-500 line-clamp-1">{location.description}</p>
+											<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-1">{location.description}</p>
 										{/if}
 									</div>
 								</div>
@@ -580,7 +580,7 @@
 				<!-- Create location form -->
 				<div class="space-y-4">
 					<button
-						class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+						class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
 						on:click={goBack}
 					>
 						<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -607,7 +607,7 @@
 				<!-- Container selection -->
 				<div class="space-y-2">
 					<button
-						class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 mb-4"
+						class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 mb-4"
 						on:click={goBack}
 					>
 						<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -629,13 +629,13 @@
 							</div>
 							<div>
 								<p class="font-medium text-slate-700 dark:text-slate-300">New container</p>
-								<p class="text-sm text-slate-500">Create a new container here</p>
+								<p class="text-sm text-slate-500 dark:text-slate-400">Create a new container here</p>
 							</div>
 						</div>
 					</button>
 
 					{#if containerList.length === 0}
-						<div class="py-4 text-center text-slate-500">
+						<div class="py-4 text-center text-slate-500 dark:text-slate-400">
 							<p>No containers in this location</p>
 						</div>
 					{:else}
@@ -653,7 +653,7 @@
 									<div>
 										<p class="font-medium text-slate-900 dark:text-white">{container.name}</p>
 										{#if container.notes}
-											<p class="text-sm text-slate-500 line-clamp-1">{container.notes}</p>
+											<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-1">{container.notes}</p>
 										{/if}
 									</div>
 								</div>
@@ -665,7 +665,7 @@
 				<!-- Create container form -->
 				<div class="space-y-4">
 					<button
-						class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+						class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
 						on:click={goBack}
 					>
 						<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

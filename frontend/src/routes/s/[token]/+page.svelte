@@ -153,7 +153,7 @@
 	<footer class="mt-12 border-t border-slate-200 bg-white py-6 dark:border-slate-700 dark:bg-slate-900">
 		<div class="mx-auto max-w-3xl px-4 text-center">
 			<p class="text-sm text-slate-500 dark:text-slate-400">
-				Shared via <span class="font-medium text-primary-600">StorageHub</span>
+				Shared via <span class="font-medium text-primary-600 dark:text-primary-400">StorageHub</span>
 			</p>
 		</div>
 	</footer>

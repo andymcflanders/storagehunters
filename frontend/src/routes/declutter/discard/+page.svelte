@@ -85,24 +85,24 @@
 				per shelf or box.
 			</p>
 		</div>
-		<a href="/declutter" class="text-sm text-primary-600 hover:underline">
+		<a href="/declutter" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
 			← Back to declutter
 		</a>
 	</div>
 
 	{#if loading}
-		<div class="py-12 text-center text-slate-500">Loading…</div>
+		<div class="py-12 text-center text-slate-500 dark:text-slate-400">Loading…</div>
 	{:else if total === 0}
 		<Card>
 			<div class="py-12 text-center">
 				<p class="text-lg font-medium text-slate-700 dark:text-slate-200">Nothing to discard.</p>
 				<p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-					Items you mark as Toss on <a href="/declutter" class="text-primary-600 underline">/declutter</a> will collect here.
+					Items you mark as Toss on <a href="/declutter" class="text-primary-600 dark:text-primary-400 underline">/declutter</a> will collect here.
 				</p>
 			</div>
 		</Card>
 	{:else}
-		<p class="mb-4 text-sm text-slate-500">
+		<p class="mb-4 text-sm text-slate-500 dark:text-slate-400">
 			{total} item{total === 1 ? '' : 's'} across {groups.length} container{groups.length === 1 ? '' : 's'}.
 		</p>
 		<div class="space-y-6">
@@ -110,7 +110,7 @@
 				<section>
 					<h2 class="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
 						{group.path_label}
-						<span class="ml-2 text-sm font-normal text-slate-500">
+						<span class="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
 							{group.items.length} {group.items.length === 1 ? 'item' : 'items'}
 						</span>
 					</h2>
@@ -137,7 +137,7 @@
 											>
 												{item.name}
 											</a>
-											<p class="mt-0.5 text-sm text-slate-500">
+											<p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
 												{#if item.size}Size {item.size}{#if item.owner} · {/if}{/if}
 												{#if item.owner}{item.owner.name}{/if}
 											</p>

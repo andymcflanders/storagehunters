@@ -128,8 +128,8 @@
 <div class="mx-auto max-w-lg space-y-6">
 	<!-- Header -->
 	<div class="text-center">
-		<h1 class="text-2xl font-bold text-slate-900">Scan QR Code</h1>
-		<p class="mt-1 text-slate-500">Point your camera at a container label</p>
+		<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Scan QR Code</h1>
+		<p class="mt-1 text-slate-500 dark:text-slate-400">Point your camera at a container label</p>
 	</div>
 
 	<!-- Scanner -->
@@ -145,7 +145,7 @@
 				type="text"
 				name="code"
 				placeholder="Enter code manually"
-				class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+				class="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-mono focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 				pattern="[A-Za-z0-9_-]+"
 			/>
 			<Button type="submit">Go</Button>
@@ -156,7 +156,7 @@
 	{#if recentScans.length > 0}
 		<div>
 			<div class="mb-3 flex items-center justify-between">
-				<h2 class="text-sm font-medium text-slate-700">Recent Scans</h2>
+				<h2 class="text-sm font-medium text-slate-700 dark:text-slate-300">Recent Scans</h2>
 				<button on:click={clearRecentScans} class="text-xs text-slate-400 hover:text-slate-600">
 					Clear
 				</button>
@@ -165,10 +165,10 @@
 				{#each recentScans as scan}
 					<a
 						href="/c/{scan.code}"
-						class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 hover:border-slate-300 hover:bg-slate-50"
+						class="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
 					>
 						<div>
-							<p class="font-medium text-slate-900">{scan.name}</p>
+							<p class="font-medium text-slate-900 dark:text-white">{scan.name}</p>
 							<p class="text-xs text-slate-400">{scan.code}</p>
 						</div>
 						<span class="text-xs text-slate-400">{formatTime(scan.timestamp)}</span>
@@ -179,9 +179,9 @@
 	{/if}
 
 	<!-- Tips -->
-	<div class="rounded-lg bg-slate-100 p-4">
-		<h3 class="text-sm font-medium text-slate-700">Tips</h3>
-		<ul class="mt-2 space-y-1 text-sm text-slate-500">
+	<div class="rounded-lg bg-slate-100 dark:bg-slate-700 p-4">
+		<h3 class="text-sm font-medium text-slate-700 dark:text-slate-300">Tips</h3>
+		<ul class="mt-2 space-y-1 text-sm text-slate-500 dark:text-slate-400">
 			<li>Hold your phone steady about 6-12 inches from the code</li>
 			<li>Ensure good lighting on the QR code</li>
 			<li>The code should fit within the scanner frame</li>

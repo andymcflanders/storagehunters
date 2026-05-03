@@ -90,7 +90,7 @@
 	<div class="w-full max-w-2xl">
 		<!-- Logo -->
 		<div class="mb-8 text-center">
-			<div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-primary-600 shadow-lg">
+			<div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-lg">
 				<svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
 				</svg>
@@ -142,7 +142,7 @@
 <Modal open={showPasswordModal} title={$_('auth.enterPassword')} on:close={() => (showPasswordModal = false)}>
 	{#if selectedUser}
 		<form on:submit|preventDefault={handlePasswordSubmit}>
-			<p class="mb-4 text-slate-600">
+			<p class="mb-4 text-slate-600 dark:text-slate-400">
 				{$_('auth.signInAs')} <strong>{selectedUser.name}</strong>
 			</p>
 			<Input

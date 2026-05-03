@@ -286,7 +286,7 @@
 		</Card>
 
 		<Card>
-			<h2 class="mb-4 text-lg font-semibold text-red-600">Danger Zone</h2>
+			<h2 class="mb-4 text-lg font-semibold text-red-600 dark:text-red-400">Danger Zone</h2>
 			<p class="mb-4 text-sm text-slate-500 dark:text-slate-400">
 				Sign out from your current session.
 			</p>
@@ -368,7 +368,7 @@
 							: 'border-slate-200 hover:border-slate-300 dark:border-slate-700'}"
 						on:click={() => setThemeOption(option.id)}
 					>
-						<svg class="h-8 w-8 {$theme === option.id ? 'text-primary-600' : 'text-slate-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<svg class="h-8 w-8 {$theme === option.id ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={option.icon} />
 						</svg>
 						<span class="text-sm font-medium {$theme === option.id ? 'text-primary-600' : 'text-slate-700 dark:text-slate-300'}">
@@ -416,7 +416,7 @@
 					on:click={exportJson}
 					disabled={exporting}
 				>
-					<svg class="h-10 w-10 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<svg class="h-10 w-10 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -435,7 +435,7 @@
 					on:click={exportCsv}
 					disabled={exporting}
 				>
-					<svg class="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<svg class="h-10 w-10 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"

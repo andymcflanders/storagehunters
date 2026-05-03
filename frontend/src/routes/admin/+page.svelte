@@ -1047,19 +1047,19 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div>
-		<h1 class="text-2xl font-bold text-slate-900">Admin Panel</h1>
-		<p class="mt-1 text-slate-500">Manage users, view system stats, and monitor activity</p>
+		<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Admin Panel</h1>
+		<p class="mt-1 text-slate-500 dark:text-slate-400">Manage users, view system stats, and monitor activity</p>
 	</div>
 
 	<!-- Tabs -->
-	<div class="border-b border-slate-200">
+	<div class="border-b border-slate-200 dark:border-slate-700">
 		<nav class="-mb-px flex space-x-8">
 			{#each tabs as tab}
 				<button
 					class="flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors
 						{activeTab === tab.id
 						? 'border-primary-500 text-primary-600'
-						: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'}"
+						: 'border-transparent text-slate-500 dark:text-slate-400 hover:border-slate-300 hover:text-slate-700'}"
 					on:click={() => setActiveTab(tab.id)}
 				>
 					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1084,14 +1084,14 @@
 				<!-- Users Card -->
 				<Card>
 					<div class="flex items-center gap-4">
-						<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+						<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:text-blue-400">
 							<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
 							</svg>
 						</div>
 						<div>
-							<p class="text-sm text-slate-500">Total Users</p>
-							<p class="text-2xl font-bold text-slate-900">{stats.total_users}</p>
+							<p class="text-sm text-slate-500 dark:text-slate-400">Total Users</p>
+							<p class="text-2xl font-bold text-slate-900 dark:text-white">{stats.total_users}</p>
 							<p class="text-xs text-slate-400">{stats.active_users} active, {stats.admin_users} admins</p>
 						</div>
 					</div>
@@ -1100,15 +1100,15 @@
 				<!-- Locations Card -->
 				<Card>
 					<div class="flex items-center gap-4">
-						<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 text-green-600">
+						<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:text-green-400">
 							<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
 							</svg>
 						</div>
 						<div>
-							<p class="text-sm text-slate-500">Locations</p>
-							<p class="text-2xl font-bold text-slate-900">{stats.total_locations}</p>
+							<p class="text-sm text-slate-500 dark:text-slate-400">Locations</p>
+							<p class="text-2xl font-bold text-slate-900 dark:text-white">{stats.total_locations}</p>
 						</div>
 					</div>
 				</Card>
@@ -1116,14 +1116,14 @@
 				<!-- Containers Card -->
 				<Card>
 					<div class="flex items-center gap-4">
-						<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+						<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:text-purple-400">
 							<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
 							</svg>
 						</div>
 						<div>
-							<p class="text-sm text-slate-500">Containers</p>
-							<p class="text-2xl font-bold text-slate-900">{stats.total_containers}</p>
+							<p class="text-sm text-slate-500 dark:text-slate-400">Containers</p>
+							<p class="text-2xl font-bold text-slate-900 dark:text-white">{stats.total_containers}</p>
 						</div>
 					</div>
 				</Card>
@@ -1137,8 +1137,8 @@
 							</svg>
 						</div>
 						<div>
-							<p class="text-sm text-slate-500">Items</p>
-							<p class="text-2xl font-bold text-slate-900">{stats.total_items}</p>
+							<p class="text-sm text-slate-500 dark:text-slate-400">Items</p>
+							<p class="text-2xl font-bold text-slate-900 dark:text-white">{stats.total_items}</p>
 							<p class="text-xs text-slate-400">+{stats.items_created_last_30_days} last 30 days</p>
 						</div>
 					</div>
@@ -1147,8 +1147,8 @@
 
 			<!-- Activity Summary -->
 			<Card>
-				<h3 class="text-lg font-semibold text-slate-900">Recent Activity</h3>
-				<p class="mt-1 text-sm text-slate-500">
+				<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Recent Activity</h3>
+				<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 					{stats.recent_activity_count} actions in the last 30 days
 				</p>
 				<div class="mt-4">
@@ -1171,7 +1171,7 @@
 							type="text"
 							bind:value={userSearch}
 							placeholder="Search users..."
-							class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+							class="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 						/>
 						<Button type="submit" variant="secondary">Search</Button>
 					</form>
@@ -1179,7 +1179,7 @@
 				<select
 					bind:value={userRoleFilter}
 					on:change={() => { usersPage = 1; loadUsers(); }}
-					class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+					class="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 				>
 					<option value="">All Roles</option>
 					<option value="admin">Admin</option>
@@ -1188,7 +1188,7 @@
 				<select
 					bind:value={userActiveFilter}
 					on:change={() => { usersPage = 1; loadUsers(); }}
-					class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+					class="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 				>
 					<option value="">All Status</option>
 					<option value="true">Active</option>
@@ -1214,7 +1214,7 @@
 					<div class="overflow-x-auto">
 						<table class="w-full">
 							<thead>
-								<tr class="border-b border-slate-200 text-left text-sm text-slate-500">
+								<tr class="border-b border-slate-200 dark:border-slate-700 text-left text-sm text-slate-500 dark:text-slate-400">
 									<th class="pb-3 font-medium">User</th>
 									<th class="pb-3 font-medium">Role</th>
 									<th class="pb-3 font-medium">Status</th>
@@ -1229,31 +1229,31 @@
 									<tr class="text-sm">
 										<td class="py-3">
 											<div>
-												<p class="font-medium text-slate-900">{u.name}</p>
-												<p class="text-slate-500">{u.email || 'No email'}</p>
+												<p class="font-medium text-slate-900 dark:text-white">{u.name}</p>
+												<p class="text-slate-500 dark:text-slate-400">{u.email || 'No email'}</p>
 											</div>
 										</td>
 										<td class="py-3">
 											<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-												{u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-800'}">
+												{u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100'}">
 												{u.role}
 											</span>
 										</td>
 										<td class="py-3">
 											<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-												{u.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+												{u.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800 dark:text-red-200'}">
 												{u.is_active ? 'Active' : 'Inactive'}
 											</span>
 										</td>
-										<td class="py-3 text-slate-600">{u.item_count}</td>
-										<td class="py-3 text-slate-600">{formatDate(u.created_at)}</td>
-										<td class="py-3 text-slate-600">
+										<td class="py-3 text-slate-600 dark:text-slate-400">{u.item_count}</td>
+										<td class="py-3 text-slate-600 dark:text-slate-400">{formatDate(u.created_at)}</td>
+										<td class="py-3 text-slate-600 dark:text-slate-400">
 											{u.last_activity ? formatDate(u.last_activity) : 'Never'}
 										</td>
 										<td class="py-3">
 											<div class="flex items-center gap-1">
 												<button
-													class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+													class="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
 													title="Edit"
 													on:click={() => openEditUserModal(u)}
 												>
@@ -1262,7 +1262,7 @@
 													</svg>
 												</button>
 												<button
-													class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+													class="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
 													title={u.is_active ? 'Deactivate' : 'Activate'}
 													on:click={() => handleToggleUserActive(u)}
 												>
@@ -1294,13 +1294,13 @@
 					</div>
 
 					{#if users.length === 0}
-						<div class="py-8 text-center text-slate-500">No users found</div>
+						<div class="py-8 text-center text-slate-500 dark:text-slate-400">No users found</div>
 					{/if}
 
 					<!-- Pagination -->
 					{#if usersTotal > 20}
 						<div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-							<p class="text-sm text-slate-500">
+							<p class="text-sm text-slate-500 dark:text-slate-400">
 								Showing {(usersPage - 1) * 20 + 1} to {Math.min(usersPage * 20, usersTotal)} of {usersTotal} users
 							</p>
 							<div class="flex gap-2">
@@ -1347,10 +1347,10 @@
 										<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {getActionColor(log.action)}">
 											{log.action}
 										</span>
-										<span class="text-sm font-medium text-slate-900">{log.entity_name}</span>
-										<span class="text-sm text-slate-500">({log.entity_type})</span>
+										<span class="text-sm font-medium text-slate-900 dark:text-white">{log.entity_name}</span>
+										<span class="text-sm text-slate-500 dark:text-slate-400">({log.entity_type})</span>
 									</div>
-									<p class="mt-1 text-sm text-slate-500">
+									<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 										by {log.user_name || 'Unknown'} at {formatDateTime(log.created_at)}
 									</p>
 								</div>
@@ -1358,14 +1358,14 @@
 						{/each}
 
 						{#if activityLogs.length === 0}
-							<div class="py-8 text-center text-slate-500">No activity logs found</div>
+							<div class="py-8 text-center text-slate-500 dark:text-slate-400">No activity logs found</div>
 						{/if}
 					</div>
 
 					<!-- Pagination -->
 					{#if activityTotal > 50}
 						<div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-							<p class="text-sm text-slate-500">
+							<p class="text-sm text-slate-500 dark:text-slate-400">
 								Showing {(activityPage - 1) * 50 + 1} to {Math.min(activityPage * 50, activityTotal)} of {activityTotal} logs
 							</p>
 							<div class="flex gap-2">
@@ -1404,44 +1404,44 @@
 			{:else}
 				<!-- Current Status -->
 				<Card>
-					<h3 class="text-lg font-semibold text-slate-900">Current SSL Status</h3>
+					<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Current SSL Status</h3>
 					<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-						<div class="rounded-lg bg-slate-50 p-4">
-							<p class="text-sm text-slate-500">Mode</p>
-							<p class="mt-1 font-medium text-slate-900">
+						<div class="rounded-lg bg-slate-50 dark:bg-slate-700/40 p-4">
+							<p class="text-sm text-slate-500 dark:text-slate-400">Mode</p>
+							<p class="mt-1 font-medium text-slate-900 dark:text-white">
 								{sslStatus ? getSSLModeLabel(sslStatus.mode) : 'Unknown'}
 							</p>
 						</div>
-						<div class="rounded-lg bg-slate-50 p-4">
-							<p class="text-sm text-slate-500">Status</p>
+						<div class="rounded-lg bg-slate-50 dark:bg-slate-700/40 p-4">
+							<p class="text-sm text-slate-500 dark:text-slate-400">Status</p>
 							<div class="mt-1 flex items-center gap-2">
 								{#if sslStatus?.enabled}
 									{#if sslStatus.certificate_valid}
 										<span class="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-										<span class="font-medium text-green-700">Active & Valid</span>
+										<span class="font-medium text-green-700 dark:text-green-300">Active & Valid</span>
 									{:else}
 										<span class="inline-flex h-2 w-2 rounded-full bg-yellow-500"></span>
 										<span class="font-medium text-yellow-700">Certificate Invalid</span>
 									{/if}
 								{:else}
 									<span class="inline-flex h-2 w-2 rounded-full bg-slate-400"></span>
-									<span class="font-medium text-slate-600">Disabled</span>
+									<span class="font-medium text-slate-600 dark:text-slate-400">Disabled</span>
 								{/if}
 							</div>
 						</div>
-						<div class="rounded-lg bg-slate-50 p-4">
-							<p class="text-sm text-slate-500">Domain</p>
-							<p class="mt-1 font-medium text-slate-900">
+						<div class="rounded-lg bg-slate-50 dark:bg-slate-700/40 p-4">
+							<p class="text-sm text-slate-500 dark:text-slate-400">Domain</p>
+							<p class="mt-1 font-medium text-slate-900 dark:text-white">
 								{sslStatus?.domain || 'Not configured'}
 							</p>
 						</div>
-						<div class="rounded-lg bg-slate-50 p-4">
-							<p class="text-sm text-slate-500">Certificate Expiry</p>
-							<p class="mt-1 font-medium text-slate-900">
+						<div class="rounded-lg bg-slate-50 dark:bg-slate-700/40 p-4">
+							<p class="text-sm text-slate-500 dark:text-slate-400">Certificate Expiry</p>
+							<p class="mt-1 font-medium text-slate-900 dark:text-white">
 								{#if sslStatus?.certificate_expiry}
 									{new Date(sslStatus.certificate_expiry).toLocaleDateString()}
 									{#if sslStatus.days_until_expiry !== null}
-										<span class="text-sm text-slate-500">
+										<span class="text-sm text-slate-500 dark:text-slate-400">
 											({sslStatus.days_until_expiry} days)
 										</span>
 									{/if}
@@ -1453,9 +1453,9 @@
 					</div>
 
 					{#if sslStatus?.last_error}
-						<div class="mt-4 rounded-lg bg-red-50 p-4">
-							<p class="text-sm font-medium text-red-800">Last Error:</p>
-							<p class="mt-1 text-sm text-red-700">{sslStatus.last_error}</p>
+						<div class="mt-4 rounded-lg bg-red-50 dark:bg-red-900/20 p-4">
+							<p class="text-sm font-medium text-red-800 dark:text-red-200">Last Error:</p>
+							<p class="mt-1 text-sm text-red-700 dark:text-red-300">{sslStatus.last_error}</p>
 						</div>
 					{/if}
 
@@ -1475,8 +1475,8 @@
 
 				<!-- Configure SSL -->
 				<Card>
-					<h3 class="text-lg font-semibold text-slate-900">Configure SSL/HTTPS</h3>
-					<p class="mt-1 text-sm text-slate-500">
+					<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Configure SSL/HTTPS</h3>
+					<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 						Enable HTTPS to secure your connection and allow camera access on mobile devices.
 					</p>
 
@@ -1495,8 +1495,8 @@
 						</div>
 
 						{#if sslFormData.mode === 'self_signed'}
-							<div class="rounded-lg bg-amber-50 p-4">
-								<p class="text-sm text-amber-800">
+							<div class="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-4">
+								<p class="text-sm text-amber-800 dark:text-amber-200">
 									<strong>Note:</strong> Self-signed certificates will show a browser warning.
 									Users will need to accept the certificate to proceed. This is suitable for
 									local networks and testing.
@@ -1514,15 +1514,15 @@
 									placeholder="e.g., storagehub.local or 192.168.1.100"
 									class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 								/>
-								<p class="mt-1 text-xs text-slate-500">
+								<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
 									Leave blank to use 'storagehub.local' as the certificate name
 								</p>
 							</div>
 						{/if}
 
 						{#if sslFormData.mode === 'letsencrypt'}
-							<div class="rounded-lg bg-blue-50 p-4">
-								<p class="text-sm text-blue-800">
+							<div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4">
+								<p class="text-sm text-blue-800 dark:text-blue-200">
 									<strong>Requirements:</strong> Your server must be accessible from the internet
 									on port 80, and you need a valid domain name pointing to this server.
 								</p>
@@ -1554,7 +1554,7 @@
 									required
 									class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 								/>
-								<p class="mt-1 text-xs text-slate-500">
+								<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
 									Used for certificate expiry notifications from Let's Encrypt
 								</p>
 							</div>
@@ -1576,8 +1576,8 @@
 
 				<!-- Help -->
 				<Card>
-					<h3 class="text-lg font-semibold text-slate-900">About HTTPS</h3>
-					<div class="mt-4 space-y-3 text-sm text-slate-600">
+					<h3 class="text-lg font-semibold text-slate-900 dark:text-white">About HTTPS</h3>
+					<div class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-400">
 						<p>
 							<strong>Why enable HTTPS?</strong> Modern browsers require HTTPS to access
 							device features like the camera. Without HTTPS, QR code scanning won't work
@@ -1676,18 +1676,18 @@
 				<Card>
 					<div class="flex items-center justify-between">
 						<div>
-							<h3 class="text-lg font-semibold text-slate-900">OpenAI Classification</h3>
-							<p class="mt-1 text-sm text-slate-500">
+							<h3 class="text-lg font-semibold text-slate-900 dark:text-white">OpenAI Classification</h3>
+							<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 								AI-powered item classification and description generation
 							</p>
 						</div>
 						{#if openaiSettings?.api_key_set}
-							<span class="flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+							<span class="flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700 dark:text-green-300">
 								<span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
 								API Key Set
 							</span>
 						{:else}
-							<span class="flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+							<span class="flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
 								<span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
 								No API Key
 							</span>
@@ -1697,11 +1697,11 @@
 					{#if openaiSettings}
 						<div class="mt-6 space-y-6">
 							<!-- Vision Classification -->
-							<div class="rounded-lg border border-slate-200 p-4">
+							<div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
 								<div class="flex items-center justify-between">
 									<div>
-										<h4 class="font-medium text-slate-900">Vision Classification</h4>
-										<p class="text-xs text-slate-500">Used for analyzing item photos</p>
+										<h4 class="font-medium text-slate-900 dark:text-white">Vision Classification</h4>
+										<p class="text-xs text-slate-500 dark:text-slate-400">Used for analyzing item photos</p>
 									</div>
 									<label class="relative inline-flex cursor-pointer items-center">
 										<input type="checkbox" bind:checked={openaiFormData.vision_enabled} class="peer sr-only" />
@@ -1754,29 +1754,29 @@
 										bind:value={openaiFormData.vision_temperature}
 										class="w-full"
 									/>
-									<p class="mt-1 text-xs text-slate-500">
+									<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
 										Lower = more consistent, Higher = more creative
 									</p>
 								</div>
 
 								<!-- Cost estimate -->
-								<div class="mt-4 rounded-lg bg-slate-50 p-3">
-									<p class="text-sm text-slate-600">
+								<div class="mt-4 rounded-lg bg-slate-50 dark:bg-slate-700/40 p-3">
+									<p class="text-sm text-slate-600 dark:text-slate-400">
 										<span class="font-medium">Estimated cost per image:</span>
 										${openaiSettings.vision_cost_estimate.cost_per_image_usd?.toFixed(5) || '0.00000'}
 									</p>
-									<p class="mt-1 text-xs text-slate-500">
+									<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
 										~{openaiSettings.vision_cost_estimate.estimated_input_tokens} input + {openaiSettings.vision_cost_estimate.estimated_output_tokens} output tokens
 									</p>
 								</div>
 							</div>
 
 							<!-- Summary Generation -->
-							<div class="rounded-lg border border-slate-200 p-4">
+							<div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
 								<div class="flex items-center justify-between">
 									<div>
-										<h4 class="font-medium text-slate-900">Summary Generation</h4>
-										<p class="text-xs text-slate-500">Used for container label summaries</p>
+										<h4 class="font-medium text-slate-900 dark:text-white">Summary Generation</h4>
+										<p class="text-xs text-slate-500 dark:text-slate-400">Used for container label summaries</p>
 									</div>
 									<label class="relative inline-flex cursor-pointer items-center">
 										<input type="checkbox" bind:checked={openaiFormData.summary_enabled} class="peer sr-only" />
@@ -1829,29 +1829,29 @@
 										bind:value={openaiFormData.summary_temperature}
 										class="w-full"
 									/>
-									<p class="mt-1 text-xs text-slate-500">
+									<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
 										Lower = more consistent, Higher = more creative
 									</p>
 								</div>
 
 								<!-- Cost estimate -->
-								<div class="mt-4 rounded-lg bg-slate-50 p-3">
-									<p class="text-sm text-slate-600">
+								<div class="mt-4 rounded-lg bg-slate-50 dark:bg-slate-700/40 p-3">
+									<p class="text-sm text-slate-600 dark:text-slate-400">
 										<span class="font-medium">Estimated cost per summary:</span>
 										${openaiSettings.summary_cost_estimate.estimated_cost_usd.toFixed(6)}
 									</p>
-									<p class="mt-1 text-xs text-slate-500">
+									<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
 										~{openaiSettings.summary_cost_estimate.estimated_input_tokens} input + {openaiSettings.summary_cost_estimate.estimated_output_tokens} output tokens
 									</p>
 								</div>
 							</div>
 
 							<!-- AI Owner Suggestion -->
-							<div class="rounded-lg border border-slate-200 p-4">
+							<div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
 								<div class="flex items-center justify-between">
 									<div>
-										<h4 class="font-medium text-slate-900">AI Owner Suggestion</h4>
-										<p class="text-xs text-slate-500">
+										<h4 class="font-medium text-slate-900 dark:text-white">AI Owner Suggestion</h4>
+										<p class="text-xs text-slate-500 dark:text-slate-400">
 											When classifying an item, also pick the most likely owner from
 											non-admin users using their birthdate + gender. Surfaced as a
 											banner on the item page; never auto-assigns.
@@ -1869,11 +1869,11 @@
 							</div>
 
 							<!-- Size Age Backfill -->
-							<div class="rounded-lg border border-slate-200 p-4">
+							<div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
 								<div class="flex items-start justify-between gap-4">
 									<div>
-										<h4 class="font-medium text-slate-900">Recompute Size Age Ranges</h4>
-										<p class="text-xs text-slate-500">
+										<h4 class="font-medium text-slate-900 dark:text-white">Recompute Size Age Ranges</h4>
+										<p class="text-xs text-slate-500 dark:text-slate-400">
 											Infers an age range (in months) from the size string of every
 											existing item that doesn't have one yet. Drives the
 											<a href="/outgrown" class="underline">Outgrown</a> page. Cheap text-only
@@ -1898,7 +1898,7 @@
 							</div>
 						</div>
 					{:else}
-						<div class="mt-4 text-sm text-slate-500">
+						<div class="mt-4 text-sm text-slate-500 dark:text-slate-400">
 							Loading OpenAI settings...
 						</div>
 					{/if}
@@ -1906,8 +1906,8 @@
 
 				<!-- OpenAI Help -->
 				<Card>
-					<h3 class="text-lg font-semibold text-slate-900">About OpenAI Classification</h3>
-					<div class="mt-4 space-y-3 text-sm text-slate-600">
+					<h3 class="text-lg font-semibold text-slate-900 dark:text-white">About OpenAI Classification</h3>
+					<div class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-400">
 						<p>
 							<strong>Vision Classification:</strong> When you add a new item, the AI analyzes the photo
 							to automatically generate a name, description, tags, and detect size/season information.
@@ -1922,7 +1922,7 @@
 						</p>
 						<p>
 							<strong>Cost Estimates:</strong> Shown costs are approximate. Actual costs depend on
-							image complexity and response length. Check <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener" class="text-primary-600 underline">OpenAI pricing</a> for current rates.
+							image complexity and response length. Check <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener" class="text-primary-600 dark:text-primary-400 underline">OpenAI pricing</a> for current rates.
 						</p>
 					</div>
 				</Card>
@@ -1935,8 +1935,8 @@
 		<div class="space-y-6">
 			<!-- Quick Actions -->
 			<Card>
-				<h3 class="text-lg font-semibold text-slate-900">Create Backup</h3>
-				<p class="mt-1 text-sm text-slate-500">
+				<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Create Backup</h3>
+				<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 					Create a backup of your database. Backups include all locations, containers, items, and tags.
 				</p>
 
@@ -1946,7 +1946,7 @@
 							<input
 								type="checkbox"
 								bind:checked={backupOptions.include_images}
-								class="h-4 w-4 rounded border-slate-300 text-primary-600"
+								class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400"
 							/>
 							<span class="text-sm text-slate-700 dark:text-slate-300">Include images</span>
 						</label>
@@ -1971,17 +1971,17 @@
 
 			<!-- Restore from File -->
 			<Card>
-				<h3 class="text-lg font-semibold text-slate-900">Restore from File</h3>
-				<p class="mt-1 text-sm text-slate-500">
+				<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Restore from File</h3>
+				<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 					Upload a backup file to restore data. New items will be added; existing items won't be overwritten.
 				</p>
 
 				<div class="mt-4">
-					<label class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 p-6 hover:border-primary-400 hover:bg-slate-50">
+					<label class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 p-6 hover:border-primary-400 hover:bg-slate-50 dark:hover:bg-slate-700/50">
 						<svg class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
 						</svg>
-						<span class="text-sm text-slate-600">Click to select a backup file (.zip)</span>
+						<span class="text-sm text-slate-600 dark:text-slate-400">Click to select a backup file (.zip)</span>
 						<input
 							type="file"
 							accept=".zip"
@@ -1997,12 +1997,12 @@
 			<Card>
 				<div class="flex items-center justify-between">
 					<div>
-						<h3 class="text-lg font-semibold text-slate-900">Backup History</h3>
-						<p class="mt-1 text-sm text-slate-500">Previous backups stored on the server</p>
+						<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Backup History</h3>
+						<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Previous backups stored on the server</p>
 					</div>
 					<button
 						on:click={loadBackups}
-						class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+						class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
 						title="Refresh"
 					>
 						<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2018,7 +2018,7 @@
 						{/each}
 					</div>
 				{:else if backups.length === 0}
-					<div class="mt-4 py-8 text-center text-slate-500">
+					<div class="mt-4 py-8 text-center text-slate-500 dark:text-slate-400">
 						No backups found. Create your first backup above.
 					</div>
 				{:else}
@@ -2027,12 +2027,12 @@
 							<div class="flex items-center justify-between py-3">
 								<div class="flex-1 min-w-0">
 									<div class="flex items-center gap-2">
-										<p class="truncate font-medium text-slate-900">{b.filename || 'Unknown'}</p>
+										<p class="truncate font-medium text-slate-900 dark:text-white">{b.filename || 'Unknown'}</p>
 										<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {backup.getStatusColor(b.status)}">
 											{b.status}
 										</span>
 									</div>
-									<div class="mt-1 flex items-center gap-3 text-xs text-slate-500">
+									<div class="mt-1 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
 										<span>{backup.formatBytes(b.size_bytes)}</span>
 										{#if b.completed_at}
 											<span>{formatDateTime(b.completed_at)}</span>
@@ -2047,7 +2047,7 @@
 								<div class="flex items-center gap-1 ml-4">
 									{#if b.status === 'completed'}
 										<button
-											class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+											class="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
 											title="Download"
 											on:click={() => handleDownloadBackup(b)}
 										>
@@ -2107,7 +2107,7 @@
 					<!-- Pagination -->
 					{#if backupsTotal > 20}
 						<div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-							<p class="text-sm text-slate-500">
+							<p class="text-sm text-slate-500 dark:text-slate-400">
 								Showing {(backupsPage - 1) * 20 + 1} to {Math.min(backupsPage * 20, backupsTotal)} of {backupsTotal}
 							</p>
 							<div class="flex gap-2">
@@ -2137,8 +2137,8 @@
 			<Card>
 				<div class="flex items-center justify-between">
 					<div>
-						<h3 class="text-lg font-semibold text-slate-900">Scheduled Backups</h3>
-						<p class="mt-1 text-sm text-slate-500">
+						<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Scheduled Backups</h3>
+						<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 							Configure automatic backups to run on a schedule.
 						</p>
 					</div>
@@ -2149,27 +2149,27 @@
 						<div class="h-12 rounded bg-slate-200"></div>
 					</div>
 				{:else if schedules.length === 0}
-					<div class="mt-4 rounded-lg border-2 border-dashed border-slate-200 p-6 text-center">
+					<div class="mt-4 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-700 p-6 text-center">
 						<svg class="mx-auto h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
-						<p class="mt-2 text-sm text-slate-500">No scheduled backups configured.</p>
+						<p class="mt-2 text-sm text-slate-500 dark:text-slate-400">No scheduled backups configured.</p>
 						<p class="mt-1 text-xs text-slate-400">
 							Create a backup configuration first, then add schedules via the API.
 						</p>
 					</div>
 				{:else}
-					<div class="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200">
+					<div class="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200 dark:border-slate-700">
 						{#each schedules as schedule}
 							<div class="flex items-center justify-between p-4">
 								<div class="min-w-0 flex-1">
 									<div class="flex items-center gap-2">
-										<p class="font-medium text-slate-900">{schedule.name}</p>
-										<span class="rounded-full px-2 py-0.5 text-xs font-medium {schedule.is_active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}">
+										<p class="font-medium text-slate-900 dark:text-white">{schedule.name}</p>
+										<span class="rounded-full px-2 py-0.5 text-xs font-medium {schedule.is_active ? 'bg-green-100 text-green-800' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}">
 											{schedule.is_active ? 'Active' : 'Paused'}
 										</span>
 									</div>
-									<p class="mt-1 text-sm text-slate-500">
+									<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 										{backup.formatScheduleDescription(schedule)}
 									</p>
 									{#if schedule.next_run_at}
@@ -2190,7 +2190,7 @@
 										</svg>
 									</button>
 									<button
-										class="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+										class="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
 										title={schedule.is_active ? 'Pause' : 'Activate'}
 										on:click={() => handleToggleSchedule(schedule)}
 									>
@@ -2235,20 +2235,20 @@
 				<Card>
 					<div class="flex items-start justify-between">
 						<div>
-							<h3 class="text-lg font-semibold text-slate-900">Google Drive Integration</h3>
-							<p class="mt-1 text-sm text-slate-500">
+							<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Google Drive Integration</h3>
+							<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 								Store backups in Google Drive for offsite protection.
 							</p>
 						</div>
-						<span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">
+						<span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 dark:text-amber-200">
 							Workspace Only
 						</span>
 					</div>
 
 					<!-- Workspace Requirement Notice -->
-					<div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-						<p class="text-xs font-medium text-amber-800">Requires Google Workspace</p>
-						<p class="mt-1 text-xs text-amber-700">
+					<div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 p-3">
+						<p class="text-xs font-medium text-amber-800 dark:text-amber-200">Requires Google Workspace</p>
+						<p class="mt-1 text-xs text-amber-700 dark:text-amber-300">
 							Google Drive with service accounts requires a <strong>Google Workspace</strong> account (Business, Education, etc.) with <strong>Shared Drives</strong>.
 							Personal Gmail accounts cannot use this feature due to storage quota limitations.
 							<a href="/admin/google-drive-setup" class="font-medium underline">Learn more</a>
@@ -2258,22 +2258,22 @@
 					{#if googleDriveConnected}
 						<!-- Connected State -->
 						<div class="mt-4">
-							<div class="flex items-center gap-3 rounded-lg {googleDriveWarning ? 'bg-amber-50' : 'bg-green-50'} p-4">
+							<div class="flex items-center gap-3 rounded-lg {googleDriveWarning ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-green-50'} p-4">
 								{#if googleDriveWarning}
 									<svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
 									</svg>
 								{:else}
-									<svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 									</svg>
 								{/if}
 								<div class="flex-1">
-									<p class="text-sm font-medium {googleDriveWarning ? 'text-amber-800' : 'text-green-800'}">
+									<p class="text-sm font-medium {googleDriveWarning ? 'text-amber-800 dark:text-amber-200' : 'text-green-800'}">
 										{googleDriveWarning ? 'Connected - Action Required' : 'Connected to Google Drive'}
 									</p>
 									{#if googleDriveEmail}
-										<p class="text-xs {googleDriveWarning ? 'text-amber-600' : 'text-green-600'}">{googleDriveEmail}</p>
+										<p class="text-xs {googleDriveWarning ? 'text-amber-600' : 'text-green-600 dark:text-green-400'}">{googleDriveEmail}</p>
 									{/if}
 								</div>
 								<Button variant="secondary" size="sm" on:click={disconnectGoogleDrive}>
@@ -2282,17 +2282,17 @@
 							</div>
 
 							{#if googleDriveWarning}
-								<div class="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
-									<p class="text-sm font-medium text-red-800">Shared Drive Required</p>
-									<p class="mt-1 text-sm text-red-700">
+								<div class="mt-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 p-4">
+									<p class="text-sm font-medium text-red-800 dark:text-red-200">Shared Drive Required</p>
+									<p class="mt-1 text-sm text-red-700 dark:text-red-300">
 										Service accounts cannot upload to regular Google Drive due to storage quota limitations.
 										You need a <strong>Google Workspace account</strong> with a <strong>Shared Drive</strong> (Team Drive).
 									</p>
-									<div class="mt-3 rounded bg-red-100 p-3 text-xs text-red-800">
+									<div class="mt-3 rounded bg-red-100 p-3 text-xs text-red-800 dark:text-red-200">
 										<p class="font-medium">Why won't regular shared folders work?</p>
 										<p class="mt-1">When a service account uploads a file, it owns that file. Storage quota is based on ownership, not file location. Service accounts have zero storage quota, so uploads always fail - even to shared folders.</p>
 									</div>
-									<div class="mt-3 space-y-2 text-sm text-red-700">
+									<div class="mt-3 space-y-2 text-sm text-red-700 dark:text-red-300">
 										<p class="font-medium">Options:</p>
 										<ol class="ml-4 list-decimal space-y-1">
 											<li>Use a Google Workspace account and create a Shared Drive</li>
@@ -2302,7 +2302,7 @@
 									</div>
 									<a
 										href="/admin/google-drive-setup"
-										class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-700 hover:text-red-900 hover:underline"
+										class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-700 dark:text-red-300 hover:text-red-900 hover:underline"
 									>
 										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -2311,11 +2311,11 @@
 									</a>
 								</div>
 							{:else if googleDriveSharedDrives.length > 0}
-								<div class="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
-									<p class="text-sm font-medium text-green-800">Available Shared Drives:</p>
+								<div class="mt-3 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 p-3">
+									<p class="text-sm font-medium text-green-800 dark:text-green-200">Available Shared Drives:</p>
 									<ul class="mt-1 space-y-1">
 										{#each googleDriveSharedDrives as drive}
-											<li class="text-sm text-green-700">• {drive.name}</li>
+											<li class="text-sm text-green-700 dark:text-green-300">• {drive.name}</li>
 										{/each}
 									</ul>
 								</div>
@@ -2327,7 +2327,7 @@
 									<h4 class="text-sm font-medium text-slate-700 dark:text-slate-300">Backups in Google Drive</h4>
 									<button
 										on:click={loadRemoteBackups}
-										class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+										class="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
 										title="Refresh"
 									>
 										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2343,14 +2343,14 @@
 										{/each}
 									</div>
 								{:else if remoteBackups.length === 0}
-									<p class="mt-2 text-sm text-slate-500">No backups in Google Drive yet.</p>
+									<p class="mt-2 text-sm text-slate-500 dark:text-slate-400">No backups in Google Drive yet.</p>
 								{:else}
-									<div class="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200">
+									<div class="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200 dark:border-slate-700">
 										{#each remoteBackups as rb}
 											<div class="flex items-center justify-between p-3">
 												<div class="min-w-0 flex-1">
-													<p class="truncate text-sm font-medium text-slate-900">{rb.filename}</p>
-													<p class="text-xs text-slate-500">
+													<p class="truncate text-sm font-medium text-slate-900 dark:text-white">{rb.filename}</p>
+													<p class="text-xs text-slate-500 dark:text-slate-400">
 														{backup.formatBytes(rb.size_bytes)} - {formatDateTime(rb.created_at)}
 													</p>
 												</div>
@@ -2372,14 +2372,14 @@
 					{:else}
 						<!-- Setup State -->
 						<div class="mt-4 space-y-4">
-							<div class="rounded-lg bg-blue-50 p-4">
-								<p class="text-sm text-blue-800">
+							<div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4">
+								<p class="text-sm text-blue-800 dark:text-blue-200">
 									<strong>Setup:</strong> Create a Service Account in Google Cloud Console,
 									enable the Drive API, and download the JSON key file. Paste the contents below.
 								</p>
 								<a
 									href="/admin/google-drive-setup"
-									class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:text-blue-900 hover:underline"
+									class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 hover:underline"
 								>
 									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -2397,7 +2397,7 @@
 									bind:value={googleDriveCredentials}
 									rows="4"
 									placeholder="Paste service account JSON here..."
-									class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+									class="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 font-mono text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 								></textarea>
 							</div>
 
@@ -2414,20 +2414,20 @@
 				<Card>
 					<div class="flex items-start justify-between">
 						<div>
-							<h3 class="text-lg font-semibold text-slate-900">Dropbox Integration</h3>
-							<p class="mt-1 text-sm text-slate-500">
+							<h3 class="text-lg font-semibold text-slate-900 dark:text-white">Dropbox Integration</h3>
+							<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
 								Store backups in Dropbox for offsite protection.
 							</p>
 						</div>
-						<span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+						<span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:text-green-200">
 							Personal & Business
 						</span>
 					</div>
 
 					<!-- Personal Account Notice -->
-					<div class="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
-						<p class="text-xs font-medium text-green-800">Works with personal accounts</p>
-						<p class="mt-1 text-xs text-green-700">
+					<div class="mt-3 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 p-3">
+						<p class="text-xs font-medium text-green-800 dark:text-green-200">Works with personal accounts</p>
+						<p class="mt-1 text-xs text-green-700 dark:text-green-300">
 							Dropbox works with both <strong>personal</strong> and <strong>business</strong> accounts.
 							Simply generate an access token from the Dropbox App Console.
 						</p>
@@ -2436,14 +2436,14 @@
 					{#if dropboxConnected}
 						<!-- Connected State -->
 						<div class="mt-4">
-							<div class="flex items-center gap-3 rounded-lg bg-green-50 p-4">
-								<svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<div class="flex items-center gap-3 rounded-lg bg-green-50 dark:bg-green-900/20 p-4">
+								<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 								</svg>
 								<div class="flex-1">
-									<p class="text-sm font-medium text-green-800">Connected to Dropbox</p>
+									<p class="text-sm font-medium text-green-800 dark:text-green-200">Connected to Dropbox</p>
 									{#if dropboxAccountName}
-										<p class="text-xs text-green-600">{dropboxAccountName} ({dropboxEmail})</p>
+										<p class="text-xs text-green-600 dark:text-green-400">{dropboxAccountName} ({dropboxEmail})</p>
 									{/if}
 								</div>
 								<Button variant="secondary" size="sm" on:click={disconnectDropbox}>
@@ -2457,7 +2457,7 @@
 									<h4 class="text-sm font-medium text-slate-700 dark:text-slate-300">Backups in Dropbox</h4>
 									<button
 										on:click={loadDropboxBackups}
-										class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+										class="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
 										title="Refresh"
 									>
 										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2473,14 +2473,14 @@
 										{/each}
 									</div>
 								{:else if dropboxBackups.length === 0}
-									<p class="mt-2 text-sm text-slate-500">No backups in Dropbox yet.</p>
+									<p class="mt-2 text-sm text-slate-500 dark:text-slate-400">No backups in Dropbox yet.</p>
 								{:else}
-									<div class="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200">
+									<div class="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200 dark:border-slate-700">
 										{#each dropboxBackups as rb}
 											<div class="flex items-center justify-between p-3">
 												<div class="min-w-0 flex-1">
-													<p class="truncate text-sm font-medium text-slate-900">{rb.filename}</p>
-													<p class="text-xs text-slate-500">
+													<p class="truncate text-sm font-medium text-slate-900 dark:text-white">{rb.filename}</p>
+													<p class="text-xs text-slate-500 dark:text-slate-400">
 														{backup.formatBytes(rb.size_bytes)} •
 														{new Date(rb.created_at).toLocaleDateString()}
 													</p>
@@ -2503,12 +2503,12 @@
 					{:else}
 						<!-- Setup State -->
 						<div class="mt-4 space-y-4">
-							<div class="rounded-lg bg-blue-50 p-4">
-								<p class="text-sm text-blue-800">
+							<div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4">
+								<p class="text-sm text-blue-800 dark:text-blue-200">
 									<strong>Setup:</strong> Create a Dropbox App at <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener noreferrer" class="underline">dropbox.com/developers/apps</a>,
 									generate an access token, and paste it below.
 								</p>
-								<ol class="mt-2 ml-4 list-decimal text-xs text-blue-700 space-y-1">
+								<ol class="mt-2 ml-4 list-decimal text-xs text-blue-700 dark:text-blue-300 space-y-1">
 									<li>Go to <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener noreferrer" class="underline">Dropbox App Console</a></li>
 									<li>Click "Create app" → Choose "Scoped access" → "Full Dropbox"</li>
 									<li>Name your app (e.g., "StorageHub Backups")</li>
@@ -2526,7 +2526,7 @@
 									type="password"
 									bind:value={dropboxAccessToken}
 									placeholder="Enter your Dropbox access token"
-									class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+									class="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 font-mono text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
 								/>
 							</div>
 
@@ -2540,8 +2540,8 @@
 
 			<!-- Help -->
 			<Card>
-				<h3 class="text-lg font-semibold text-slate-900">About Backups</h3>
-				<div class="mt-4 space-y-3 text-sm text-slate-600">
+				<h3 class="text-lg font-semibold text-slate-900 dark:text-white">About Backups</h3>
+				<div class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-400">
 					<p>
 						<strong>What's included?</strong> Backups contain all your locations, containers,
 						items, tags, and optionally images. User accounts are not included in backups.
@@ -2620,7 +2620,7 @@
 							type="checkbox"
 							bind:checked={userFormData.requires_password}
 							disabled={userFormData.is_profile}
-							class="h-4 w-4 rounded border-slate-300 text-primary-600 disabled:opacity-50"
+							class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 disabled:opacity-50"
 						/>
 						<span class="text-sm text-slate-700 dark:text-slate-300">Require password to login</span>
 					</label>
@@ -2650,7 +2650,7 @@
 								on:change={() => {
 									if (userFormData.is_profile) userFormData.requires_password = false;
 								}}
-								class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 dark:border-slate-600"
+								class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 dark:text-primary-400 dark:border-slate-600"
 							/>
 							<span class="text-sm text-slate-700 dark:text-slate-300">
 								<span class="font-medium">Profile (no login)</span>
@@ -2694,7 +2694,7 @@
 							<input
 								type="checkbox"
 								bind:checked={userFormData.is_active}
-								class="h-4 w-4 rounded border-slate-300 text-primary-600"
+								class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400"
 							/>
 							<span class="text-sm text-slate-700 dark:text-slate-300">Active</span>
 						</label>
@@ -2752,7 +2752,7 @@
 						<input
 							type="checkbox"
 							bind:checked={restoreOptions.restore_images}
-							class="h-4 w-4 rounded border-slate-300 text-primary-600 dark:border-slate-600"
+							class="h-4 w-4 rounded border-slate-300 text-primary-600 dark:text-primary-400 dark:border-slate-600"
 						/>
 						<span class="text-sm text-slate-700 dark:text-slate-300">Restore images (if included in backup)</span>
 					</label>

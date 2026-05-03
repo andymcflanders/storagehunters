@@ -135,12 +135,12 @@
 				type="checkbox"
 				checked={isSelectedForPrint}
 				on:change={handleTogglePrintSelection}
-				class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+				class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500 cursor-pointer"
 				title="Select for batch printing"
 			/>
 			<!-- Expand button -->
 			<button
-				class="rounded p-0.5 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-600 dark:hover:text-slate-300"
+				class="rounded p-0.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-600 dark:hover:text-slate-300"
 				on:click={toggleExpand}
 				title={expanded ? 'Collapse' : 'Expand'}
 			>
@@ -182,7 +182,7 @@
 
 	<!-- QR Code -->
 	<td class="w-20 px-1 py-2">
-		<span class="font-mono text-xs text-slate-500">{container.qr_code}</span>
+		<span class="font-mono text-xs text-slate-500 dark:text-slate-400">{container.qr_code}</span>
 	</td>
 
 	<!-- Empty cells for alignment -->

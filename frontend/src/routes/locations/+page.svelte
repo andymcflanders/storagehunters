@@ -63,8 +63,8 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-2xl font-bold text-slate-900">{$_('locations.title')}</h1>
-			<p class="mt-1 text-slate-500">{$_('locations.manageStorage')}</p>
+			<h1 class="text-2xl font-bold text-slate-900 dark:text-white">{$_('locations.title')}</h1>
+			<p class="mt-1 text-slate-500 dark:text-slate-400">{$_('locations.manageStorage')}</p>
 		</div>
 		<Button on:click={() => (showCreateModal = true)}>
 			<svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,8 +87,8 @@
 				<svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-slate-900">{$_('dashboard.noLocations')}</h3>
-				<p class="mt-2 text-slate-500">{$_('dashboard.getStarted')}</p>
+				<h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-white">{$_('dashboard.noLocations')}</h3>
+				<p class="mt-2 text-slate-500 dark:text-slate-400">{$_('dashboard.getStarted')}</p>
 				<Button class="mt-4" on:click={() => (showCreateModal = true)}>{$_('locations.addLocation')}</Button>
 			</div>
 		</Card>

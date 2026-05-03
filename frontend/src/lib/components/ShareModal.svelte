@@ -121,7 +121,7 @@
 						<input
 							type="checkbox"
 							bind:checked={allowItemView}
-							class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+							class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
 						/>
 						<span class="text-sm text-slate-700 dark:text-slate-300">Allow viewing items in container</span>
 					</label>

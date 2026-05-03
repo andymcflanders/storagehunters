@@ -206,7 +206,7 @@
 	<div class="relative flex-1 overflow-hidden">
 		{#if errorMessage}
 			<div class="flex h-full flex-col items-center justify-center bg-slate-900 p-6 text-center">
-				<svg class="h-12 w-12 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<svg class="h-12 w-12 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -307,7 +307,7 @@
 
 				<!-- Capture button -->
 				<button
-					class="flex h-16 w-16 items-center justify-center rounded-full bg-white disabled:opacity-50"
+					class="flex h-16 w-16 items-center justify-center rounded-full bg-white dark:bg-slate-800 disabled:opacity-50"
 					disabled={!ready || currentPhotos.length >= maxPhotosPerItem}
 					on:click={capturePhoto}
 				>
@@ -356,7 +356,7 @@
 				</button>
 
 				<button
-					class="flex h-16 w-16 items-center justify-center rounded-full bg-white disabled:opacity-50"
+					class="flex h-16 w-16 items-center justify-center rounded-full bg-white dark:bg-slate-800 disabled:opacity-50"
 					disabled={!ready || currentPhotos.length >= maxPhotosPerItem}
 					on:click={capturePhoto}
 				>

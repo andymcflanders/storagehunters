@@ -52,7 +52,7 @@
 			<!-- Suggested badge -->
 			{#if suggestedTemplate === template.value}
 				<span
-					class="absolute -top-2 -right-2 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full"
+					class="absolute -top-2 -right-2 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:text-green-300 rounded-full"
 				>
 					Suggested
 				</span>
