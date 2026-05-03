@@ -277,17 +277,22 @@
 					<span class="text-xs font-medium">{$_('nav.scan')}</span>
 				</a>
 
-				<!-- Search -->
+				<!-- Declutter (Search remains accessible from the home screen) -->
 				<a
-					href="/search"
-					class="flex flex-1 flex-col items-center justify-center gap-1 {$page.url.pathname === '/search'
+					href="/declutter"
+					class="flex flex-1 flex-col items-center justify-center gap-1 {$page.url.pathname.startsWith('/declutter')
 						? 'text-primary-600'
 						: 'text-slate-500 dark:text-slate-400'}"
 				>
 					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+						/>
 					</svg>
-					<span class="text-xs font-medium">{$_('nav.search')}</span>
+					<span class="text-xs font-medium">{$_('nav.declutter')}</span>
 				</a>
 			</div>
 		</nav>
