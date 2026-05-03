@@ -760,6 +760,40 @@ async def update_openai_settings(
     )
 
 
+# ============== Size Age Backfill ==============
+
+
+class SizeAgeBackfillResponse(BaseModel):
+    """Result of queuing the size age range backfill."""
+
+    queued: int  # Number of items eligible (size set, no age range yet)
+    task_id: str
+
+
+@router.post("/recompute-size-ages", response_model=SizeAgeBackfillResponse)
+async def recompute_size_ages(
+    db: DbSession,
+    admin: AdminUser,
+) -> SizeAgeBackfillResponse:
+    """Queue a backfill that infers size→age ranges for existing items.
+
+    Hits the text model (no images) once per item with a non-empty
+    size and no existing age range. Idempotent — re-running is safe.
+    """
+    from app.worker.tasks import backfill_size_age_ranges
+
+    eligible = await db.scalar(
+        select(func.count(Item.id)).where(
+            Item.size.is_not(None),
+            Item.size != "",
+            Item.size_age_max_months.is_(None),
+        )
+    )
+
+    task = backfill_size_age_ranges.delay()
+    return SizeAgeBackfillResponse(queued=eligible or 0, task_id=task.id)
+
+
 # ============== Language Settings ==============
 
 

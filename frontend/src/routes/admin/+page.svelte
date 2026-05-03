@@ -56,6 +56,7 @@
 
 	// AI loading state (shared between OpenAI panel and tab loader)
 	let loadingAI = false;
+	let recomputingSizeAges = false;
 
 	// OpenAI settings state
 	let openaiSettings: OpenAISettings | null = null;
@@ -404,6 +405,23 @@
 			toast.error(message);
 		} finally {
 			savingOpenAI = false;
+		}
+	}
+
+	async function handleRecomputeSizeAges() {
+		recomputingSizeAges = true;
+		try {
+			const result = await admin.recomputeSizeAges();
+			if (result.queued === 0) {
+				toast.info('Nothing to backfill — every item with a size already has an age range.');
+			} else {
+				toast.success(`Queued backfill for ${result.queued} item${result.queued === 1 ? '' : 's'}. Refresh /outgrown in a minute.`);
+			}
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to queue backfill';
+			toast.error(message);
+		} finally {
+			recomputingSizeAges = false;
 		}
 	}
 
@@ -1847,6 +1865,29 @@
 										/>
 										<div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300"></div>
 									</label>
+								</div>
+							</div>
+
+							<!-- Size Age Backfill -->
+							<div class="rounded-lg border border-slate-200 p-4">
+								<div class="flex items-start justify-between gap-4">
+									<div>
+										<h4 class="font-medium text-slate-900">Recompute Size Age Ranges</h4>
+										<p class="text-xs text-slate-500">
+											Infers an age range (in months) from the size string of every
+											existing item that doesn't have one yet. Drives the
+											<a href="/outgrown" class="underline">Outgrown</a> page. Cheap text-only
+											AI call per item; safe to re-run.
+										</p>
+									</div>
+									<Button
+										variant="secondary"
+										size="sm"
+										loading={recomputingSizeAges}
+										on:click={handleRecomputeSizeAges}
+									>
+										Recompute
+									</Button>
 								</div>
 							</div>
 

@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Integer,
     Numeric,
     String,
     Text,
@@ -65,6 +66,18 @@ class Item(Base):
     )
     owner_suggestion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     size: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # Age range (in months) implied by the size, populated by the AI
+    # classifier or the admin backfill action. Both null when the size
+    # is for an adult / not age-mapped — those items don't show up in
+    # /outgrown.
+    size_age_min_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    size_age_max_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Set when the user dismisses an item from /outgrown (yes, it's
+    # outgrown — but I'm keeping it). NULL means it's eligible to
+    # surface again if the data changes.
+    outgrown_dismissed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     condition: Mapped[ConditionEnum] = mapped_column(
         Enum(ConditionEnum, name="condition_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         default=ConditionEnum.GOOD

@@ -144,6 +144,15 @@ def _process_item_sync(item_id: UUID) -> dict:
         if classification.size and not item.size:
             item.size = classification.size
 
+        # Always update size age range when the classifier produced
+        # one. These fields are derived (not user-edited) so it's safe
+        # to overwrite — and a re-run after the user fixes a wrong
+        # size string should refresh the range.
+        if classification.size_age_min_months is not None:
+            item.size_age_min_months = classification.size_age_min_months
+        if classification.size_age_max_months is not None:
+            item.size_age_max_months = classification.size_age_max_months
+
         # Seed manual description from default-language AI description.
         if not item.description:
             from app.services.localized import localized
@@ -260,6 +269,71 @@ def process_item_ai(self, item_id: str) -> dict:
 def batch_process_item_images(item_id: str) -> dict:
     """Process all images for an item together."""
     return _process_item_sync(UUID(item_id))
+
+
+@celery_app.task
+def backfill_size_age_ranges() -> dict:
+    """Populate size_age_min/max_months on items that have a size but
+    no age range yet.
+
+    Hits the cheap text model with just the size string per item, so
+    it's much cheaper than re-running the full vision classifier.
+    Idempotent — safe to run repeatedly; only touches rows where
+    size_age_max_months IS NULL.
+    """
+    from app.ai import _load_ai_settings_sync
+    from app.ai.size_age import infer_size_age_range
+    from app.config import get_settings
+
+    ai_settings = _load_ai_settings_sync()
+    config = get_settings()
+    api_key = ai_settings.openai_api_key or config.openai_api_key
+    if not api_key:
+        return {"status": "skipped", "reason": "no_api_key", "updated": 0}
+
+    model = ai_settings.summary_model
+
+    with get_sync_db() as db:
+        result = db.execute(
+            select(Item).where(
+                Item.size.is_not(None),
+                Item.size != "",
+                Item.size_age_max_months.is_(None),
+            )
+        )
+        items = result.scalars().all()
+
+        updated = 0
+        skipped = 0
+        for item in items:
+            try:
+                lo, hi = asyncio.run(
+                    infer_size_age_range(item.size, api_key=api_key, model=model)
+                )
+            except Exception:
+                lo, hi = (None, None)
+
+            if lo is None or hi is None:
+                skipped += 1
+                continue
+
+            item.size_age_min_months = lo
+            item.size_age_max_months = hi
+            updated += 1
+
+            # Commit periodically so a mid-run failure doesn't lose
+            # everything.
+            if updated % 25 == 0:
+                db.commit()
+
+        db.commit()
+
+    return {
+        "status": "success",
+        "considered": len(items),
+        "updated": updated,
+        "skipped": skipped,
+    }
 
 
 @celery_app.task

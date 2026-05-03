@@ -34,6 +34,11 @@ class ClassificationResult:
     descriptions: dict[str, str] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
     size: str = ""  # Size in EU format (e.g., "46", "M", "104")
+    # Age range (in months) the size implies. Populated for kid-mapped
+    # sizes (kids' clothing height-cm, kids' shoe sizes, etc.) and left
+    # null for adult sizes or non-age-mapped items. Drives /outgrown.
+    size_age_min_months: int | None = None
+    size_age_max_months: int | None = None
     seasonal: str = ""  # Season: none, spring, summer, fall, winter, holiday
     confidence: float = 0.0
     # Phase 2 owner suggestion. The classifier returns None when no

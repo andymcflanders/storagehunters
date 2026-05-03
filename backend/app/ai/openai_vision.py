@@ -37,6 +37,25 @@ def _language_label(code: str) -> str:
     return LANGUAGE_NAMES.get(code, code)
 
 
+def _parse_age_months(value: Any) -> int | None:
+    """Coerce the model's age field to a sensible int or None.
+
+    Accepts ints, numeric strings, and floats; rejects negative values
+    and anything past a 25-year ceiling (300 months). The ceiling
+    catches obvious model errors like "9999" without rejecting valid
+    teen sizes.
+    """
+    if value is None:
+        return None
+    try:
+        n = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    if n < 0 or n > 300:
+        return None
+    return n
+
+
 def _candidate_block(candidates: list[CandidateOwner]) -> str:
     """Render the candidate-owner section of the prompt.
 
@@ -142,6 +161,8 @@ Return a JSON object with:
   "tags": ["tag1", "tag2", ...],
 {desc_lines}
   "size": "Size in EU format or null",
+  "size_age_min_months": <int or null>,
+  "size_age_max_months": <int or null>,
   "seasonal": "none|spring|summer|fall|winter|holiday"{owner_field_lines}
 }}{owner_section}
 
@@ -167,6 +188,19 @@ For SIZE:
   * Shoes: EU sizes like 38, 40, 42 (not US 8, 10)
   * Generic: Use S, M, L, XL if EU conversion unclear
 - Return null if no size visible
+
+For SIZE_AGE_MIN_MONTHS and SIZE_AGE_MAX_MONTHS:
+- Integer age range (in MONTHS) that the size typically fits a child.
+- Children's height-cm clothing sizes (illustrative ranges):
+  * 56=0-2mo, 62=2-4mo, 68=4-6mo, 74=6-9mo, 80=9-12mo, 86=12-18mo,
+    92=18-24mo, 98=24-36mo, 104=36-48mo, 110=48-60mo, 116=60-72mo,
+    122=72-84mo, 128=84-96mo, 134=96-108mo, 140=108-120mo
+- Children's shoe sizes (EU, illustrative): 20=12-18mo, 24=24-36mo,
+  28=48-60mo, 32=72-84mo, 36=108-120mo
+- Return BOTH as null when the size is for an adult, when no size is
+  visible, when the item isn't clothing/footwear, or when you can't
+  confidently map to an age range. Do not guess for ambiguous adult
+  letter sizes (S/M/L/XL).
 
 For SEASONAL:
 - Determine the most appropriate season for the item
@@ -315,6 +349,17 @@ class OpenAIVisionClassifier(BaseClassifier):
             if seasonal not in valid_seasons:
                 seasonal = "none"
 
+            # Size age range. Both values must be present and sensible
+            # to be persisted; otherwise leave both null so /outgrown
+            # ignores the item. Cap at a generous 25-year ceiling to
+            # catch obviously-bogus model outputs without rejecting
+            # large kid sizes.
+            size_age_min = _parse_age_months(parsed.get("size_age_min_months"))
+            size_age_max = _parse_age_months(parsed.get("size_age_max_months"))
+            if size_age_min is None or size_age_max is None or size_age_min > size_age_max:
+                size_age_min = None
+                size_age_max = None
+
             # Owner suggestion. Defensively validate the model's id
             # against the candidates we sent — models occasionally
             # hallucinate a UUID, and silently dropping that is safer
@@ -341,6 +386,8 @@ class OpenAIVisionClassifier(BaseClassifier):
                 descriptions=descriptions,
                 tags=tags,
                 size=size,
+                size_age_min_months=size_age_min,
+                size_age_max_months=size_age_max,
                 seasonal=seasonal,
                 confidence=0.9,
                 suggested_owner_id=suggested_owner_id,

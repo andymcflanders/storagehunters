@@ -42,6 +42,9 @@ class ItemUpdate(BaseModel):
     # Set true to clear the AI owner suggestion (banner dismissed or
     # applied). Apply path: send {owner_id: ..., clear_suggestion: true}.
     clear_suggestion: bool = False
+    # Set true to hide this item from /outgrown (stamps
+    # outgrown_dismissed_at = now). Set false to undo (clears it).
+    dismiss_outgrown: bool | None = None
 
 
 class ItemImageResponse(BaseModel):
@@ -86,6 +89,9 @@ class ItemResponse(BaseModel):
     primary_image_id: UUID | None = None
     suggested_owner_id: UUID | None = None
     owner_suggestion_reason: str | None = None
+    size_age_min_months: int | None = None
+    size_age_max_months: int | None = None
+    outgrown_dismissed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

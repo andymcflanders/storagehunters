@@ -193,6 +193,15 @@ export interface OpenAISettingsUpdate {
 	owner_suggestion_enabled?: boolean;
 }
 
+export interface SizeAgeBackfillResponse {
+	queued: number;
+	task_id: string;
+}
+
+export async function recomputeSizeAges(): Promise<SizeAgeBackfillResponse> {
+	return post<SizeAgeBackfillResponse>('/admin/recompute-size-ages', {});
+}
+
 export async function getOpenAISettings(): Promise<OpenAISettings> {
 	return get<OpenAISettings>('/admin/openai');
 }

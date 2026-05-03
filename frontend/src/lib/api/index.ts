@@ -17,3 +17,4 @@ export * as admin from './admin';
 export * as ssl from './ssl';
 export * as inventory from './inventory';
 export * as backup from './backup';
+export * as outgrown from './outgrown';

@@ -168,6 +168,9 @@ export interface Item {
 	primary_image_id: string | null;
 	suggested_owner_id: string | null;
 	owner_suggestion_reason: string | null;
+	size_age_min_months: number | null;
+	size_age_max_months: number | null;
+	outgrown_dismissed_at: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -193,6 +196,7 @@ export interface ItemUpdate {
 	seasonal?: Seasonal;
 	value_estimate?: number;
 	clear_suggestion?: boolean;
+	dismiss_outgrown?: boolean;
 }
 
 export interface ItemImage {

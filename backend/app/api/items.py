@@ -195,6 +195,7 @@ async def update_item(
     # clear_suggestion is a write-only flag, not a column; pop it before
     # the generic field loop below.
     clear_suggestion = update_data.pop("clear_suggestion", False)
+    dismiss_outgrown = update_data.pop("dismiss_outgrown", None)
 
     for field, value in update_data.items():
         old_value = getattr(item, field)
@@ -212,6 +213,12 @@ async def update_item(
         # candidate.
         item.suggested_owner_id = None
         item.owner_suggestion_reason = None
+
+    if dismiss_outgrown is True:
+        from datetime import datetime as _dt
+        item.outgrown_dismissed_at = _dt.utcnow()
+    elif dismiss_outgrown is False:
+        item.outgrown_dismissed_at = None
 
     if old_values:
         logger = ActivityLogger(db)

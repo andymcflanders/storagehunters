@@ -177,6 +177,14 @@
 						{$_('nav.godView')}
 					</a>
 					<a
+						href="/outgrown"
+						class="flex items-center border-b-2 px-1 text-sm font-medium {$page.url.pathname.startsWith('/outgrown')
+							? 'border-primary-500 text-primary-600'
+							: 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}"
+					>
+						{$_('nav.outgrown')}
+					</a>
+					<a
 						href="/docs"
 						class="flex items-center border-b-2 px-1 text-sm font-medium {$page.url.pathname.startsWith('/docs')
 							? 'border-primary-500 text-primary-600'
