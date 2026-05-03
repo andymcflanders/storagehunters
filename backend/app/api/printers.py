@@ -141,6 +141,18 @@ async def build_label_content(
             max_length=300,  # Allow 2-4 sentences for label printing
         )
 
+        if summary_result.prompt_tokens or summary_result.completion_tokens:
+            from app.services.ai_usage import log_ai_call
+
+            log_ai_call(
+                kind="summary",
+                model=summary_result.model,
+                input_tokens=summary_result.prompt_tokens,
+                output_tokens=summary_result.completion_tokens,
+                has_images=False,
+                latency_ms=summary_result.latency_ms or None,
+            )
+
         return LabelContent(
             **base_content,
             ai_summary=summary_result.summary,
@@ -266,6 +278,18 @@ async def build_label_content(
             items=container_items,
             max_length=400,  # Longer summary for A4 page
         )
+
+        if summary_result.prompt_tokens or summary_result.completion_tokens:
+            from app.services.ai_usage import log_ai_call
+
+            log_ai_call(
+                kind="summary",
+                model=summary_result.model,
+                input_tokens=summary_result.prompt_tokens,
+                output_tokens=summary_result.completion_tokens,
+                has_images=False,
+                latency_ms=summary_result.latency_ms or None,
+            )
 
         return LabelContent(
             **base_content,

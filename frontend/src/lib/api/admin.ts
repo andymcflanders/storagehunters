@@ -205,6 +205,38 @@ export async function recomputeSizeAges(): Promise<SizeAgeBackfillResponse> {
 	return post<SizeAgeBackfillResponse>('/admin/recompute-size-ages', {});
 }
 
+export interface UsageKindBucket {
+	calls: number;
+	input_tokens: number;
+	output_tokens: number;
+	cost_usd: number;
+}
+
+export interface UsageBucket {
+	calls: number;
+	input_tokens: number;
+	output_tokens: number;
+	cost_usd: number;
+	by_kind: Record<string, UsageKindBucket>;
+}
+
+export interface UsageDailyPoint {
+	date: string;
+	cost_usd: number;
+	calls: number;
+}
+
+export interface UsageStatsResponse {
+	all_time: UsageBucket;
+	last_30d: UsageBucket;
+	today: UsageBucket;
+	daily_30d: UsageDailyPoint[];
+}
+
+export async function getUsageStats(): Promise<UsageStatsResponse> {
+	return get<UsageStatsResponse>('/admin/usage-stats');
+}
+
 export async function getOpenAISettings(): Promise<OpenAISettings> {
 	return get<OpenAISettings>('/admin/openai');
 }

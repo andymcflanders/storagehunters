@@ -47,6 +47,11 @@ class ClassificationResult:
     suggested_owner_id: str | None = None
     owner_confidence: float = 0.0
     owner_reason: str | None = None
+    # Populated for real OpenAI calls so callers can record usage.
+    # Mock classifier leaves these at zero.
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    latency_ms: int = 0
     raw_response: dict[str, Any] = field(default_factory=dict)
 
 

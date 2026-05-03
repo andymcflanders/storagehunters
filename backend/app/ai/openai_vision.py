@@ -3,6 +3,7 @@
 import base64
 import json
 import re
+import time
 from typing import Any
 
 import httpx
@@ -289,6 +290,7 @@ class OpenAIVisionClassifier(BaseClassifier):
             "temperature": self.temperature,
         }
 
+        start = time.monotonic()
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(
                 self.api_url,
@@ -297,8 +299,9 @@ class OpenAIVisionClassifier(BaseClassifier):
             )
             response.raise_for_status()
             data = response.json()
+        latency_ms = int((time.monotonic() - start) * 1000)
 
-        return self._parse_response(data, candidate_owners or [])
+        return self._parse_response(data, candidate_owners or [], latency_ms)
 
     def _detect_image_type(self, image_bytes: bytes) -> str:
         """Detect image MIME type from magic bytes."""
@@ -317,6 +320,7 @@ class OpenAIVisionClassifier(BaseClassifier):
         self,
         data: dict[str, Any],
         candidates: list[CandidateOwner],
+        latency_ms: int = 0,
     ) -> ClassificationResult:
         """Parse OpenAI API response into ClassificationResult."""
         try:
@@ -381,6 +385,7 @@ class OpenAIVisionClassifier(BaseClassifier):
                         owner_confidence = 0.0
                     owner_confidence = max(0.0, min(1.0, owner_confidence))
 
+            usage = data.get("usage", {}) or {}
             return ClassificationResult(
                 names=names,
                 descriptions=descriptions,
@@ -393,6 +398,9 @@ class OpenAIVisionClassifier(BaseClassifier):
                 suggested_owner_id=suggested_owner_id,
                 owner_confidence=owner_confidence,
                 owner_reason=owner_reason,
+                prompt_tokens=int(usage.get("prompt_tokens") or 0),
+                completion_tokens=int(usage.get("completion_tokens") or 0),
+                latency_ms=latency_ms,
                 raw_response=data,
             )
 
@@ -400,5 +408,6 @@ class OpenAIVisionClassifier(BaseClassifier):
             return ClassificationResult(
                 tags=[],
                 confidence=0.0,
+                latency_ms=latency_ms,
                 raw_response={"error": str(e), "raw": data},
             )

@@ -342,6 +342,19 @@
 		}
 	}
 
+	let usageStats: admin.UsageStatsResponse | null = null;
+
+	// Pulled out of the markup so Svelte's @const parser doesn't trip
+	// on the TypeScript generic syntax in `Record<string, string>`.
+	const kindLabels: Record<string, string> = {
+		vision: 'Vision',
+		summary: 'Summary',
+		size_age: 'Size→age'
+	};
+	const formatUsd = (v: number) =>
+		v > 0 && v < 0.01 ? `$${v.toFixed(5)}` : `$${v.toFixed(4)}`;
+	const formatCount = (n: number) => n.toLocaleString();
+
 	async function loadAISettings() {
 		loadingAI = true;
 		try {
@@ -358,6 +371,13 @@
 				owner_suggestion_enabled: openaiSettings.owner_suggestion_enabled ?? true
 			};
 			languageSettings = await admin.getLanguageSettings();
+			// Usage stats are non-critical — fail silently so a slow
+			// stats query doesn't block the rest of the panel.
+			try {
+				usageStats = await admin.getUsageStats();
+			} catch {
+				usageStats = null;
+			}
 		} catch (error) {
 			toast.error('Failed to load AI settings');
 		} finally {
@@ -1723,6 +1743,113 @@
 
 					{#if openaiSettings}
 						<div class="mt-6 space-y-6">
+							<!-- Usage stats (real spend from ai_usage_log) -->
+							{#if usageStats}
+								{@const KIND_LABELS = kindLabels}
+								{@const fmt$ = formatUsd}
+								{@const fmtNum = formatCount}
+								<div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+									<div class="mb-3 flex items-baseline justify-between">
+										<h4 class="font-medium text-slate-900 dark:text-white">Usage</h4>
+										<span class="text-xs text-slate-500 dark:text-slate-400">
+											Real spend, computed from OpenAI's reported tokens
+										</span>
+									</div>
+
+									<!-- Three big numbers: today / 30d / all-time -->
+									<div class="grid gap-3 sm:grid-cols-3">
+										<div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-700/40">
+											<p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Today</p>
+											<p class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+												{fmt$(usageStats.today.cost_usd)}
+											</p>
+											<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+												{fmtNum(usageStats.today.calls)} call{usageStats.today.calls === 1 ? '' : 's'}
+											</p>
+										</div>
+										<div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-700/40">
+											<p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Last 30 days</p>
+											<p class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+												{fmt$(usageStats.last_30d.cost_usd)}
+											</p>
+											<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+												{fmtNum(usageStats.last_30d.calls)} calls
+											</p>
+										</div>
+										<div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-700/40">
+											<p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">All-time</p>
+											<p class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+												{fmt$(usageStats.all_time.cost_usd)}
+											</p>
+											<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+												{fmtNum(usageStats.all_time.calls)} calls · {fmtNum(usageStats.all_time.input_tokens + usageStats.all_time.output_tokens)} tokens
+											</p>
+										</div>
+									</div>
+
+									<!-- Per-feature breakdown (all-time) -->
+									{#if Object.keys(usageStats.all_time.by_kind).length > 0}
+										<div class="mt-4 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+											<table class="w-full text-left text-sm">
+												<thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-700/40 dark:text-slate-400">
+													<tr>
+														<th class="px-3 py-2">Feature</th>
+														<th class="px-3 py-2 text-right">Calls</th>
+														<th class="px-3 py-2 text-right">Tokens</th>
+														<th class="px-3 py-2 text-right">Total</th>
+														<th class="px-3 py-2 text-right">Avg / call</th>
+													</tr>
+												</thead>
+												<tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+													{#each Object.entries(usageStats.all_time.by_kind) as [kind, b]}
+														<tr>
+															<td class="px-3 py-2 text-slate-700 dark:text-slate-300">
+																{KIND_LABELS[kind] ?? kind}
+															</td>
+															<td class="px-3 py-2 text-right font-mono text-slate-900 dark:text-slate-100">
+																{fmtNum(b.calls)}
+															</td>
+															<td class="px-3 py-2 text-right font-mono text-slate-500 dark:text-slate-400">
+																{fmtNum(b.input_tokens + b.output_tokens)}
+															</td>
+															<td class="px-3 py-2 text-right font-mono text-slate-900 dark:text-slate-100">
+																{fmt$(b.cost_usd)}
+															</td>
+															<td class="px-3 py-2 text-right font-mono text-slate-500 dark:text-slate-400">
+																{b.calls > 0 ? fmt$(b.cost_usd / b.calls) : '—'}
+															</td>
+														</tr>
+													{/each}
+												</tbody>
+											</table>
+										</div>
+									{/if}
+
+									<!-- Daily bar chart for the last 30 days -->
+									{#if usageStats.daily_30d.length > 0}
+										{@const maxCost = Math.max(...usageStats.daily_30d.map((d) => d.cost_usd), 0.0001)}
+										<div class="mt-4">
+											<p class="mb-2 text-xs text-slate-500 dark:text-slate-400">
+												Daily cost · last 30 days (peak ${maxCost.toFixed(4)})
+											</p>
+											<div class="flex h-16 items-end gap-0.5">
+												{#each usageStats.daily_30d as point (point.date)}
+													<div
+														class="flex-1 rounded-t bg-primary-500 transition-all hover:bg-primary-600"
+														style="height: {Math.max(2, (point.cost_usd / maxCost) * 100)}%"
+														title="{point.date}: {fmt$(point.cost_usd)} · {point.calls} call{point.calls === 1 ? '' : 's'}"
+													></div>
+												{/each}
+											</div>
+										</div>
+									{:else if usageStats.all_time.calls === 0}
+										<p class="mt-4 text-sm italic text-slate-500 dark:text-slate-400">
+											No AI usage yet. Upload an item or print a label to populate this.
+										</p>
+									{/if}
+								</div>
+							{/if}
+
 							<!-- Vision Classification -->
 							<div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
 								<div class="flex items-center justify-between">

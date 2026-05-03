@@ -790,6 +790,131 @@ async def update_openai_settings(
     )
 
 
+# ============== AI Usage Stats ==============
+
+
+class UsageKindBucket(BaseModel):
+    """Per-feature subtotal inside a time bucket."""
+
+    calls: int
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float
+
+
+class UsageBucket(BaseModel):
+    """Aggregated usage for a time window."""
+
+    calls: int
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float
+    by_kind: dict[str, UsageKindBucket]
+
+
+class UsageDailyPoint(BaseModel):
+    date: str  # ISO date YYYY-MM-DD
+    cost_usd: float
+    calls: int
+
+
+class UsageStatsResponse(BaseModel):
+    all_time: UsageBucket
+    last_30d: UsageBucket
+    today: UsageBucket
+    daily_30d: list[UsageDailyPoint]
+
+
+def _bucket_from_rows(rows: list) -> UsageBucket:
+    """Reduce a list of (kind, calls, in_tok, out_tok, cost) rows into
+    a UsageBucket with per-kind breakdown."""
+    by_kind: dict[str, UsageKindBucket] = {}
+    total_calls = 0
+    total_in = 0
+    total_out = 0
+    total_cost = 0.0
+    for kind, calls, in_tok, out_tok, cost in rows:
+        c = int(calls or 0)
+        i = int(in_tok or 0)
+        o = int(out_tok or 0)
+        cu = float(cost or 0)
+        by_kind[kind] = UsageKindBucket(
+            calls=c, input_tokens=i, output_tokens=o, cost_usd=cu
+        )
+        total_calls += c
+        total_in += i
+        total_out += o
+        total_cost += cu
+    return UsageBucket(
+        calls=total_calls,
+        input_tokens=total_in,
+        output_tokens=total_out,
+        cost_usd=total_cost,
+        by_kind=by_kind,
+    )
+
+
+@router.get("/usage-stats", response_model=UsageStatsResponse)
+async def get_usage_stats(
+    db: DbSession,
+    admin: AdminUser,
+) -> UsageStatsResponse:
+    """Aggregate AI usage for the admin dashboard. Three time windows
+    (all-time / 30 days / today) plus a daily series for the chart."""
+    from app.models.ai_usage import AIUsageLog
+
+    now = datetime.utcnow()
+    thirty_days_ago = now - timedelta(days=30)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    base = select(
+        AIUsageLog.kind,
+        func.count(AIUsageLog.id),
+        func.coalesce(func.sum(AIUsageLog.input_tokens), 0),
+        func.coalesce(func.sum(AIUsageLog.output_tokens), 0),
+        func.coalesce(func.sum(AIUsageLog.cost_usd), 0),
+    ).group_by(AIUsageLog.kind)
+
+    all_rows = (await db.execute(base)).all()
+    last_30d_rows = (
+        await db.execute(base.where(AIUsageLog.created_at >= thirty_days_ago))
+    ).all()
+    today_rows = (
+        await db.execute(base.where(AIUsageLog.created_at >= today_start))
+    ).all()
+
+    # Daily series for the sparkline. func.date() casts the timestamp
+    # to a calendar date in UTC.
+    daily_rows = (
+        await db.execute(
+            select(
+                func.date(AIUsageLog.created_at).label("d"),
+                func.count(AIUsageLog.id),
+                func.coalesce(func.sum(AIUsageLog.cost_usd), 0),
+            )
+            .where(AIUsageLog.created_at >= thirty_days_ago)
+            .group_by("d")
+            .order_by("d")
+        )
+    ).all()
+
+    daily = [
+        UsageDailyPoint(
+            date=d.isoformat() if hasattr(d, "isoformat") else str(d),
+            calls=int(calls or 0),
+            cost_usd=float(cost or 0),
+        )
+        for d, calls, cost in daily_rows
+    ]
+
+    return UsageStatsResponse(
+        all_time=_bucket_from_rows(all_rows),
+        last_30d=_bucket_from_rows(last_30d_rows),
+        today=_bucket_from_rows(today_rows),
+        daily_30d=daily,
+    )
+
+
 # ============== Size Age Backfill ==============
 
 

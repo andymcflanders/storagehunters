@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import re
+import time
+from dataclasses import dataclass
 
 import httpx
 
@@ -36,19 +38,32 @@ or anything you can't confidently age-map.
 Return ONLY the JSON, no other text."""
 
 
+@dataclass
+class SizeAgeResult:
+    """Output of `infer_size_age_range`. Carries token counts so the
+    caller can log usage even when the AI couldn't map the size."""
+
+    min_months: int | None
+    max_months: int | None
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    latency_ms: int = 0
+
+
 async def infer_size_age_range(
     size: str,
     api_key: str,
     model: str = "gpt-4o-mini",
-) -> tuple[int | None, int | None]:
-    """Infer the age range a size implies. Returns (min_months, max_months).
+) -> SizeAgeResult:
+    """Infer the age range a size implies. Returns a SizeAgeResult.
 
-    Returns (None, None) on any failure — caller should leave the
-    item's columns alone in that case rather than overwriting with
-    a maybe-wrong guess.
+    `min_months` and `max_months` are None when inference fails or
+    the AI returns null — caller should leave the item's columns
+    alone in that case rather than overwriting with a maybe-wrong
+    guess.
     """
     if not size or not size.strip() or not api_key:
-        return (None, None)
+        return SizeAgeResult(min_months=None, max_months=None)
 
     prompt = SIZE_AGE_PROMPT_TEMPLATE.format(size=size.strip())
 
@@ -64,6 +79,7 @@ async def infer_size_age_range(
     }
 
     try:
+        start = time.monotonic()
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 "https://api.openai.com/v1/chat/completions",
@@ -72,6 +88,7 @@ async def infer_size_age_range(
             )
             response.raise_for_status()
             data = response.json()
+        latency_ms = int((time.monotonic() - start) * 1000)
 
         content = data["choices"][0]["message"]["content"]
         json_match = re.search(r"\{[\s\S]*\}", content)
@@ -81,11 +98,27 @@ async def infer_size_age_range(
 
         lo = _parse_age_months(parsed.get("size_age_min_months"))
         hi = _parse_age_months(parsed.get("size_age_max_months"))
+        usage = data.get("usage", {}) or {}
+        prompt_tokens = int(usage.get("prompt_tokens") or 0)
+        completion_tokens = int(usage.get("completion_tokens") or 0)
         if lo is None or hi is None or lo > hi:
-            return (None, None)
-        return (lo, hi)
+            return SizeAgeResult(
+                min_months=None,
+                max_months=None,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                latency_ms=latency_ms,
+            )
+        return SizeAgeResult(
+            min_months=lo,
+            max_months=hi,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            latency_ms=latency_ms,
+        )
 
     except Exception:
         # Network blip / parse error / quota — caller will skip and
-        # try again next backfill.
-        return (None, None)
+        # try again next backfill. Returns no token counts since we
+        # don't know how far the call got.
+        return SizeAgeResult(min_months=None, max_months=None)

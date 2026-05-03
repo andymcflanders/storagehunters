@@ -2,6 +2,7 @@
 
 import json
 import re
+import time
 from dataclasses import dataclass
 
 import httpx
@@ -30,6 +31,12 @@ class SummaryResult:
     summary: str
     success: bool
     error: str | None = None
+    # Populated when an actual OpenAI call was made (not the fallback);
+    # callers use these to feed the ai_usage_log.
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    latency_ms: int = 0
+    model: str = ""
 
 
 SUMMARY_PROMPT = """You are generating a descriptive summary for a storage container label.
@@ -128,6 +135,7 @@ class SummaryGenerator:
         }
 
         try:
+            start = time.monotonic()
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     self.api_url,
@@ -136,6 +144,7 @@ class SummaryGenerator:
                 )
                 response.raise_for_status()
                 data = response.json()
+            latency_ms = int((time.monotonic() - start) * 1000)
 
             summary = data["choices"][0]["message"]["content"].strip()
 
@@ -146,7 +155,15 @@ class SummaryGenerator:
             if len(summary) > max_length:
                 summary = summary[: max_length - 3] + "..."
 
-            return SummaryResult(summary=summary, success=True)
+            usage = data.get("usage", {}) or {}
+            return SummaryResult(
+                summary=summary,
+                success=True,
+                prompt_tokens=int(usage.get("prompt_tokens") or 0),
+                completion_tokens=int(usage.get("completion_tokens") or 0),
+                latency_ms=latency_ms,
+                model=self.model,
+            )
 
         except httpx.HTTPStatusError as e:
             return SummaryResult(

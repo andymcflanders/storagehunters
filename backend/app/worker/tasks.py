@@ -124,6 +124,30 @@ def _process_item_sync(item_id: UUID) -> dict:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+        # Record actual usage (token counts come from OpenAI's `usage`
+        # block; mock classifier leaves these zero so the row is a
+        # no-op insert from a cost perspective). uploaded_by gives us
+        # the human user who triggered this — pulls from the first
+        # unprocessed image since they all belong to the same item.
+        if classification.prompt_tokens or classification.completion_tokens:
+            from app.services.ai_usage import log_ai_call
+
+            uploader_id = next(
+                (img.uploaded_by for img in unprocessed_images if img.uploaded_by),
+                None,
+            )
+            log_ai_call(
+                kind="vision",
+                model=classifier.model if hasattr(classifier, "model") else "unknown",
+                input_tokens=classification.prompt_tokens,
+                output_tokens=classification.completion_tokens,
+                has_images=True,
+                user_id=uploader_id,
+                item_id=item.id,
+                latency_ms=classification.latency_ms or None,
+                db=db,
+            )
+
         # Update item with AI results
         item.ai_names = dict(classification.names)
         item.ai_descriptions = dict(classification.descriptions)
@@ -282,8 +306,9 @@ def backfill_size_age_ranges() -> dict:
     size_age_max_months IS NULL.
     """
     from app.ai import _load_ai_settings_sync
-    from app.ai.size_age import infer_size_age_range
+    from app.ai.size_age import infer_size_age_range, SizeAgeResult
     from app.config import get_settings
+    from app.services.ai_usage import log_ai_call
 
     ai_settings = _load_ai_settings_sync()
     config = get_settings()
@@ -307,18 +332,32 @@ def backfill_size_age_ranges() -> dict:
         skipped = 0
         for item in items:
             try:
-                lo, hi = asyncio.run(
+                res: SizeAgeResult = asyncio.run(
                     infer_size_age_range(item.size, api_key=api_key, model=model)
                 )
             except Exception:
-                lo, hi = (None, None)
+                res = SizeAgeResult(min_months=None, max_months=None)
 
-            if lo is None or hi is None:
+            # Log every call that actually hit OpenAI, even when the
+            # AI declined to map the size — they all cost money.
+            if res.prompt_tokens or res.completion_tokens:
+                log_ai_call(
+                    kind="size_age",
+                    model=model,
+                    input_tokens=res.prompt_tokens,
+                    output_tokens=res.completion_tokens,
+                    has_images=False,
+                    item_id=item.id,
+                    latency_ms=res.latency_ms or None,
+                    db=db,
+                )
+
+            if res.min_months is None or res.max_months is None:
                 skipped += 1
                 continue
 
-            item.size_age_min_months = lo
-            item.size_age_max_months = hi
+            item.size_age_min_months = res.min_months
+            item.size_age_max_months = res.max_months
             updated += 1
 
             # Commit periodically so a mid-run failure doesn't lose
