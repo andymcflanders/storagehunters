@@ -1482,11 +1482,11 @@
 
 					<div class="mt-6 space-y-4">
 						<div>
-							<label for="ssl-mode" class="mb-1.5 block text-sm font-medium text-slate-700">SSL Mode</label>
+							<label for="ssl-mode" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">SSL Mode</label>
 							<select
 								id="ssl-mode"
 								bind:value={sslFormData.mode}
-								class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 							>
 								<option value="disabled">Disabled (HTTP only)</option>
 								<option value="self_signed">Self-Signed Certificate (for local/testing)</option>
@@ -1504,7 +1504,7 @@
 							</div>
 
 							<div>
-								<label for="ssl-domain" class="mb-1.5 block text-sm font-medium text-slate-700">
+								<label for="ssl-domain" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 									Domain (optional)
 								</label>
 								<input
@@ -1512,7 +1512,7 @@
 									type="text"
 									bind:value={sslFormData.domain}
 									placeholder="e.g., storagehub.local or 192.168.1.100"
-									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+									class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 								/>
 								<p class="mt-1 text-xs text-slate-500">
 									Leave blank to use 'storagehub.local' as the certificate name
@@ -1529,7 +1529,7 @@
 							</div>
 
 							<div>
-								<label for="ssl-domain-le" class="mb-1.5 block text-sm font-medium text-slate-700">
+								<label for="ssl-domain-le" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 									Domain <span class="text-red-500">*</span>
 								</label>
 								<input
@@ -1538,12 +1538,12 @@
 									bind:value={sslFormData.domain}
 									placeholder="e.g., storagehub.example.com"
 									required
-									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+									class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 								/>
 							</div>
 
 							<div>
-								<label for="ssl-email" class="mb-1.5 block text-sm font-medium text-slate-700">
+								<label for="ssl-email" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 									Email <span class="text-red-500">*</span>
 								</label>
 								<input
@@ -1552,7 +1552,7 @@
 									bind:value={sslFormData.email}
 									placeholder="admin@example.com"
 									required
-									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+									class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 								/>
 								<p class="mt-1 text-xs text-slate-500">
 									Used for certificate expiry notifications from Let's Encrypt
@@ -1711,13 +1711,13 @@
 
 								<div class="mt-4 grid gap-4 sm:grid-cols-2">
 									<div>
-										<label for="vision-model" class="mb-1.5 block text-sm font-medium text-slate-700">
+										<label for="vision-model" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 											Model
 										</label>
 										<select
 											id="vision-model"
 											bind:value={openaiFormData.vision_model}
-											class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+											class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 										>
 											{#each openaiSettings.vision_models as model}
 												<option value={model.id}>{model.name} - {model.description}</option>
@@ -1726,7 +1726,7 @@
 									</div>
 
 									<div>
-										<label for="vision-tokens" class="mb-1.5 block text-sm font-medium text-slate-700">
+										<label for="vision-tokens" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 											Max Tokens: {openaiFormData.vision_max_tokens}
 										</label>
 										<input
@@ -1742,7 +1742,7 @@
 								</div>
 
 								<div class="mt-4">
-									<label for="vision-temp" class="mb-1.5 block text-sm font-medium text-slate-700">
+									<label for="vision-temp" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 										Temperature: {openaiFormData.vision_temperature.toFixed(2)}
 									</label>
 									<input
@@ -1786,13 +1786,13 @@
 
 								<div class="mt-4 grid gap-4 sm:grid-cols-2">
 									<div>
-										<label for="summary-model" class="mb-1.5 block text-sm font-medium text-slate-700">
+										<label for="summary-model" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 											Model
 										</label>
 										<select
 											id="summary-model"
 											bind:value={openaiFormData.summary_model}
-											class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+											class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 										>
 											{#each openaiSettings.text_models as model}
 												<option value={model.id}>{model.name} - {model.description}</option>
@@ -1801,7 +1801,7 @@
 									</div>
 
 									<div>
-										<label for="summary-tokens" class="mb-1.5 block text-sm font-medium text-slate-700">
+										<label for="summary-tokens" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 											Max Tokens: {openaiFormData.summary_max_tokens}
 										</label>
 										<input
@@ -1817,7 +1817,7 @@
 								</div>
 
 								<div class="mt-4">
-									<label for="summary-temp" class="mb-1.5 block text-sm font-medium text-slate-700">
+									<label for="summary-temp" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 										Temperature: {openaiFormData.summary_temperature.toFixed(2)}
 									</label>
 									<input
@@ -1948,7 +1948,7 @@
 								bind:checked={backupOptions.include_images}
 								class="h-4 w-4 rounded border-slate-300 text-primary-600"
 							/>
-							<span class="text-sm text-slate-700">Include images</span>
+							<span class="text-sm text-slate-700 dark:text-slate-300">Include images</span>
 						</label>
 					</div>
 
@@ -2324,7 +2324,7 @@
 							<!-- Remote Backups -->
 							<div class="mt-4">
 								<div class="flex items-center justify-between">
-									<h4 class="text-sm font-medium text-slate-700">Backups in Google Drive</h4>
+									<h4 class="text-sm font-medium text-slate-700 dark:text-slate-300">Backups in Google Drive</h4>
 									<button
 										on:click={loadRemoteBackups}
 										class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -2389,7 +2389,7 @@
 							</div>
 
 							<div>
-								<label for="gdrive-creds" class="mb-1.5 block text-sm font-medium text-slate-700">
+								<label for="gdrive-creds" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 									Service Account JSON
 								</label>
 								<textarea
@@ -2454,7 +2454,7 @@
 							<!-- Dropbox Backups -->
 							<div class="mt-4">
 								<div class="flex items-center justify-between">
-									<h4 class="text-sm font-medium text-slate-700">Backups in Dropbox</h4>
+									<h4 class="text-sm font-medium text-slate-700 dark:text-slate-300">Backups in Dropbox</h4>
 									<button
 										on:click={loadDropboxBackups}
 										class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -2518,7 +2518,7 @@
 							</div>
 
 							<div>
-								<label for="dropbox-token" class="mb-1.5 block text-sm font-medium text-slate-700">
+								<label for="dropbox-token" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 									Access Token
 								</label>
 								<input
@@ -2575,39 +2575,39 @@
 <!-- User Modal -->
 {#if showUserModal}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-		<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-			<h2 class="text-xl font-bold text-slate-900">
+		<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-slate-800">
+			<h2 class="text-xl font-bold text-slate-900 dark:text-white">
 				{editingUser ? 'Edit User' : 'Create User'}
 			</h2>
 
 			<form on:submit|preventDefault={handleSaveUser} class="mt-4 space-y-4">
 				<div>
-					<label for="user-name" class="mb-1.5 block text-sm font-medium text-slate-700">Name</label>
+					<label for="user-name" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Name</label>
 					<input
 						id="user-name"
 						type="text"
 						bind:value={userFormData.name}
 						required
-						class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+						class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 					/>
 				</div>
 
 				<div>
-					<label for="user-email" class="mb-1.5 block text-sm font-medium text-slate-700">Email (optional)</label>
+					<label for="user-email" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Email (optional)</label>
 					<input
 						id="user-email"
 						type="email"
 						bind:value={userFormData.email}
-						class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+						class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 					/>
 				</div>
 
 				<div>
-					<label for="user-role" class="mb-1.5 block text-sm font-medium text-slate-700">Role</label>
+					<label for="user-role" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Role</label>
 					<select
 						id="user-role"
 						bind:value={userFormData.role}
-						class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+						class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 					>
 						<option value="user">User</option>
 						<option value="admin">Admin</option>
@@ -2622,13 +2622,13 @@
 							disabled={userFormData.is_profile}
 							class="h-4 w-4 rounded border-slate-300 text-primary-600 disabled:opacity-50"
 						/>
-						<span class="text-sm text-slate-700">Require password to login</span>
+						<span class="text-sm text-slate-700 dark:text-slate-300">Require password to login</span>
 					</label>
 				</div>
 
 				{#if userFormData.requires_password && !userFormData.is_profile}
 					<div>
-						<label for="user-password" class="mb-1.5 block text-sm font-medium text-slate-700">
+						<label for="user-password" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 							{editingUser ? 'New Password (leave blank to keep current)' : 'Password'}
 						</label>
 						<input
@@ -2636,13 +2636,13 @@
 							type="password"
 							bind:value={userFormData.password}
 							required={!editingUser && userFormData.requires_password}
-							class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+							class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 						/>
 					</div>
 				{/if}
 
 				{#if userFormData.role !== 'admin'}
-					<div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+					<div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-700/40">
 						<label class="flex items-start gap-2">
 							<input
 								type="checkbox"
@@ -2650,11 +2650,11 @@
 								on:change={() => {
 									if (userFormData.is_profile) userFormData.requires_password = false;
 								}}
-								class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600"
+								class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 dark:border-slate-600"
 							/>
-							<span class="text-sm text-slate-700">
+							<span class="text-sm text-slate-700 dark:text-slate-300">
 								<span class="font-medium">Profile (no login)</span>
-								<span class="block text-xs text-slate-500">
+								<span class="block text-xs text-slate-500 dark:text-slate-400">
 									For household members who own items but never sign in (e.g. small kids).
 									Hidden from the login screen.
 								</span>
@@ -2664,20 +2664,20 @@
 
 					<div class="grid grid-cols-2 gap-3">
 						<div>
-							<label for="user-birthdate" class="mb-1.5 block text-sm font-medium text-slate-700">Birthdate</label>
+							<label for="user-birthdate" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Birthdate</label>
 							<input
 								id="user-birthdate"
 								type="date"
 								bind:value={userFormData.birthdate}
-								class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 							/>
 						</div>
 						<div>
-							<label for="user-gender" class="mb-1.5 block text-sm font-medium text-slate-700">Gender</label>
+							<label for="user-gender" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Gender</label>
 							<select
 								id="user-gender"
 								bind:value={userFormData.gender}
-								class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+								class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
 							>
 								<option value="">—</option>
 								<option value="male">Male</option>
@@ -2696,7 +2696,7 @@
 								bind:checked={userFormData.is_active}
 								class="h-4 w-4 rounded border-slate-300 text-primary-600"
 							/>
-							<span class="text-sm text-slate-700">Active</span>
+							<span class="text-sm text-slate-700 dark:text-slate-300">Active</span>
 						</label>
 					</div>
 				{/if}
@@ -2717,13 +2717,13 @@
 <!-- Restore Preview Modal -->
 {#if showRestoreModal && restorePreview}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-		<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-			<h2 class="text-xl font-bold text-slate-900">Restore Backup</h2>
+		<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-slate-800">
+			<h2 class="text-xl font-bold text-slate-900 dark:text-white">Restore Backup</h2>
 
 			<div class="mt-4 space-y-4">
-				<div class="rounded-lg bg-slate-50 p-4">
-					<p class="text-sm font-medium text-slate-700">Backup Details</p>
-					<div class="mt-2 space-y-1 text-sm text-slate-600">
+				<div class="rounded-lg bg-slate-50 p-4 dark:bg-slate-700/40">
+					<p class="text-sm font-medium text-slate-700 dark:text-slate-200">Backup Details</p>
+					<div class="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
 						<p>Version: {restorePreview.version || 'Unknown'}</p>
 						{#if restorePreview.created_at}
 							<p>Created: {formatDateTime(restorePreview.created_at)}</p>
@@ -2740,8 +2740,8 @@
 					</div>
 				</div>
 
-				<div class="rounded-lg bg-amber-50 p-4">
-					<p class="text-sm text-amber-800">
+				<div class="rounded-lg bg-amber-50 p-4 dark:bg-amber-900/20">
+					<p class="text-sm text-amber-800 dark:text-amber-200">
 						<strong>Note:</strong> Restore will add new items. Existing records with matching
 						QR codes or names will be skipped.
 					</p>
@@ -2752,9 +2752,9 @@
 						<input
 							type="checkbox"
 							bind:checked={restoreOptions.restore_images}
-							class="h-4 w-4 rounded border-slate-300 text-primary-600"
+							class="h-4 w-4 rounded border-slate-300 text-primary-600 dark:border-slate-600"
 						/>
-						<span class="text-sm text-slate-700">Restore images (if included in backup)</span>
+						<span class="text-sm text-slate-700 dark:text-slate-300">Restore images (if included in backup)</span>
 					</label>
 				</div>
 			</div>
