@@ -16,8 +16,13 @@ This guide helps you integrate StorageHub with Home Assistant for inventory trac
 ```yaml
 # secrets.yaml
 storagehub_api_key: shub_your-api-key-here
-storagehub_url: http://storagehub.local
 ```
+
+> The examples below hardcode `http://storagehub.local` as the base URL.
+> Replace it with whatever URL your StorageHub instance is reachable at
+> (e.g. `https://192.168.200.13` for a LAN IP behind self-signed HTTPS,
+> or `https://storagehub.example.com` for a public domain). The API key
+> is the part you actually want in `secrets.yaml`.
 
 ### 3. Basic Sensors
 
@@ -28,8 +33,7 @@ sensor:
   # Total inventory count
   - platform: rest
     name: StorageHub Total Items
-    resource: !secret storagehub_url
-    resource_template: "{{ states('input_text.storagehub_url') }}/api/ha/stats"
+    resource: http://storagehub.local/api/ha/stats
     headers:
       X-API-Key: !secret storagehub_api_key
     value_template: "{{ value_json.total_items }}"
@@ -46,7 +50,7 @@ sensor:
   # Overdue reminders
   - platform: rest
     name: StorageHub Overdue Reminders
-    resource_template: "{{ states('input_text.storagehub_url') }}/api/ha/reminders"
+    resource: http://storagehub.local/api/ha/reminders
     headers:
       X-API-Key: !secret storagehub_api_key
     value_template: "{{ value_json.overdue_reminders }}"
@@ -100,11 +104,15 @@ template:
 
 ### Location-Specific Sensors
 
+Find a location's UUID by calling `GET /api/ha/locations` once with curl,
+or copy it from the URL when viewing the location in the StorageHub web
+UI (`/locations/<uuid>`).
+
 ```yaml
 sensor:
   - platform: rest
     name: Garage Storage
-    resource: http://storagehub.local/api/ha/locations/YOUR-LOCATION-UUID
+    resource: http://storagehub.local/api/ha/locations/00000000-0000-0000-0000-000000000000
     headers:
       X-API-Key: !secret storagehub_api_key
     value_template: "{{ value_json.item_count }}"
@@ -281,14 +289,18 @@ intent_script:
 
 ## NFC/QR Code Scanning
 
-Use QR codes on containers for quick access:
+Container QR codes are short URL-safe base64 tokens like `aOXfG4Td_nQ`,
+embedded in URLs of the form `http://storagehub.local/c/<token>`. The
+in-app QR generator produces stickers that resolve straight to the
+container detail page; the same token can also be looked up via the
+Home Assistant API.
 
 ### Android Automation with Tasker/NFC
 
-1. Scan QR code containing `SH-ABC123`
-2. Call StorageHub API:
+1. Scan the QR code (you'll get a URL like `http://storagehub.local/c/aOXfG4Td_nQ`)
+2. Extract the token after `/c/` and call StorageHub:
    ```
-   GET http://storagehub.local/api/ha/containers/qr/SH-ABC123
+   GET http://storagehub.local/api/ha/containers/qr/aOXfG4Td_nQ
    ```
 3. Display container contents
 
@@ -299,11 +311,11 @@ automation:
   - alias: "StorageHub QR Scan"
     trigger:
       - platform: tag
-        tag_id: storagehub-container-abc123
+        tag_id: storagehub-container-aoxfg4td
     action:
       - service: rest_command.get_container
         data:
-          qr_code: "SH-ABC123"
+          qr_code: "aOXfG4Td_nQ"
       - service: notify.mobile_app_your_phone
         data:
           title: "Container Contents"
