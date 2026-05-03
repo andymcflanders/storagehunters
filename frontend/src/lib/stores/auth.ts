@@ -42,6 +42,18 @@ function createAuthStore() {
 			}
 		},
 
+		async loginByEmail(email: string, password: string) {
+			update((state) => ({ ...state, loading: true }));
+			try {
+				const session = await authApi.loginByEmail(email, password);
+				set({ user: session.user, loading: false, initialized: true });
+				return session;
+			} catch (error) {
+				update((state) => ({ ...state, loading: false }));
+				throw error;
+			}
+		},
+
 		async logout() {
 			update((state) => ({ ...state, loading: true }));
 			try {

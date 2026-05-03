@@ -43,11 +43,16 @@ class FirstLocationInput(BaseModel):
 
 
 class SetupCompleteRequest(BaseModel):
-    """Onboarding payload. Only `admin_*` fields are required."""
+    """Onboarding payload.
+
+    Email + password are required: admins sign in via the email-based
+    flow on the login page (the household card grid intentionally hides
+    them), so a passwordless or anonymous admin can't actually log in.
+    """
 
     admin_name: str = Field(..., min_length=1, max_length=255)
-    admin_email: str | None = None
-    admin_password: str | None = None
+    admin_email: str = Field(..., min_length=3, max_length=255)
+    admin_password: str = Field(..., min_length=1)
     admin_language: Literal["en", "no"] = "en"
 
     openai_api_key: str | None = None
@@ -92,19 +97,13 @@ async def complete_setup(
 
     auth_service = AuthService(db)
 
-    # 1. Create the admin user.
-    requires_password = bool(request.admin_password)
-    password_hash = (
-        auth_service.hash_password(request.admin_password)
-        if request.admin_password
-        else None
-    )
-
+    # 1. Create the admin user. Email lower-cased so the login-by-email
+    # lookup matches regardless of how the user types it later.
     admin = User(
         name=request.admin_name.strip(),
-        email=(request.admin_email.strip() or None) if request.admin_email else None,
-        password_hash=password_hash,
-        requires_password=requires_password,
+        email=request.admin_email.strip().lower(),
+        password_hash=auth_service.hash_password(request.admin_password),
+        requires_password=True,
         role=UserRole.ADMIN,
         language=Language(request.admin_language),
         is_active=True,

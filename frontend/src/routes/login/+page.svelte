@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { _ } from '$lib/i18n';
 	import { auth, user } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
 	import { users } from '$lib/api';
@@ -14,6 +15,12 @@
 	let loggingIn = false;
 	let showPasswordModal = false;
 
+	// Admin sign-in modal state — separate flow because admins are
+	// excluded from the household card grid by design.
+	let showAdminModal = false;
+	let adminEmail = '';
+	let adminPassword = '';
+
 	onMount(async () => {
 		if ($user) {
 			goto('/');
@@ -21,7 +28,9 @@
 		}
 
 		try {
-			userList = await users.listUsers();
+			// Hide admins from the household grid; they sign in via the
+			// dedicated email + password modal below.
+			userList = await users.listUsers({ includeAdmins: false });
 		} finally {
 			loading = false;
 		}
@@ -55,10 +64,25 @@
 			showPasswordModal = false;
 		}
 	}
+
+	async function handleAdminLogin() {
+		if (!adminEmail.trim() || !adminPassword) return;
+		loggingIn = true;
+		try {
+			await auth.loginByEmail(adminEmail.trim(), adminPassword);
+			goto('/');
+		} catch {
+			toast.error('Login failed. Please check your credentials.');
+		} finally {
+			loggingIn = false;
+			adminPassword = '';
+			showAdminModal = false;
+		}
+	}
 </script>
 
 <svelte:head>
-	<title>Login - StorageHub</title>
+	<title>{$_('auth.signIn')} - {$_('app.name')}</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 px-4">
@@ -70,8 +94,8 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
 				</svg>
 			</div>
-			<h1 class="mt-4 text-3xl font-bold text-white">StorageHub</h1>
-			<p class="mt-2 text-primary-200">Who's using StorageHub?</p>
+			<h1 class="mt-4 text-3xl font-bold text-white">{$_('app.name')}</h1>
+			<p class="mt-2 text-primary-200">{$_('auth.selectUser')}</p>
 		</div>
 
 		<!-- User Grid -->
@@ -87,8 +111,8 @@
 					<svg class="mx-auto h-12 w-12 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
 					</svg>
-					<h3 class="mt-4 text-lg font-medium text-white">No users yet</h3>
-					<p class="mt-2 text-primary-200">Create your first user to get started.</p>
+					<h3 class="mt-4 text-lg font-medium text-white">{$_('auth.noUsersYet')}</h3>
+					<p class="mt-2 text-primary-200">{$_('auth.createFirstUser')}</p>
 				</div>
 			{:else}
 				<div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -98,19 +122,31 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Admin sign-in entry point. Deliberately understated — most
+		     visitors are household users tapping their card; admins are
+		     the rare case who arrive here knowing they need the link. -->
+		<div class="mt-6 text-center">
+			<button
+				class="text-sm text-primary-100/80 underline-offset-4 hover:text-white hover:underline"
+				on:click={() => (showAdminModal = true)}
+			>
+				{$_('auth.adminSignInLink')}
+			</button>
+		</div>
 	</div>
 </div>
 
-<!-- Password Modal -->
-<Modal open={showPasswordModal} title="Enter Password" on:close={() => (showPasswordModal = false)}>
+<!-- Household password modal -->
+<Modal open={showPasswordModal} title={$_('auth.enterPassword')} on:close={() => (showPasswordModal = false)}>
 	{#if selectedUser}
 		<form on:submit|preventDefault={handlePasswordSubmit}>
 			<p class="mb-4 text-slate-600">
-				Enter the password for <strong>{selectedUser.name}</strong>
+				{$_('auth.signInAs')} <strong>{selectedUser.name}</strong>
 			</p>
 			<Input
 				type="password"
-				label="Password"
+				label={$_('auth.password')}
 				bind:value={password}
 				required
 				id="password"
@@ -119,7 +155,35 @@
 	{/if}
 
 	<svelte:fragment slot="footer">
-		<Button variant="secondary" on:click={() => (showPasswordModal = false)}>Cancel</Button>
-		<Button loading={loggingIn} on:click={handlePasswordSubmit}>Sign In</Button>
+		<Button variant="secondary" on:click={() => (showPasswordModal = false)}>{$_('common.cancel')}</Button>
+		<Button loading={loggingIn} on:click={handlePasswordSubmit}>{$_('auth.signIn')}</Button>
+	</svelte:fragment>
+</Modal>
+
+<!-- Admin sign-in modal -->
+<Modal open={showAdminModal} title={$_('auth.adminSignInTitle')} on:close={() => (showAdminModal = false)}>
+	<form on:submit|preventDefault={handleAdminLogin} class="space-y-4">
+		<p class="text-sm text-slate-600 dark:text-slate-300">{$_('auth.adminSignInIntro')}</p>
+		<Input
+			type="email"
+			label={$_('auth.email')}
+			bind:value={adminEmail}
+			required
+			id="admin-login-email"
+		/>
+		<Input
+			type="password"
+			label={$_('auth.password')}
+			bind:value={adminPassword}
+			required
+			id="admin-login-password"
+		/>
+	</form>
+
+	<svelte:fragment slot="footer">
+		<Button variant="secondary" on:click={() => (showAdminModal = false)}>{$_('common.cancel')}</Button>
+		<Button loading={loggingIn} on:click={handleAdminLogin} disabled={!adminEmail.trim() || !adminPassword}>
+			{$_('auth.signIn')}
+		</Button>
 	</svelte:fragment>
 </Modal>

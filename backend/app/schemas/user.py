@@ -67,9 +67,15 @@ class UserResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    """Schema for login request."""
+    """Schema for login request.
 
-    user_id: UUID
+    Provide exactly one of `user_id` or `email`. The household login
+    screen uses `user_id` (the user picked their card). The admin login
+    flow uses `email` since admins aren't in the card grid.
+    """
+
+    user_id: UUID | None = None
+    email: str | None = None
     password: str | None = None
 
 

@@ -10,15 +10,16 @@
 			"start": "Get started"
 		},
 		"admin": {
-			"title": "Create your admin account",
-			"intro": "This first user is an administrator with full access. You can add more users later.",
-			"name": "Your name",
-			"namePlaceholder": "Anders",
-			"email": "Email (optional)",
-			"emailPlaceholder": "you@example.com",
+			"title": "Create the administrator account",
+			"intro": "This account is for setup and configuration only — keep it separate from your household identity. You'll add yourself and other household members as regular users later.",
+			"name": "Administrator account name",
+			"namePlaceholder": "Admin",
+			"email": "Email",
+			"emailPlaceholder": "admin@example.com",
+			"emailHelp": "Required — admins sign in with email and password rather than tapping a card.",
 			"password": "Password",
-			"passwordHelp": "Leave empty for a passwordless household account.",
-			"language": "Your language"
+			"passwordHelp": "Required for admin accounts.",
+			"language": "Interface language"
 		},
 		"ai": {
 			"title": "AI features (optional)",
@@ -104,7 +105,11 @@
 		"enterPassword": "Enter your password",
 		"wrongPassword": "Wrong password",
 		"noUsersYet": "No users yet",
-		"createFirstUser": "Create your first user in the admin panel"
+		"createFirstUser": "Create your first user in the admin panel",
+		"adminSignInLink": "Administer this instance",
+		"adminSignInTitle": "Admin sign in",
+		"adminSignInIntro": "Use the email and password from the administrator account.",
+		"email": "Email"
 	},
 	"dashboard": {
 		"welcome": "Welcome back, {name}!",

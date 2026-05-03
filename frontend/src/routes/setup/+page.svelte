@@ -62,8 +62,11 @@
 		if (i > 0) step = STEPS[i - 1];
 	}
 
+	$: adminStepValid =
+		adminName.trim().length > 0 && adminEmail.trim().length > 0 && adminPassword.length > 0;
+
 	function handleAdminContinue() {
-		if (!adminName.trim()) return;
+		if (!adminStepValid) return;
 		next();
 	}
 
@@ -77,8 +80,8 @@
 
 			const payload: Record<string, unknown> = {
 				admin_name: adminName.trim(),
-				admin_email: adminEmail.trim() || null,
-				admin_password: adminPassword || null,
+				admin_email: adminEmail.trim(),
+				admin_password: adminPassword,
 				admin_language: adminLanguage,
 				openai_api_key: openaiApiKey.trim() || null,
 				supported_languages: supported.length ? supported : null,
@@ -168,20 +171,27 @@
 						required
 						id="admin-name"
 					/>
-					<Input
-						label={$_('setup.admin.email')}
-						placeholder={$_('setup.admin.emailPlaceholder')}
-						bind:value={adminEmail}
-						type="email"
-						id="admin-email"
-					/>
-					<Input
-						label={$_('setup.admin.password')}
-						bind:value={adminPassword}
-						type="password"
-						id="admin-password"
-					/>
-					<p class="text-xs text-slate-500 dark:text-slate-400">{$_('setup.admin.passwordHelp')}</p>
+					<div>
+						<Input
+							label={$_('setup.admin.email')}
+							placeholder={$_('setup.admin.emailPlaceholder')}
+							bind:value={adminEmail}
+							type="email"
+							required
+							id="admin-email"
+						/>
+						<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{$_('setup.admin.emailHelp')}</p>
+					</div>
+					<div>
+						<Input
+							label={$_('setup.admin.password')}
+							bind:value={adminPassword}
+							type="password"
+							required
+							id="admin-password"
+						/>
+						<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{$_('setup.admin.passwordHelp')}</p>
+					</div>
 
 					<div>
 						<label for="admin-language" class="label">{$_('setup.admin.language')}</label>
@@ -194,7 +204,7 @@
 
 				<div class="mt-6 flex justify-between">
 					<Button variant="ghost" on:click={back}>{$_('setup.buttons.back')}</Button>
-					<Button on:click={handleAdminContinue} disabled={!adminName.trim()}>
+					<Button on:click={handleAdminContinue} disabled={!adminStepValid}>
 						{$_('setup.buttons.continue')}
 					</Button>
 				</div>

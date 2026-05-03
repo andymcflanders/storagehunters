@@ -5,7 +5,10 @@
 import { get, post, patch, del, upload } from './client';
 import type { User, UserCreate, UserUpdate } from '$lib/types';
 
-export async function listUsers(): Promise<User[]> {
+export async function listUsers(options?: { includeAdmins?: boolean }): Promise<User[]> {
+	if (options?.includeAdmins === false) {
+		return get<User[]>('/users?include_admins=false');
+	}
 	return get<User[]>('/users');
 }
 

@@ -1,10 +1,11 @@
 """Authentication API routes."""
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession, get_current_session
-from app.models.user import Session
+from app.models.user import Session, User
 from app.schemas.user import LoginRequest, SessionResponse, UserResponse
 from app.services.auth import AuthService
 
@@ -17,9 +18,28 @@ async def login(
     response: Response,
     db: DbSession,
 ) -> SessionResponse:
-    """Log in a user."""
+    """Log in a user via card-tap (user_id) or email + password (admins)."""
     auth_service = AuthService(db)
-    session = await auth_service.login(request.user_id, request.password)
+
+    # Resolve email → user_id for the admin sign-in flow. Stops short of
+    # confirming the email exists, so a typo'd email returns the same
+    # 401 as a wrong password (no account-enumeration leak).
+    user_id = request.user_id
+    if user_id is None and request.email:
+        result = await db.execute(
+            select(User).where(func.lower(User.email) == request.email.strip().lower())
+        )
+        user = result.scalar_one_or_none()
+        if user:
+            user_id = user.id
+
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    session = await auth_service.login(user_id, request.password)
 
     if not session:
         raise HTTPException(

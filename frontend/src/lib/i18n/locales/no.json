@@ -11,14 +11,15 @@
 		},
 		"admin": {
 			"title": "Opprett administratorkontoen",
-			"intro": "Den første brukeren er administrator med full tilgang. Du kan legge til flere brukere senere.",
-			"name": "Navnet ditt",
-			"namePlaceholder": "Anders",
-			"email": "E-post (valgfritt)",
-			"emailPlaceholder": "deg@eksempel.no",
+			"intro": "Denne kontoen er kun for oppsett og konfigurasjon — hold den adskilt fra din husholdningsidentitet. Du kan legge til deg selv og andre i husholdningen som vanlige brukere senere.",
+			"name": "Navn på administratorkontoen",
+			"namePlaceholder": "Admin",
+			"email": "E-post",
+			"emailPlaceholder": "admin@eksempel.no",
+			"emailHelp": "Obligatorisk — administratorer logger inn med e-post og passord, ikke ved å trykke på et kort.",
 			"password": "Passord",
-			"passwordHelp": "La feltet stå tomt for en husholdningskonto uten passord.",
-			"language": "Ditt språk"
+			"passwordHelp": "Obligatorisk for administratorkontoer.",
+			"language": "Grensesnittsspråk"
 		},
 		"ai": {
 			"title": "AI-funksjoner (valgfritt)",
@@ -104,7 +105,11 @@
 		"enterPassword": "Skriv inn passordet ditt",
 		"wrongPassword": "Feil passord",
 		"noUsersYet": "Ingen brukere ennå",
-		"createFirstUser": "Opprett din første bruker i adminpanelet"
+		"createFirstUser": "Opprett din første bruker i adminpanelet",
+		"adminSignInLink": "Administrer denne installasjonen",
+		"adminSignInTitle": "Admin-pålogging",
+		"adminSignInIntro": "Bruk e-posten og passordet til administratorkontoen.",
+		"email": "E-post"
 	},
 	"dashboard": {
 		"welcome": "Velkommen tilbake, {name}!",

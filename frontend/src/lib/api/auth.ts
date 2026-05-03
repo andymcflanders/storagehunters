@@ -12,6 +12,13 @@ export async function login(userId: string, password?: string): Promise<SessionR
 	});
 }
 
+export async function loginByEmail(email: string, password: string): Promise<SessionResponse> {
+	return post<SessionResponse>('/auth/login', {
+		email,
+		password
+	});
+}
+
 export async function logout(): Promise<void> {
 	await post('/auth/logout');
 }

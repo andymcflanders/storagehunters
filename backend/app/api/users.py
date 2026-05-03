@@ -2,11 +2,11 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi import APIRouter, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.services.auth import AuthService
 from app.services.image_storage import ImageStorageService
@@ -15,9 +15,22 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[UserResponse])
-async def list_users(db: DbSession) -> list[UserResponse]:
-    """List all users."""
-    result = await db.execute(select(User).order_by(User.name))
+async def list_users(
+    db: DbSession,
+    include_admins: bool = Query(
+        True,
+        description=(
+            "If false, omit admin accounts. The login screen uses "
+            "include_admins=false so admins don't appear in the household "
+            "user-card grid — they sign in via email + password instead."
+        ),
+    ),
+) -> list[UserResponse]:
+    """List users (admins by default; optionally hide them)."""
+    query = select(User).order_by(User.name)
+    if not include_admins:
+        query = query.where(User.role != UserRole.ADMIN)
+    result = await db.execute(query)
     users = result.scalars().all()
     return [UserResponse.model_validate(u) for u in users]
 
