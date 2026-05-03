@@ -17,11 +17,13 @@ Welcome to StorageHub! This guide will help you organize and manage your belongi
 9. [Sharing with Others](#sharing-with-others)
 10. [Setting Reminders](#setting-reminders)
 11. [God View - Complete Inventory](#god-view---complete-inventory)
-12. [Printing Labels](#printing-labels)
-13. [Settings & Preferences](#settings--preferences)
-14. [Admin Features](#admin-features)
-15. [Backup & Restore](#backup--restore)
-16. [Tips & Best Practices](#tips--best-practices)
+12. [Outgrown](#outgrown)
+13. [Declutter (Tinder for Items)](#declutter-tinder-for-items)
+14. [Printing Labels](#printing-labels)
+15. [Settings & Preferences](#settings--preferences)
+16. [Admin Features](#admin-features)
+17. [Backup & Restore](#backup--restore)
+18. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -314,6 +316,35 @@ If AI results aren't satisfactory:
 3. New tags and descriptions are generated
 4. Review and save changes
 
+### AI Owner Suggestion
+
+When an item is classified, the AI also picks the most likely owner
+from your household — matching item size + motif against each
+non-admin user's age (computed from `birthdate`) and `gender`. A
+size-98 dinosaur tee fits a toddler boy; size-42 wool socks fit any
+adult.
+
+The suggestion appears as a purple banner on the item page when
+`owner_id` is still empty:
+
+> **Suggested owner: Sverre** — *"size 98 dinosaur tee fits a toddler boy"*  
+> [Assign to Sverre] [Dismiss]
+
+- **Assign** patches the item's owner and clears the suggestion in
+  one click.
+- **Dismiss** clears the suggestion without setting an owner.
+- Picking an owner manually via the edit form also clears the
+  suggestion automatically.
+
+The suggestion is *never* auto-applied — you always confirm. If a
+suggestion looks wrong, dismiss it and the item won't resurface in
+the same banner.
+
+Admins can toggle the feature globally under **Admin → AI Settings**
+(*AI Owner Suggestion*). When off, the vision prompt skips the
+candidate-owners section entirely and items don't get a
+`suggested_owner_id` populated.
+
 ---
 
 ## Searching Your Inventory
@@ -565,6 +596,124 @@ Click the arrow on an item row to expand:
 
 ---
 
+## Outgrown
+
+The **Outgrown** view (top-nav, next to God View) surfaces items the
+household has aged out of — Sverre's size-92 parka when he's now 5,
+Sonja's outgrown shoes — so they don't sit in a far corner forever.
+
+### How items get here
+
+When an item is classified, the AI also estimates an age range for
+its size (in months). Children's height-cm clothing sizes and EU shoe
+sizes have well-defined mappings: size 92 covers ~18–24 months, size
+116 covers ~60–72 months, EU 28 shoes ~48–60 months, etc. Adult
+sizes leave the range blank — adult items don't show up here.
+
+The page lists items where the *effective owner's* current age in
+months is past the size's upper bound. The "effective owner" is the
+real `owner_id` if set, otherwise the AI's suggested owner.
+
+### Inherit-to suggestions
+
+For each outgrown item, the page checks whether another household
+member fits the size today, or will fit within ~12 months. If a match
+exists, the row shows a green inherit suggestion:
+
+> → Inherit to Sonja (fits in ~6 months)
+
+- **Reassign** moves the item to the suggested user and removes it
+  from the Outgrown view.
+- **Dismiss** hides the item from the view (it stays in inventory at
+  its current location). Dismissed items don't reappear unless their
+  size or the owner's age data changes.
+
+Items grouped by current owner; sorted most-outgrown first. Click the
+item name to jump to its detail page.
+
+### Backfilling existing items
+
+Items added before the size-age feature shipped have a `size` string
+but no age range, so they don't show up here yet. Admins can run
+**Admin → AI Settings → Recompute Size Age Ranges** to backfill.
+The action queues a Celery task that calls a cheap text-only model
+once per item and is safe to re-run.
+
+---
+
+## Declutter (Tinder for Items)
+
+The **Declutter** view (top-nav, also in the mobile bottom nav) shows
+one item at a time and asks for a verdict: 🗑️ **Toss** · 🤔 **Maybe** ·
+❤️ **Love**. The bottleneck of "what do I keep?" replaces the
+bottleneck of "where do I even start?".
+
+### The flow
+
+1. Open `/declutter` (mobile: tap the heart icon in the bottom nav).
+2. Review the current item: image, name, size, owner, container path,
+   tags, description.
+3. Decide:
+   - **Love** — hidden from the deck for 12 months.
+   - **Maybe** — comes back in 3 months.
+   - **Toss** — moves to the discard pile (no cooldown).
+4. The next card loads automatically. A counter at the top shows how
+   many items you've reviewed in this session.
+
+Decisions are *shared* per household (one row per item). If your
+spouse hits Toss on something you'd keep, you'll see it on the
+discard pile and can Undo from there.
+
+### Filtering
+
+A **Filters** toggle in the page header reveals two dropdowns:
+
+- **Owner** — only items owned by this user.
+- **Tag** — only items tagged with this tag (top-30 tags by
+  eligible-item count).
+
+Use them to focus a session — e.g. "Anders's t-shirts" or "Sonja's
+toys". Combine them for narrower cohorts.
+
+### Mobile swipe gestures
+
+On phones the card responds to swipe gestures:
+
+- **→ Right** = Love
+- **← Left** = Toss
+- **↑ Up** = Maybe
+
+Visual stamps fade in as you drag past the threshold so you can
+preview your decision before releasing. Below the threshold the card
+snaps back. The three buttons remain visible for accessibility and
+desktop use.
+
+### What's excluded from the deck
+
+- Items currently in cooldown (loved last year, undecided last month).
+- Items already on the discard pile (Toss decisions).
+- Items with an age range (handled by **Outgrown** instead — no
+  double-surfacing).
+- Items still being AI-processed (no point reviewing a placeholder
+  card).
+
+When the deck is exhausted, the page shows "You're all caught up."
+
+### The Discard pile
+
+Click **Discard pile →** to see everything you've marked Toss,
+grouped by container path so a single physical sweep handles a
+whole shelf.
+
+Per-row actions:
+
+- **Delete** — permanent removal from inventory (with confirm).
+- **Donated** — soft-delete with a "(donated)" entry in the activity
+  log. Captures intent rather than just "row vanished".
+- **Undo** — clears the decision; the item returns to the deck.
+
+---
+
 ## Printing Labels
 
 Print QR code labels for your containers.
@@ -661,12 +810,21 @@ Click **Admin** in the navigation menu.
 2. Enter name, email
 3. Set role (Admin/User)
 4. Set initial password (optional)
-5. Click **Create**
+5. Optionally tick **Profile (no login)** for household members who
+   own items but won't sign in (e.g. small kids). Profile users are
+   hidden from the login card grid.
+6. Optionally set **Birthdate** and **Gender** — both feed the AI
+   owner suggestion and the Outgrown view.
+7. Click **Create**
 
 **Edit User:**
 1. Click on a user
-2. Modify details
+2. Modify details (including Profile / Birthdate / Gender)
 3. Click **Save**
+
+> Admins cannot be marked as profile users — a profile-flagged admin
+> couldn't log in via either path. The form enforces this both on
+> create and edit.
 
 **Delete User:**
 1. Click delete icon
@@ -710,6 +868,18 @@ Configure the AI models used for item classification:
    - Adjust max tokens
    - Set temperature
    - View estimated cost per summary
+
+3. **AI Owner Suggestion**:
+   - Toggle whether the vision classifier also picks the most likely
+     owner from non-admin users (using birthdate + gender).
+   - When off, the prompt skips the candidate-owners section entirely
+     and items don't get a `suggested_owner_id`.
+
+4. **Recompute Size Age Ranges**:
+   - One-shot backfill that infers the kid-size → age-range mapping
+     for every item with a `size` string but no age range yet. Drives
+     the **Outgrown** view.
+   - Cheap text-only AI call per item; idempotent (safe to re-run).
 
 The admin panel shows real-time cost estimates based on current settings, helping you balance quality vs. cost.
 

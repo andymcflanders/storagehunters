@@ -471,6 +471,12 @@
 			"godview": {
 				"title": "God View"
 			},
+			"outgrown": {
+				"title": "Outgrown"
+			},
+			"declutter": {
+				"title": "Declutter"
+			},
 			"printing": {
 				"title": "Printing Labels"
 			},

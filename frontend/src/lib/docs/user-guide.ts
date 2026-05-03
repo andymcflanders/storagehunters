@@ -1117,6 +1117,245 @@ Bruk filtrene i verktøylinjen for å snevre inn:
 		}
 	},
 	{
+		id: 'outgrown',
+		titleKey: 'docs.userGuide.outgrown.title',
+		content: {
+			en: `
+## Outgrown
+
+The **Outgrown** view (top nav, next to God View) surfaces items the
+household has aged out of — Sverre's size 92 parka when he's now 5,
+Sonja's outgrown shoes — so they don't sit forgotten in storage.
+
+### How items get here
+
+When an item is classified, the AI also estimates an age range for
+its size, in months. Children's height-cm clothing sizes and EU
+shoe sizes have well-defined mappings (size 92 ≈ 18–24 months,
+size 116 ≈ 60–72 months, EU 28 shoes ≈ 48–60 months). Adult sizes
+leave the range blank — adult items don't appear here.
+
+The page lists items where the *effective owner's* current age in
+months has passed the size's upper bound. The "effective owner" is
+the real \`owner_id\` if set, otherwise the AI's suggested owner.
+
+### Inherit-to suggestions
+
+For each outgrown item, the page checks whether another household
+member currently fits the size, or will fit within ~12 months. When
+a match exists, the row shows a green inherit suggestion:
+
+> → Inherit to Sonja (fits in ~6 months)
+
+- **Reassign** moves the item to the suggested user and removes it
+  from the Outgrown view.
+- **Dismiss** hides the item from the view (it stays in inventory).
+  Dismissed items don't reappear unless their size or the owner's
+  age data changes.
+
+Items are grouped by current owner and sorted most-outgrown first.
+
+### Backfilling existing items
+
+Items added before this feature shipped have a \`size\` string but
+no age range, so they don't appear here yet. Admins can run
+**Admin → AI Settings → Recompute Size Age Ranges** to backfill —
+it queues a Celery task that calls a cheap text-only model once per
+item. Idempotent; safe to re-run.
+`,
+			no: `
+## Vokst ut
+
+**Vokst ut**-visningen (toppmeny, ved siden av Totaloversikt) viser
+ting husstanden har vokst ut av — Sverres størrelse 92-jakke når
+han nå er 5, Sonjas utvokste sko — så de ikke blir liggende glemt
+på lager.
+
+### Hvordan ting havner her
+
+Når en gjenstand klassifiseres, estimerer AI-en også et
+aldersintervall for størrelsen, i måneder. Barneklær med
+cm-størrelser og EU-skostørrelser har faste sammenhenger
+(str. 92 ≈ 18–24 måneder, str. 116 ≈ 60–72 måneder, EU 28 sko ≈
+48–60 måneder). Voksenstørrelser får ingen aldersangivelse — slike
+ting vises ikke her.
+
+Siden lister gjenstander der *effektiv eier* har passert
+størrelsens øvre grense. "Effektiv eier" er den ekte \`owner_id\`
+om satt, ellers AI-ens foreslåtte eier.
+
+### Forslag til arvinger
+
+For hver utvokste gjenstand sjekker siden om et annet familiemedlem
+passer størrelsen i dag, eller vil passe innen ~12 måneder. Hvis
+det finnes en match, viser raden et grønt forslag:
+
+> → Arve til Sonja (passer om ca. 6 måneder)
+
+- **Tildel på nytt** flytter gjenstanden til foreslått bruker og
+  fjerner den fra Vokst ut-listen.
+- **Avvis** skjuler gjenstanden fra visningen (den blir værende i
+  inventaret). Avviste gjenstander dukker ikke opp igjen med mindre
+  størrelse eller eierens alder endres.
+
+Gjenstander grupperes etter nåværende eier og sorteres med mest
+utvokste øverst.
+
+### Etterfylle eksisterende gjenstander
+
+Gjenstander lagt til før denne funksjonen kom har en \`size\`-streng
+men ingen aldersangivelse, så de vises ikke ennå. Administratorer
+kan kjøre **Admin → AI-innstillinger → Beregn aldersintervaller**
+for å fylle inn etterpå — det kjører en Celery-jobb som spør en
+billig tekstmodell én gang per gjenstand. Idempotent; trygt å
+kjøre flere ganger.
+`
+		}
+	},
+	{
+		id: 'declutter',
+		titleKey: 'docs.userGuide.declutter.title',
+		content: {
+			en: `
+## Declutter (Tinder for Items)
+
+The **Declutter** view (top nav, plus the heart icon in the mobile
+bottom bar) shows one item at a time and asks for a verdict: 🗑️
+**Toss** · 🤔 **Maybe** · ❤️ **Love**. Replaces the bottleneck of
+"where do I even start?" with the simpler "what do I keep?".
+
+### The flow
+
+1. Open **/declutter**.
+2. Review the current item: image, name, size, owner, container path,
+   tags, description.
+3. Decide:
+   - **Love** — hidden from the deck for 12 months.
+   - **Maybe** — comes back in 3 months.
+   - **Toss** — moves to the discard pile (no cooldown).
+4. The next card loads automatically. A counter at the top shows how
+   many items you've reviewed in this session.
+
+Decisions are *shared* per household (one row per item). If your
+spouse hits Toss on something you'd keep, you'll see it on the
+discard pile and can Undo from there.
+
+### Filtering
+
+A **Filters** toggle in the page header reveals two dropdowns:
+
+- **Owner** — only items owned by this user.
+- **Tag** — only items tagged with this tag (top-30 tags by
+  eligible-item count).
+
+Use them to focus a session — e.g. "Anders's t-shirts". Combine for
+narrower cohorts.
+
+### Mobile swipe gestures
+
+On phones the card responds to swipe gestures:
+
+- **→ Right** = Love
+- **← Left** = Toss
+- **↑ Up** = Maybe
+
+Visual stamps fade in as you drag past the threshold so you can
+preview the decision before releasing. Below the threshold the card
+snaps back. The three buttons remain visible for accessibility and
+desktop use.
+
+### What's excluded from the deck
+
+- Items currently in cooldown.
+- Items already on the discard pile.
+- Items with an age range (those live on **Outgrown** instead).
+- Items still being AI-processed.
+
+When the deck is exhausted, the page shows "You're all caught up."
+
+### The Discard pile
+
+Click **Discard pile →** to see everything you've marked Toss,
+grouped by container path so a single physical sweep handles a whole
+shelf.
+
+Per-row actions:
+
+- **Delete** — permanent removal (with confirm).
+- **Donated** — soft-delete with a "(donated)" entry in the activity
+  log.
+- **Undo** — clears the decision; the item returns to the deck.
+`,
+			no: `
+## Rydd (Tinder for ting)
+
+**Rydd**-visningen (toppmeny, og hjerteikonet i mobilens bunnmeny)
+viser én gjenstand om gangen og ber om en avgjørelse: 🗑️ **Kast**
+· 🤔 **Usikker** · ❤️ **Behold**. Erstatter "hvor skal jeg
+begynne?" med "hva vil jeg ha?".
+
+### Slik fungerer det
+
+1. Åpne **/declutter**.
+2. Se på gjenstanden: bilde, navn, størrelse, eier, plassering,
+   etiketter, beskrivelse.
+3. Bestem:
+   - **Behold** — skjult fra kortbunken i 12 måneder.
+   - **Usikker** — kommer tilbake om 3 måneder.
+   - **Kast** — flyttes til kasthaugen (ingen ventetid).
+4. Neste kort lastes automatisk. En teller øverst viser hvor mange
+   gjenstander du har vurdert i denne økten.
+
+Avgjørelser deles per husstand (én rad per gjenstand). Hvis ektefellen
+trykker Kast på noe du ville beholde, ser du det på kasthaugen og
+kan angre derfra.
+
+### Filtrering
+
+En **Filtre**-knapp i toppen viser to nedtrekksmenyer:
+
+- **Eier** — kun ting eid av denne brukeren.
+- **Etikett** — kun ting med denne etiketten (de 30 mest brukte).
+
+Bruk dem til å fokusere en økt — f.eks. "Anders' t-skjorter".
+Kombiner for smalere utvalg.
+
+### Sveipebevegelser på mobil
+
+På telefon reagerer kortet på sveipebevegelser:
+
+- **→ Høyre** = Behold
+- **← Venstre** = Kast
+- **↑ Opp** = Usikker
+
+Fargede stempler kommer til syne når du drar forbi terskelen, så du
+kan se avgjørelsen før du slipper. Under terskelen smeller kortet
+tilbake. De tre knappene er alltid synlige for tilgjengelighet og
+desktop-bruk.
+
+### Hva er ikke med i kortbunken
+
+- Gjenstander i ventetid.
+- Gjenstander allerede på kasthaugen.
+- Gjenstander med aldersintervall (de hører til **Vokst ut**).
+- Gjenstander som fortsatt blir AI-prosessert.
+
+Når kortbunken er tom viser siden "Du er ferdig for nå."
+
+### Kasthaugen
+
+Klikk **Kasthaugen →** for å se alt du har markert som Kast, gruppert
+etter plassering så du kan rydde én hylle av gangen.
+
+Handlinger per rad:
+
+- **Slett** — permanent fjerning (med bekreftelse).
+- **Donert** — soft-delete med "(donert)" i aktivitetsloggen.
+- **Angre** — fjerner avgjørelsen; gjenstanden går tilbake til kortbunken.
+`
+		}
+	},
+	{
 		id: 'printing',
 		titleKey: 'docs.userGuide.printing.title',
 		content: {

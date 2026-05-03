@@ -471,6 +471,12 @@
 			"godview": {
 				"title": "Totaloversikt"
 			},
+			"outgrown": {
+				"title": "Vokst ut"
+			},
+			"declutter": {
+				"title": "Rydd"
+			},
 			"printing": {
 				"title": "Skrive ut etiketter"
 			},

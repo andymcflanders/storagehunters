@@ -132,9 +132,17 @@ Content-Type: application/json
 }
 ```
 
-The login screen calls `GET /api/users?include_admins=false` to populate
-the household card grid; admins are excluded by default through that
-filter.
+The login screen calls
+`GET /api/users?include_admins=false&include_profiles=false` to populate
+the household card grid: admins sign in via the email/password modal
+instead, and *profile users* (household members like small kids who
+own items but never log in) shouldn't appear on the picker either.
+Owner pickers in the rest of the app keep both filters at their
+default `true` so profiles can still be assigned items.
+
+User responses include `is_profile: bool`, `birthdate: date | null`,
+and `gender: 'male' | 'female' | 'other' | null` — all introduced
+to support the AI owner-suggestion and `/outgrown` workflows.
 
 ### 2. API Key Authentication (Recommended for Home Assistant)
 
@@ -573,8 +581,8 @@ The container response carries `container_type` (`box`, `drawer`,
 |--------|----------|-------------|
 | GET | `/api/items` | List items |
 | POST | `/api/items` | Create item |
-| GET | `/api/items/{id}` | Get item with images, tags, related items, path |
-| PATCH | `/api/items/{id}` | Update item |
+| GET | `/api/items/{id}` | Get item with images, tags, related items, path, owner + suggested_owner |
+| PATCH | `/api/items/{id}` | Update item (also accepts `clear_suggestion` and `dismiss_outgrown` flags) |
 | DELETE | `/api/items/{id}` | Delete item |
 | POST | `/api/items/{id}/images` | Upload image |
 | DELETE | `/api/items/{id}/images/{image_id}` | Remove image |
@@ -590,6 +598,69 @@ keyed by ISO language code (e.g. `{"en": "Red Sweater", "no": "Rød Genser"}`).
 The set of keys depends on `AISettings.supported_languages` at the time
 of generation; clients should fall back through the user's locale →
 default language → first available value.
+
+Items also surface AI-derived auxiliary fields:
+
+| Field | Type | Populated by |
+|-------|------|--------------|
+| `suggested_owner_id` | UUID \| null | Vision classifier (matching size + motif against household demographics) |
+| `owner_suggestion_reason` | string \| null | Vision classifier — one-sentence rationale shown on the item page |
+| `size_age_min_months` | int \| null | Vision classifier (only set for kid-sized items); drives `/outgrown` |
+| `size_age_max_months` | int \| null | Vision classifier; `/outgrown` shows items where the owner has aged past this |
+| `outgrown_dismissed_at` | datetime \| null | User dismissing an item from `/outgrown` |
+| `triage_decision` | `'love'\|'undecided'\|'hate'\|null` | User decision on `/declutter` |
+| `triage_decided_at` | datetime \| null | When the decision was made |
+| `triage_show_after` | datetime \| null | Cooldown — item is hidden from `/declutter` until this passes (love=12mo, undecided=3mo) |
+
+`PATCH /api/items/{id}` accepts two write-only flags alongside the
+real columns:
+
+- `clear_suggestion: bool` — set to `true` when the user accepts or
+  dismisses the AI owner suggestion. Clears `suggested_owner_id` and
+  `owner_suggestion_reason`. The "Assign to X" path sends both
+  `owner_id` and `clear_suggestion: true` in one PATCH.
+- `dismiss_outgrown: bool` — `true` stamps `outgrown_dismissed_at = now()`,
+  hiding the item from `/outgrown` even though its size + age data is
+  unchanged. `false` clears the stamp.
+
+### Outgrown
+
+Surfaces items the household has aged out of. The endpoint joins
+`items.size_age_max_months` with the effective owner's current age in
+months (real `owner_id` if set, otherwise the AI's `suggested_owner_id`)
+and returns rows where the owner is past the upper bound.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/outgrown` | List outgrown items, sorted most-outgrown first, with optional inherit candidates |
+
+Each row also carries an `inherit_to` candidate when another non-admin
+household member fits the size today or will fit within 12 months —
+picked by the smallest `months_until_fit`, ties broken by youngest age.
+
+### Triage / Declutter
+
+The "Tinder for items" workflow. Decisions are shared per-household
+(one row per item, no per-user fork). Cooldowns are hard-coded:
+love = 12 months, undecided = 3 months, hate = no cooldown
+(item moves to the discard pile and stays out of the next-card pool).
+
+Adult items only: anything with `size_age_max_months` set is excluded
+from the eligible pool because it's already covered by `/outgrown`.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/triage/next` | Random eligible item, with optional `?owner_id=` and `?tag=` filters |
+| POST | `/api/triage/{id}/decide` | Body `{decision: "love"\|"undecided"\|"hate"}` — applies the cooldown |
+| POST | `/api/triage/{id}/undo` | Clear the decision (e.g. user re-thinks a Hate) |
+| POST | `/api/triage/{id}/mark-donated` | Soft-delete with a "donated" entry in the activity log |
+| GET | `/api/triage/filters` | Owner + top-30 tag dropdown options, with eligible-item counts |
+| GET | `/api/triage/discard` | All hated items, grouped by container path for efficient sweeps |
+
+`/api/triage/next` returns `{item, remaining_estimate}` where `item`
+is `null` when the pool is empty (no items eligible after filters and
+cooldowns). The `remaining_estimate` is a quick `COUNT(*)` over the
+same filtered pool so the UI can show "12 items remaining".
 
 ### Search
 
@@ -654,8 +725,9 @@ user with `role=admin`.
 | PATCH | `/api/admin/users/{id}` | Update a user |
 | DELETE | `/api/admin/users/{id}` | Delete a user |
 | GET | `/api/admin/activity` | Activity log feed |
-| GET | `/api/admin/openai` | Read OpenAI configuration (model + key status) |
-| PUT | `/api/admin/openai` | Update OpenAI config (models, tokens, temp, persisted API key) |
+| GET | `/api/admin/openai` | Read OpenAI configuration (model + key status + feature toggles) |
+| PUT | `/api/admin/openai` | Update OpenAI config (models, tokens, temp, persisted API key, `owner_suggestion_enabled`) |
+| POST | `/api/admin/recompute-size-ages` | Queue a Celery task that infers `size_age_min/max_months` for items with a `size` but no age range yet |
 | GET | `/api/admin/languages` | Read AI language config |
 | PUT | `/api/admin/languages` | Update `supported_languages` and `default_language` |
 
@@ -869,6 +941,22 @@ curl -X POST http://storagehub.local/api/webhooks \
 ---
 
 ## Changelog
+
+### v1.1.0 (2026-05-03)
+
+- **Profile users**: `User.is_profile`, `birthdate`, `gender` for
+  household members who own items but never log in. The login screen
+  filters them out via `?include_profiles=false`.
+- **AI owner suggestion**: vision classifier returns
+  `suggested_owner_id` + `owner_suggestion_reason` (admin toggle:
+  `owner_suggestion_enabled`).
+- **Outgrown view**: `Item.size_age_min_months` / `size_age_max_months`
+  + new `GET /api/outgrown` endpoint with inherit-to suggestions.
+  `POST /api/admin/recompute-size-ages` backfills age ranges for
+  existing items.
+- **Declutter / Triage**: `Item.triage_decision` + `triage_decided_at`
+  + `triage_show_after`, plus the `/api/triage/*` family of endpoints
+  (`next`, `decide`, `undo`, `mark-donated`, `filters`, `discard`).
 
 ### v1.0.0 (2025-12-09)
 

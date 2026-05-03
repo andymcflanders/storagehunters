@@ -219,13 +219,19 @@ StorageHub uses a relational database with the following entity relationships.
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
-| name | String(100) | Display name |
-| password_hash | String(255) | Bcrypt hash (nullable) |
-| role | Enum | 'admin' or 'user' |
-| language | String(5) | Preferred language |
+| name | String(255) | Display name |
+| email | String(255) | Login email (nullable) |
+| password_hash | String(255) | Argon2 hash (nullable) |
+| avatar_url | Text | Optional avatar URL |
+| requires_password | Boolean | If false, the household card grid lets the user log in with one click |
+| role | Enum | \`admin\` or \`user\` |
+| language | Enum | \`en\` or \`no\` (default \`en\`) — extendable via AI Settings |
 | is_active | Boolean | Account status |
+| is_profile | Boolean | Household member who owns items but never logs in (e.g. small kids); hidden from the login card grid |
+| birthdate | Date | Used to compute age in months for AI owner suggestion + the Outgrown view (nullable) |
+| gender | Enum | \`male\` / \`female\` / \`other\` — feeds the AI owner suggestion prompt (nullable) |
 | created_at | DateTime | Creation timestamp |
-| last_login | DateTime | Last login timestamp |
+| updated_at | DateTime | Last update timestamp |
 
 ### Location Model
 
@@ -271,6 +277,14 @@ StorageHub uses a relational database with the following entity relationships.
 | ai_processed | Boolean | Whether the AI pipeline has finished |
 | needs_review | Boolean | Flag for the godview filter / Home Assistant stats |
 | primary_image_id | UUID | Hero image selection |
+| suggested_owner_id | UUID | AI's pick for likely owner; surfaced as a banner on the item page until applied or dismissed (nullable) |
+| owner_suggestion_reason | Text | One-sentence rationale shown alongside the suggestion (nullable) |
+| size_age_min_months | Integer | Lower bound of the size→age mapping; only set for kid-mapped sizes (nullable) |
+| size_age_max_months | Integer | Upper bound of the size→age mapping; \`/outgrown\` shows items where the owner has aged past this (nullable) |
+| outgrown_dismissed_at | DateTime | Set when the user dismisses an item from \`/outgrown\` (nullable) |
+| triage_decision | String(20) | \`love\` / \`undecided\` / \`hate\` / null — set on \`/declutter\` |
+| triage_decided_at | DateTime | When the triage decision was made (nullable) |
+| triage_show_after | DateTime | Cooldown stamp; while \`now() < triage_show_after\` the item is hidden from \`/declutter\` (nullable) |
 | created_at | DateTime | Creation timestamp |
 | updated_at | DateTime | Last update timestamp |
 
@@ -945,6 +959,26 @@ GET /api/search?q=jacket&type=item&location=1&tag=3
 | POST | /api/ai/classify | Classify image |
 | POST | /api/ai/summarize | Summarize container |
 
+### Outgrown
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/outgrown | List items the household has aged out of, with optional inherit-to suggestions |
+
+### Triage / Declutter
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/triage/next | Random eligible item (\`?owner_id=&tag=\`) |
+| POST | /api/triage/{id}/decide | Body \`{decision: "love"\\|"undecided"\\|"hate"}\` |
+| POST | /api/triage/{id}/undo | Clear a decision |
+| POST | /api/triage/{id}/mark-donated | Soft-delete with a "donated" activity log entry |
+| GET | /api/triage/filters | Owner + top-30 tag dropdown options |
+| GET | /api/triage/discard | Hated items grouped by container path |
+
+Cooldowns are hard-coded: love = 12 months, undecided = 3 months,
+hate = no cooldown (item moves to the discard pile).
+
 ### Admin
 
 | Method | Endpoint | Description |
@@ -957,6 +991,9 @@ GET /api/search?q=jacket&type=item&location=1&tag=3
 | GET | /api/admin/activity | Activity logs |
 | GET | /api/admin/settings | Get settings |
 | PUT | /api/admin/settings | Update settings |
+| GET | /api/admin/openai | Read OpenAI configuration |
+| PUT | /api/admin/openai | Update OpenAI config (incl. \`owner_suggestion_enabled\`) |
+| POST | /api/admin/recompute-size-ages | Backfill \`size_age_min/max_months\` for items with a size but no age range |
 `,
 			no: `
 ## API-endepunkter
