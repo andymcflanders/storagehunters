@@ -92,6 +92,9 @@ class ItemResponse(BaseModel):
     size_age_min_months: int | None = None
     size_age_max_months: int | None = None
     outgrown_dismissed_at: datetime | None = None
+    triage_decision: str | None = None
+    triage_decided_at: datetime | None = None
+    triage_show_after: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

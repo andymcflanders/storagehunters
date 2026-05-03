@@ -16,6 +16,7 @@ from app.api import (
     locations,
     outgrown,
     printers,
+    triage,
     reminders,
     search,
     setup,
@@ -44,6 +45,7 @@ api_router.include_router(reminders.router, prefix="/reminders", tags=["Reminder
 api_router.include_router(ssl.router, prefix="/ssl", tags=["SSL"])
 api_router.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
 api_router.include_router(outgrown.router, prefix="/outgrown", tags=["Outgrown"])
+api_router.include_router(triage.router, prefix="/triage", tags=["Triage"])
 api_router.include_router(admin.router)
 api_router.include_router(backup.router)
 

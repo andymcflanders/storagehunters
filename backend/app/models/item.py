@@ -78,6 +78,19 @@ class Item(Base):
     outgrown_dismissed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Phase 4 declutter ("Tinder for items"). One shared household
+    # decision per item: 'love' | 'undecided' | 'hate' | None.
+    # NULL means "never been triaged"; eligible for the next-card pool.
+    triage_decision: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    triage_decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # The cooldown stamp set when the user picks love or undecided.
+    # While now() < triage_show_after, the item is excluded from the
+    # next-card pool. NULL means immediately eligible.
+    triage_show_after: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     condition: Mapped[ConditionEnum] = mapped_column(
         Enum(ConditionEnum, name="condition_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         default=ConditionEnum.GOOD
