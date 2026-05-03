@@ -10,31 +10,51 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# Color synonyms for semantic matching
+# Color synonyms for semantic matching. The list under each canonical
+# English color includes Norwegian terms so that "rød" maps to "red"
+# (and pulls in all the English synonyms with it). When AISettings
+# carries an OpenAI key the AI parser handles arbitrary languages
+# naturally; this dictionary is the fallback for installs without one.
 COLOR_SYNONYMS = {
-    "red": ["crimson", "scarlet", "ruby", "maroon", "burgundy", "cherry", "vermillion"],
-    "blue": ["navy", "azure", "cobalt", "sapphire", "indigo", "teal", "cyan", "cerulean", "sky"],
-    "green": ["emerald", "olive", "lime", "sage", "mint", "forest", "jade", "hunter", "teal"],
-    "yellow": ["gold", "golden", "mustard", "lemon", "amber", "canary", "blonde"],
-    "orange": ["tangerine", "peach", "coral", "rust", "amber", "apricot"],
-    "purple": ["violet", "lavender", "plum", "lilac", "mauve", "magenta", "grape"],
-    "pink": ["rose", "salmon", "coral", "fuchsia", "magenta", "blush", "hot pink"],
-    "brown": ["tan", "beige", "chocolate", "caramel", "coffee", "mocha", "bronze", "chestnut"],
-    "black": ["ebony", "onyx", "jet", "charcoal", "dark"],
-    "white": ["ivory", "cream", "off-white", "pearl", "snow", "eggshell"],
-    "gray": ["grey", "silver", "charcoal", "slate", "ash", "graphite"],
+    "red": ["crimson", "scarlet", "ruby", "maroon", "burgundy", "cherry", "vermillion", "rød"],
+    "blue": ["navy", "azure", "cobalt", "sapphire", "indigo", "teal", "cyan", "cerulean", "sky", "blå"],
+    "green": ["emerald", "olive", "lime", "sage", "mint", "forest", "jade", "hunter", "teal", "grønn"],
+    "yellow": ["gold", "golden", "mustard", "lemon", "amber", "canary", "blonde", "gul"],
+    "orange": ["tangerine", "peach", "coral", "rust", "amber", "apricot", "oransje"],
+    "purple": ["violet", "lavender", "plum", "lilac", "mauve", "magenta", "grape", "lilla", "fiolett"],
+    "pink": ["rose", "salmon", "coral", "fuchsia", "magenta", "blush", "hot pink", "rosa"],
+    "brown": ["tan", "beige", "chocolate", "caramel", "coffee", "mocha", "bronze", "chestnut", "brun"],
+    "black": ["ebony", "onyx", "jet", "charcoal", "dark", "svart"],
+    "white": ["ivory", "cream", "off-white", "pearl", "snow", "eggshell", "hvit"],
+    "gray": ["grey", "silver", "charcoal", "slate", "ash", "graphite", "grå"],
 }
 
-# Clothing type synonyms
+# Clothing type synonyms. Same multilingual treatment — Norwegian
+# clothing words sit under the English canonical form.
 CLOTHING_SYNONYMS = {
-    "sweater": ["cardigan", "pullover", "jumper", "knit", "sweatshirt", "hoodie"],
-    "jacket": ["coat", "blazer", "windbreaker", "parka", "anorak", "vest"],
-    "pants": ["trousers", "jeans", "slacks", "chinos", "leggings", "joggers"],
-    "shirt": ["blouse", "top", "tee", "t-shirt", "button-down", "polo"],
-    "dress": ["gown", "frock", "sundress", "maxi", "midi"],
-    "shoes": ["sneakers", "boots", "sandals", "heels", "flats", "loafers", "trainers"],
-    "hat": ["cap", "beanie", "beret", "fedora", "bonnet"],
-    "skirt": ["mini", "maxi", "midi", "a-line", "pencil"],
+    "sweater": [
+        "cardigan", "pullover", "jumper", "knit", "sweatshirt", "hoodie",
+        "genser", "ullgenser", "kofte", "strikkegenser",
+    ],
+    "jacket": [
+        "coat", "blazer", "windbreaker", "parka", "anorak", "vest",
+        "jakke", "frakk", "ytterjakke", "vest",
+    ],
+    "pants": [
+        "trousers", "jeans", "slacks", "chinos", "leggings", "joggers",
+        "bukse", "bukser", "tights",
+    ],
+    "shirt": [
+        "blouse", "top", "tee", "t-shirt", "button-down", "polo",
+        "skjorte", "bluse", "t-skjorte", "topp", "genser",
+    ],
+    "dress": ["gown", "frock", "sundress", "maxi", "midi", "kjole"],
+    "shoes": [
+        "sneakers", "boots", "sandals", "heels", "flats", "loafers", "trainers",
+        "sko", "støvler", "sandaler", "joggesko",
+    ],
+    "hat": ["cap", "beanie", "beret", "fedora", "bonnet", "lue", "hatt", "caps"],
+    "skirt": ["mini", "maxi", "midi", "a-line", "pencil", "skjørt"],
 }
 
 
@@ -248,5 +268,16 @@ Return ONLY the JSON object."""
 
 
 def get_semantic_search_service() -> SemanticSearchService:
-    """Get semantic search service instance."""
-    return SemanticSearchService()
+    """Get semantic search service instance.
+
+    Picks up the persisted OpenAI key from AISettings (set by the
+    onboarding wizard / admin panel) before falling back to the env
+    var. Without this, an instance configured purely through the UI
+    would silently lose AI query parsing — the service would think
+    no key was set and skip the call.
+    """
+    from app.ai import _load_ai_settings_sync
+
+    ai_settings = _load_ai_settings_sync()
+    api_key = ai_settings.openai_api_key or settings.openai_api_key
+    return SemanticSearchService(api_key=api_key)
