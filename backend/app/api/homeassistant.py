@@ -5,11 +5,14 @@ integration. All endpoints use API key authentication and are optimized for
 sensor data and automations.
 """
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Text, func, select
 from sqlalchemy.orm import selectinload
@@ -38,6 +41,12 @@ class SystemStatus(BaseModel):
     version: str = "1.0.0"
     api_version: str = "v1"
     name: str = "StorageHub"
+    # Stable per-database UUID. The HA integration uses this as its
+    # config-entry unique_id so the user can change the StorageHub
+    # host URL without forking a fresh HA entry and orphaning all
+    # existing entities. None on legacy installs that pre-date
+    # migration 023, so the integration must tolerate that case.
+    instance_id: str | None = None
 
 
 class InventoryStats(BaseModel):
@@ -142,9 +151,14 @@ async def get_status() -> SystemStatus:
     """Get system status.
 
     This endpoint does not require authentication and can be used
-    for Home Assistant discovery and health checks.
+    for Home Assistant discovery and health checks. Includes the
+    instance UUID so HA can stably identify the same install across
+    URL changes.
     """
-    return SystemStatus()
+    from app.ai import _load_ai_settings_sync
+
+    ai_settings = _load_ai_settings_sync()
+    return SystemStatus(instance_id=ai_settings.instance_uuid)
 
 
 @router.get("/stats", response_model=InventoryStats)
@@ -570,6 +584,93 @@ async def list_items(
     return [_item_to_summary(item) for item in items]
 
 
+@router.get("/items/index")
+async def items_index(
+    db: DbSession,
+    api_user: Annotated[tuple, Depends(require_scope(APIKeyScope.READ))],
+    if_none_match: str | None = Header(default=None, alias="If-None-Match"),
+) -> Response:
+    """Lite item index for the HA Lovelace card's instant filter.
+
+    Pre-loads a minimal record per item so the card can substring-
+    filter in JavaScript without a network round-trip per keystroke.
+    Heavy fields (images, tags, descriptions, full container
+    objects) are deliberately omitted — target wire size for a
+    10k-item inventory is under 200 KB gzipped.
+
+    The response carries an ETag derived from the MAX(updated_at)
+    across items, containers, locations, and users — the four
+    tables whose changes can invalidate the card's cached index.
+    Clients send `If-None-Match` to get a 304 on the no-change path.
+
+    Note: this endpoint reads the card's view of every item the API
+    key can see; it does NOT scope per-user since the integration
+    is configured with one shared key per HA install.
+    """
+
+    # Single round-trip ETag over the four tables that can
+    # invalidate a cached client copy.
+    fingerprint_row = await db.execute(
+        select(
+            func.greatest(
+                select(func.max(Item.updated_at)).scalar_subquery(),
+                select(func.max(Container.updated_at)).scalar_subquery(),
+                select(func.max(Location.updated_at)).scalar_subquery(),
+                select(func.max(User.updated_at)).scalar_subquery(),
+            )
+        )
+    )
+    fingerprint = fingerprint_row.scalar_one_or_none()
+    # Empty install — return a stable etag so 304s still work.
+    fingerprint_str = fingerprint.isoformat() if fingerprint else "empty"
+    etag = '"' + hashlib.sha256(fingerprint_str.encode()).hexdigest()[:16] + '"'
+
+    cache_headers = {
+        "ETag": etag,
+        "Cache-Control": "private, max-age=900",
+    }
+
+    if if_none_match and if_none_match.strip() == etag:
+        return Response(status_code=304, headers=cache_headers)
+
+    # Tuple-yielding select keeps the query lean — no selectinload
+    # of images/tags/etc, just the five columns the card needs.
+    stmt = (
+        select(
+            Item.id,
+            Item.name,
+            Item.ai_names,
+            User.name.label("owner_name"),
+            Container.name.label("container_name"),
+            Location.name.label("location_name"),
+        )
+        .outerjoin(User, Item.owner_id == User.id)
+        .outerjoin(Container, Item.container_id == Container.id)
+        .outerjoin(Location, Container.location_id == Location.id)
+        .order_by(Item.name)
+    )
+    rows = (await db.execute(stmt)).all()
+
+    payload = [
+        {
+            "id": str(row.id),
+            "name": row.name,
+            "owner_name": row.owner_name,
+            "container_name": row.container_name,
+            "location_name": row.location_name,
+            # Flatten the JSONB language-keyed dict to a list of
+            # values — the card just wants searchable strings, it
+            # doesn't care which language each one is in.
+            "ai_names": [v for v in (row.ai_names or {}).values() if v],
+        }
+        for row in rows
+    ]
+
+    # Use JSONResponse directly so the ETag header rides on the
+    # body. GZipMiddleware compresses on the way out.
+    return JSONResponse(content=payload, headers=cache_headers)
+
+
 @router.get("/items/{item_id}", response_model=ItemSummary)
 async def get_item(
     item_id: UUID,
@@ -600,6 +701,27 @@ async def get_item(
     return _item_to_summary(item)
 
 
+def _tokenize_search(q: str) -> list[str]:
+    """Split a search query into searchable tokens.
+
+    Handles English apostrophe-s possessive ("Sverre's" → "Sverre")
+    so voice queries like "Where is Sverre's jakke?" reach the owner
+    field. Norwegian's possessive `s` and other suffixes don't need
+    explicit handling — the substring `LIKE %sverre%` already
+    matches both "Sverre" and "Sverres" in the indexed text.
+
+    Tokens shorter than 2 characters are dropped so a stray
+    one-letter article doesn't fan out to "every item".
+    """
+    out: list[str] = []
+    for raw in q.lower().split():
+        if raw.endswith("'s"):
+            raw = raw[:-2]
+        if len(raw) >= 2:
+            out.append(raw)
+    return out
+
+
 @router.get("/search", response_model=SearchResult)
 async def search_items(
     db: DbSession,
@@ -609,42 +731,56 @@ async def search_items(
 ) -> SearchResult:
     """Search for items.
 
-    Searches item names, descriptions, and tags. Use for voice-activated
-    searches via Home Assistant ("Hey Google, where is my red sweater?").
+    Searches item names, descriptions, AI-generated content, and the
+    owner's name. Use for voice-activated searches via Home Assistant
+    ("Hey Google, where is Sverre's red sweater?").
+
+    Multi-token queries require *every* token to match *some* field —
+    that's how "Sverre jakke" finds Sverre's jackets without the
+    caller passing an explicit owner filter. Owner-name and
+    item-name tokens can land in the same query in any order.
     """
     user, api_key = api_user
 
-    search_term = f"%{q.lower()}%"
+    tokens = _tokenize_search(q)
+    if not tokens:
+        # Nothing meaningful to search for; return an empty result
+        # rather than raising so the integration's error path stays
+        # quiet on noise queries.
+        return SearchResult(items=[], total_count=0, query=q)
 
-    # Search in name, description, and AI-generated fields
-    # Search across the manual fields plus any AI translation. The JSONB
-    # cast-to-text catches every language without us having to enumerate
-    # them — an item with German names becomes searchable as soon as it's
-    # saved, no code change required.
-    where = (
-        func.lower(Item.name).like(search_term)
-        | func.lower(Item.description).like(search_term)
-        | func.lower(func.cast(Item.ai_names, Text)).like(search_term)
-        | func.lower(func.cast(Item.ai_descriptions, Text)).like(search_term)
-    )
-
-    query = (
-        select(Item)
-        .options(
-            selectinload(Item.container).selectinload(Container.location),
-            selectinload(Item.owner),
-            selectinload(Item.item_tags).selectinload(ItemTag.tag),
-            selectinload(Item.images),
+    # Build per-token "matches any field" predicates and AND them
+    # together. The JSONB cast-to-text catches every language the
+    # AI has stored — adding German etc. doesn't require a code
+    # change here. Owner name is searched via a left-joined User.
+    def token_predicate(token: str):
+        pat = f"%{token}%"
+        return (
+            func.lower(Item.name).like(pat)
+            | func.lower(Item.description).like(pat)
+            | func.lower(func.cast(Item.ai_names, Text)).like(pat)
+            | func.lower(func.cast(Item.ai_descriptions, Text)).like(pat)
+            | func.lower(User.name).like(pat)
         )
-        .where(where)
-        .limit(limit)
-    )
+
+    base = select(Item).join(Item.owner, isouter=True)
+    for token in tokens:
+        base = base.where(token_predicate(token))
+
+    query = base.options(
+        selectinload(Item.container).selectinload(Container.location),
+        selectinload(Item.owner),
+        selectinload(Item.item_tags).selectinload(ItemTag.tag),
+        selectinload(Item.images),
+    ).limit(limit)
 
     result = await db.execute(query)
     items = result.scalars().all()
 
-    count_query = select(func.count(Item.id)).where(where)
-    total = await db.scalar(count_query) or 0
+    count_base = select(func.count(Item.id)).join(Item.owner, isouter=True)
+    for token in tokens:
+        count_base = count_base.where(token_predicate(token))
+    total = await db.scalar(count_base) or 0
 
     return SearchResult(
         items=[_item_to_summary(item) for item in items],

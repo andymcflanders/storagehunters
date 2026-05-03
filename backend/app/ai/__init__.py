@@ -43,6 +43,9 @@ class CachedAISettings:
     default_language: str = "en"
     openai_api_key: str | None = None
     owner_suggestion_enabled: bool = True
+    # Stable per-instance identifier; surfaced via /api/ha/status.
+    # Loaded once at first read and cached for the process lifetime.
+    instance_uuid: str | None = None
 
 
 # Module-level cache
@@ -94,6 +97,7 @@ def _load_ai_settings_sync() -> CachedAISettings:
                     default_language=settings.default_language or "en",
                     openai_api_key=settings.openai_api_key,
                     owner_suggestion_enabled=settings.owner_suggestion_enabled,
+                    instance_uuid=str(settings.instance_uuid) if settings.instance_uuid else None,
                 )
             else:
                 # Use defaults if no settings exist yet

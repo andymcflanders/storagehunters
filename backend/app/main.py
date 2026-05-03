@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 
@@ -119,6 +120,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Compress JSON responses larger than 1 KB. Mainly there for the HA
+# /api/ha/items/index lite endpoint which can run into hundreds of KB
+# at 10k items, but every other large list response benefits too.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 # Mount static files for uploads
 uploads_path = Path(settings.upload_dir)

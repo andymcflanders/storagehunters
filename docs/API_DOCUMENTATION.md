@@ -229,9 +229,14 @@ Response:
   "status": "online",
   "version": "1.0.0",
   "api_version": "v1",
-  "name": "StorageHub"
+  "name": "StorageHub",
+  "instance_id": "f3e2d1c0-1234-5678-9abc-def012345678"
 }
 ```
+
+`instance_id` is a stable UUID per database. The HA integration uses
+it as the config-entry `unique_id` so reconfiguring the host URL
+doesn't fork a new entry.
 
 ### Inventory Statistics
 
@@ -404,12 +409,56 @@ Response:
 ]
 ```
 
-### Search
+### Items Index (lite, ETag-cached)
 
-Search for items (requires `search` scope):
+Pre-loaded by the HA Lovelace card so it can substring-filter as
+the user types without per-keystroke round-trips. Heavy fields
+(images, tags, descriptions, full container objects) are
+deliberately omitted.
 
 ```http
-GET /api/ha/search?q=red%20jacket&limit=20
+GET /api/ha/items/index
+X-API-Key: your-api-key
+If-None-Match: "abc123"   (optional)
+```
+
+Response (200 OK):
+```http
+ETag: "abc123"
+Cache-Control: private, max-age=900
+Content-Type: application/json
+Content-Encoding: gzip
+```
+```json
+[
+  {
+    "id": "uuid",
+    "name": "Red wool cardigan",
+    "owner_name": "Sverre",
+    "container_name": "Winter Box",
+    "location_name": "Attic",
+    "ai_names": ["Rød ullgenser"]
+  }
+]
+```
+
+When `If-None-Match` matches the current ETag, the server returns
+**304 Not Modified** with no body. The ETag is derived from the
+`MAX(updated_at)` across `items`, `containers`, `locations`, and
+`users`, hashed for compactness.
+
+### Search
+
+Search for items (requires `search` scope). Matches across the
+manual `name` / `description`, the AI-generated translations
+(`ai_names` / `ai_descriptions`), and the **owner's name** —
+multi-token queries require every token to match some field, so
+`?q=Sverre+jakke` returns only Sverre's jackets, not every jacket.
+English apostrophe-s possessive (`Sverre's` → `Sverre`) is stripped
+during tokenization.
+
+```http
+GET /api/ha/search?q=Sverre%20jakke&limit=20
 X-API-Key: your-api-key
 ```
 
@@ -417,8 +466,8 @@ Response:
 ```json
 {
   "items": [...],
-  "total_count": 5,
-  "query": "red jacket"
+  "total_count": 3,
+  "query": "Sverre jakke"
 }
 ```
 
@@ -941,6 +990,26 @@ curl -X POST http://storagehub.local/api/webhooks \
 ---
 
 ## Changelog
+
+### v1.2.0 (2026-05-03) — HA integration support
+
+- **`GET /api/ha/status`** now returns `instance_id` (UUID). Stable
+  per-database; lets the HA integration use it as its config-entry
+  `unique_id` and migrate cleanly when the user changes the
+  StorageHub host URL.
+- **`GET /api/ha/search?q=...`** now matches the *owner's name*
+  alongside `name` / `description` / `ai_names` / `ai_descriptions`.
+  Multi-token queries require every token to match some field, so
+  `?q=Sverre+jakke` finds Sverre's jackets (not every jacket).
+  English apostrophe-s possessive (`Sverre's` → `Sverre`) is
+  stripped during tokenization. Norwegian possessive `s` is handled
+  naturally by substring matching — no special-casing needed.
+- **`GET /api/ha/items/index`** is new: a lite item record per row
+  (id, name, owner_name, container_name, location_name, ai_names)
+  designed for the HA Lovelace card's as-you-type filter. Returns
+  an `ETag` and honors `If-None-Match` with a `304 Not Modified`.
+  Requires the `read` scope. Responses are gzipped via the new
+  `GZipMiddleware` (>1 KB threshold).
 
 ### v1.1.0 (2026-05-03)
 

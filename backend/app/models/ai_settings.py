@@ -222,6 +222,14 @@ class AISettings(Base):
     # onboarded yet.
     openai_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Stable identifier for *this* StorageHub instance, surfaced by
+    # /api/ha/status. The HA integration uses it as its config-entry
+    # unique_id so reconfiguring the host URL doesn't fork a new
+    # entry and orphan the old entities.
+    instance_uuid: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), default=uuid.uuid4, nullable=False
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
