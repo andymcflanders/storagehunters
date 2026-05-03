@@ -51,6 +51,9 @@
 	$: isLoginPage = $page.url.pathname === '/login';
 	$: isSetupPage = $page.url.pathname.startsWith('/setup');
 	$: isChromeless = isLoginPage || isSetupPage;
+	// /declutter manages its own height + padding so the page stays
+	// non-scrolling and swipe gestures don't fight a scrollable body.
+	$: isFullbleed = $page.url.pathname.startsWith('/declutter') && !$page.url.pathname.startsWith('/declutter/discard');
 </script>
 
 <Toast />
@@ -206,7 +209,11 @@
 	{/if}
 
 	<!-- Main content -->
-	<main class="{$user && !isChromeless ? 'mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 md:pb-8 lg:px-8' : ''}">
+	<main
+		class={$user && !isChromeless && !isFullbleed
+			? 'mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 md:pb-8 lg:px-8'
+			: ''}
+	>
 		<slot />
 	</main>
 

@@ -153,9 +153,12 @@ async def triage_next(
 ) -> TriageNextResponse:
     """Return one random eligible item to triage, plus a rough remaining count."""
     # Cheap count first so we can populate remaining_estimate even
-    # when the pool is empty.
+    # when the pool is empty. Use func.count() (no column arg) so
+    # SQLAlchemy doesn't add the items table back into the FROM
+    # alongside the subquery — that creates a cartesian product
+    # and inflates the count by the table's total row count.
     count = await db.scalar(
-        select(func.count(Item.id)).select_from(
+        select(func.count()).select_from(
             _eligible_pool_query(owner_id, tag).subquery()
         )
     ) or 0
