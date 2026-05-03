@@ -210,8 +210,10 @@
 
 	<!-- Main content -->
 	<main
-		class={$user && !isChromeless && !isFullbleed
-			? 'mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 md:pb-8 lg:px-8'
+		class={$user && !isChromeless
+			? isFullbleed
+				? 'md:mx-auto md:max-w-7xl md:px-6 md:py-8 lg:px-8'
+				: 'mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 md:pb-8 lg:px-8'
 			: ''}
 	>
 		<slot />
