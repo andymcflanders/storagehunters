@@ -73,6 +73,33 @@
 		owner_suggestion_enabled: true
 	};
 
+	// Live cost estimates that recompute reactively from the form so
+	// the user sees the impact of moving sliders / picking a different
+	// model without needing to save first. Output tokens = the
+	// max_tokens cap, framed as "worst-case cost per call" — that
+	// matches the user's mental model ("more tokens = more expensive")
+	// even though typical generations use much less than the cap.
+	$: visionLiveCost = (() => {
+		if (!openaiSettings) return null;
+		const m = openaiSettings.vision_models.find((x) => x.id === openaiFormData.vision_model);
+		if (!m) return null;
+		const inputTokens = 600 + 1000; // ~600 prompt + ~1000 per image, 1 image
+		const outputTokens = openaiFormData.vision_max_tokens;
+		const inputPrice = m.vision_input_price_per_1m ?? m.input_price_per_1m;
+		const cost = (inputTokens * inputPrice + outputTokens * m.output_price_per_1m) / 1_000_000;
+		return { inputTokens, outputTokens, cost };
+	})();
+
+	$: summaryLiveCost = (() => {
+		if (!openaiSettings) return null;
+		const m = openaiSettings.text_models.find((x) => x.id === openaiFormData.summary_model);
+		if (!m) return null;
+		const inputTokens = 400; // rough container summary prompt
+		const outputTokens = openaiFormData.summary_max_tokens;
+		const cost = (inputTokens * m.input_price_per_1m + outputTokens * m.output_price_per_1m) / 1_000_000;
+		return { inputTokens, outputTokens, cost };
+	})();
+
 	// Language settings — which languages the AI generates content in.
 	let languageSettings: { supported_languages: string[]; default_language: string } | null = null;
 	let savingLanguages = false;
@@ -1759,16 +1786,18 @@
 									</p>
 								</div>
 
-								<!-- Cost estimate -->
-								<div class="mt-4 rounded-lg bg-slate-50 dark:bg-slate-700/40 p-3">
-									<p class="text-sm text-slate-600 dark:text-slate-400">
-										<span class="font-medium">Estimated cost per image:</span>
-										${openaiSettings.vision_cost_estimate.cost_per_image_usd?.toFixed(5) || '0.00000'}
-									</p>
-									<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-										~{openaiSettings.vision_cost_estimate.estimated_input_tokens} input + {openaiSettings.vision_cost_estimate.estimated_output_tokens} output tokens
-									</p>
-								</div>
+								<!-- Cost estimate (reactive — recomputes on any form change) -->
+								{#if visionLiveCost}
+									<div class="mt-4 rounded-lg bg-slate-50 dark:bg-slate-700/40 p-3">
+										<p class="text-sm text-slate-600 dark:text-slate-400">
+											<span class="font-medium">Max cost per image:</span>
+											${visionLiveCost.cost.toFixed(5)}
+										</p>
+										<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+											~{visionLiveCost.inputTokens} input + up to {visionLiveCost.outputTokens} output tokens
+										</p>
+									</div>
+								{/if}
 							</div>
 
 							<!-- Summary Generation -->
@@ -1834,16 +1863,18 @@
 									</p>
 								</div>
 
-								<!-- Cost estimate -->
-								<div class="mt-4 rounded-lg bg-slate-50 dark:bg-slate-700/40 p-3">
-									<p class="text-sm text-slate-600 dark:text-slate-400">
-										<span class="font-medium">Estimated cost per summary:</span>
-										${openaiSettings.summary_cost_estimate.estimated_cost_usd.toFixed(6)}
-									</p>
-									<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-										~{openaiSettings.summary_cost_estimate.estimated_input_tokens} input + {openaiSettings.summary_cost_estimate.estimated_output_tokens} output tokens
-									</p>
-								</div>
+								<!-- Cost estimate (reactive — recomputes on any form change) -->
+								{#if summaryLiveCost}
+									<div class="mt-4 rounded-lg bg-slate-50 dark:bg-slate-700/40 p-3">
+										<p class="text-sm text-slate-600 dark:text-slate-400">
+											<span class="font-medium">Max cost per summary:</span>
+											${summaryLiveCost.cost.toFixed(6)}
+										</p>
+										<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+											~{summaryLiveCost.inputTokens} input + up to {summaryLiveCost.outputTokens} output tokens
+										</p>
+									</div>
+								{/if}
 							</div>
 
 							<!-- AI Owner Suggestion -->

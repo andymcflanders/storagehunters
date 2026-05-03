@@ -148,6 +148,9 @@ export interface ModelOption {
 	id: string;
 	name: string;
 	description: string;
+	input_price_per_1m: number;
+	output_price_per_1m: number;
+	vision_input_price_per_1m: number | null;
 }
 
 export interface CostEstimate {

@@ -120,6 +120,12 @@ class ModelOption(BaseModel):
     id: str
     name: str
     description: str
+    # USD per 1M tokens, surfaced to the client so the cost estimate
+    # can be recomputed reactively as the user moves sliders without
+    # round-tripping the server.
+    input_price_per_1m: float
+    output_price_per_1m: float
+    vision_input_price_per_1m: float | None = None
 
 
 class CostEstimate(BaseModel):
@@ -593,6 +599,30 @@ async def get_or_create_ai_settings(db: DbSession):
     return settings
 
 
+def _model_options_with_pricing(models: list[dict]) -> list[ModelOption]:
+    """Enrich the static VISION_MODELS / TEXT_MODELS dicts with pricing
+    so the client can compute cost estimates reactively without a
+    round-trip per slider tick."""
+    from app.models.ai_settings import OPENAI_MODEL_PRICING
+
+    out: list[ModelOption] = []
+    for m in models:
+        pricing = OPENAI_MODEL_PRICING.get(
+            m["id"], OPENAI_MODEL_PRICING["gpt-4o"]
+        )
+        out.append(
+            ModelOption(
+                id=m["id"],
+                name=m["name"],
+                description=m["description"],
+                input_price_per_1m=pricing["input"],
+                output_price_per_1m=pricing["output"],
+                vision_input_price_per_1m=pricing.get("vision_input"),
+            )
+        )
+    return out
+
+
 @router.get("/openai", response_model=OpenAISettings)
 async def get_openai_settings(
     db: DbSession,
@@ -637,8 +667,8 @@ async def get_openai_settings(
             estimated_cost_usd=summary_cost["estimated_cost_usd"],
         ),
         owner_suggestion_enabled=ai_settings.owner_suggestion_enabled,
-        vision_models=[ModelOption(**m) for m in VISION_MODELS],
-        text_models=[ModelOption(**m) for m in TEXT_MODELS],
+        vision_models=_model_options_with_pricing(VISION_MODELS),
+        text_models=_model_options_with_pricing(TEXT_MODELS),
         api_key_set=bool(ai_settings.openai_api_key or config.openai_api_key),
     )
 
@@ -754,8 +784,8 @@ async def update_openai_settings(
             estimated_cost_usd=summary_cost["estimated_cost_usd"],
         ),
         owner_suggestion_enabled=ai_settings.owner_suggestion_enabled,
-        vision_models=[ModelOption(**m) for m in VISION_MODELS],
-        text_models=[ModelOption(**m) for m in TEXT_MODELS],
+        vision_models=_model_options_with_pricing(VISION_MODELS),
+        text_models=_model_options_with_pricing(TEXT_MODELS),
         api_key_set=bool(ai_settings.openai_api_key or config.openai_api_key),
     )
 
