@@ -65,6 +65,8 @@ A storage unit (box, bin, shelf) that holds items or other containers.
 | notes | Text | Optional notes |
 | location_id | UUID | Parent location |
 | parent_container_id | UUID | Optional parent container (for nesting) |
+| container_type | String | Optional category — `box`, `drawer`, `shelf`, `cabinet`, `closet`, `bin`, `basket`, `other` |
+| image_filepath | Text | Optional hero image (relative path under `upload_dir`); served as `image_url` in API responses |
 
 #### Item
 An individual belonging stored in a container.
@@ -80,14 +82,14 @@ An individual belonging stored in a container.
 | value_estimate | Decimal | Estimated value |
 | owner_id | UUID | Owner (user) |
 | container_id | UUID | Parent container |
-| ai_name | String | AI-generated name (English) |
-| ai_name_no | String | AI-generated name (Norwegian) |
-| ai_description | Text | AI-generated description (English) |
-| ai_description_no | Text | AI-generated description (Norwegian) |
-| ai_tags | JSON | AI-generated tags |
+| ai_names | JSONB | AI-generated names keyed by ISO language code, e.g. `{"en": "Red Sweater", "no": "Rød Genser"}` |
+| ai_descriptions | JSONB | AI-generated descriptions keyed by ISO language code |
 | ai_processed | Boolean | Whether AI has processed this item |
-| needs_review | Boolean | Flagged for user review |
+| needs_review | Boolean | Flagged for user review (kept for godview filter / Home Assistant stats; no UI sets it after the segmentation feature was removed) |
 | primary_image_id | UUID | Hero image selection |
+
+> Tags are still English-only by design — they're categorical labels, not
+> user-facing prose. AI-generated tags live on `ItemImage.ai_tags` (see below).
 
 #### ItemImage
 Images attached to items.
@@ -184,7 +186,7 @@ Audit trail for all changes.
 | created_at | DateTime | When it happened |
 
 #### AISettings
-Configuration for OpenAI models (singleton table).
+Configuration for OpenAI and language settings (singleton table).
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -197,6 +199,9 @@ Configuration for OpenAI models (singleton table).
 | summary_max_tokens | Integer | Max summary tokens (default: 150) |
 | summary_temperature | Float | Summary temperature (default: 0.3) |
 | summary_enabled | Boolean | Enable AI summaries |
+| supported_languages | String[] | ISO codes the AI generates content in (default: `{en, no}`). Add `de`, `sv`, etc. to extend; the OpenAI prompt is built dynamically from this list |
+| default_language | String | Fallback language when a translation is missing for the user's locale (default: `en`) |
+| openai_api_key | Text | Persisted API key. Wins over the `OPENAI_API_KEY` env var, which stays as a fallback for un-onboarded installs |
 
 #### BackupConfig
 Configuration for automatic backups (singleton table).
@@ -245,8 +250,11 @@ Configuration for automatic backups (singleton table).
 
 **Image Classification:**
 - Automatic tag generation from uploaded images
-- AI-generated names and descriptions
-- Bilingual support (English and Norwegian)
+- AI-generated names and descriptions in every language listed under
+  `AISettings.supported_languages` (defaults to English + Norwegian; admins
+  can add more without a code change). Translations are stored as JSONB
+  dicts on `Item.ai_names` and `Item.ai_descriptions` keyed by ISO code,
+  and the OpenAI prompt is built dynamically from the language list.
 - Background processing via Celery workers
 - Reprocessing capability for updated results
 
@@ -334,6 +342,19 @@ Configuration for automatic backups (singleton table).
 
 ### 7. Admin Panel
 
+**First-run Setup Wizard:**
+- A clean install (empty users table) auto-redirects to `/setup`
+- Steps: welcome → admin account (email + password required) →
+  OpenAI key + AI languages (skippable) → first location (skippable) → done
+- `POST /api/setup/complete` is one-shot — returns 409 once any user exists,
+  so the public endpoint can't be re-used to inject a second admin
+
+**Identity Separation:**
+- Admins are excluded from the household card grid on `/login` (the page
+  calls `GET /api/users?include_admins=false`)
+- Admins sign in via the "Administer this instance" link with email +
+  password (`POST /api/auth/login` with `{email, password}`)
+
 **User Management:**
 - Create/edit/delete users
 - Role assignment (Admin/User)
@@ -352,6 +373,8 @@ Configuration for automatic backups (singleton table).
 
 **AI Configuration:**
 - OpenAI model selection (vision and summary)
+- Persisted API key (rotatable from the panel; survives container restart)
+- Supported AI languages and default fallback
 - Per-feature enable/disable toggles
 - Cost estimate display
 
@@ -436,28 +459,42 @@ All API endpoints are prefixed with `/api/`
 Most endpoints require authentication via session cookie. Public endpoints:
 - `GET /api/shares/public/{token}` - View shared containers
 - `GET /api/health` - Health check
+- `GET /api/setup/status` - First-run probe (returns `{needs_setup: bool}`)
+- `POST /api/setup/complete` - One-shot bootstrap; refuses with 409 once any user exists
+
+`POST /api/auth/login` accepts either `user_id` (household card-tap login) or
+`email` (admin sign-in via the "Administer this instance" link). Email lookup
+is case-insensitive.
+
+`GET /api/users` accepts `?include_admins=false` so the login screen can hide
+admins from the household card grid.
 
 ### Main Endpoint Groups
 
 | Prefix | Description |
 |--------|-------------|
-| `/api/auth` | Authentication (login, logout, current user) |
-| `/api/users` | User management |
+| `/api/setup` | First-run wizard — `status` (public) and `complete` (public, one-shot) |
+| `/api/auth` | Authentication (login by user_id or email, logout, current user) |
+| `/api/users` | User management; `?include_admins=false` filters admins out of the list |
 | `/api/locations` | Location CRUD |
-| `/api/containers` | Container CRUD, QR codes |
+| `/api/containers` | Container CRUD, QR codes, hero image upload (`POST /{id}/image`, `DELETE /{id}/image`) |
 | `/api/items` | Item CRUD, images, tags |
 | `/api/tags` | Tag management |
-| `/api/search` | Search and autocomplete |
+| `/api/search` | Search and autocomplete (matches across `ai_names`/`ai_descriptions` JSONB so Norwegian queries hit English-only items and vice versa) |
 | `/api/reminders` | Reminder management |
 | `/api/shares` | Share link management |
 | `/api/printers` | Printer configuration |
 | `/api/inventory` | God View tree data |
 | `/api/activity` | Activity logs |
 | `/api/export` | Data export |
-| `/api/admin` | Admin operations (users, AI settings) |
-| `/api/admin/openai` | OpenAI model configuration |
+| `/api/admin` | Admin operations (users, stats, activity logs) |
+| `/api/admin/openai` | OpenAI model configuration + persisted API key |
+| `/api/admin/languages` | Manage `supported_languages` / `default_language` |
+| `/api/admin/ssl` | SSL certificate management |
+| `/api/api-keys` | Long-lived API keys (used by the Home Assistant integration) |
+| `/api/webhooks` | Webhook subscription management |
+| `/api/ha` | Home Assistant integration endpoints (API-key auth) |
 | `/api/backup` | Backup and restore operations |
-| `/api/ssl` | SSL configuration |
 
 ---
 
@@ -499,14 +536,31 @@ Images are served via nginx at `/uploads/{filepath}`
 
 ## Internationalization
 
-### Supported Languages
-- English (en) - Default
-- Norwegian (no)
+### UI translation
+The frontend ships locale files under `frontend/src/lib/i18n/locales/`. English
+(`en.json`) and Norwegian (`no.json`) are bundled today; adding another locale
+is a matter of dropping a JSON file with the same shape and registering it in
+`frontend/src/lib/i18n/index.ts`. The user's `language` field on the User
+model selects which locale loads.
 
-### Localized Content
-- UI strings (frontend i18n)
-- AI-generated names and descriptions
-- User language preference
+### AI-generated content
+AI translation languages are governed by `AISettings.supported_languages`
+(JSONB list of ISO codes) and `default_language` — both editable from
+Admin → AI Settings or from the first-run wizard. The OpenAI prompt iterates
+this list, so adding `de` or `sv` to it makes the next item ingestion
+generate German or Swedish names and descriptions automatically. Existing
+items are not back-translated; reprocess them if you need older items in the
+new language.
+
+`getLocalizedAI()` on the frontend (and `app.services.localized.localized()`
+on the backend) resolve a translations dict to a single string with the
+order: user's language → `default_language` → any value present.
+
+### Where each language is constrained
+- **`User.language` enum**: currently restricted to `en` / `no` (both have
+  shipped UI locale files). Add to the enum + ship a locale file to extend.
+- **`AISettings.supported_languages`**: free-form list. Adding a code here
+  only affects AI generation, not the UI strings the user sees.
 
 ---
 
@@ -516,21 +570,30 @@ Images are served via nginx at `/uploads/{filepath}`
 
 | Service | Port | Description |
 |---------|------|-------------|
-| nginx | 80, 443 | Reverse proxy |
-| frontend | 3000 | SvelteKit app |
+| nginx | 80, 443 | Reverse proxy. Auto-generates a self-signed cert on first boot so HTTPS works without setup |
+| frontend | 3000 | SvelteKit app (Node 20 SSR adapter) |
 | backend | 8000 | FastAPI server |
-| postgres | 5432 | Database |
-| redis | 6379 | Cache/queue |
-| celery | - | Background workers |
+| postgres | 5432 | Database (PostgreSQL 16) |
+| redis | 6379 | Cache / Celery broker |
+| celery | - | Background workers (queues: `celery`, `ai`, `default`) |
+| celery-beat | - | Scheduled tasks (e.g. backup runner) |
+| certbot | - | On-demand Let's Encrypt cert helper |
 
 ### Environment Variables
 
-Key configuration via environment:
-- `DATABASE_URL` - PostgreSQL connection
-- `REDIS_URL` - Redis connection
-- `OPENAI_API_KEY` - For AI features
-- `SECRET_KEY` - Session encryption
-- `UPLOAD_DIR` - File storage path
+Required (compose refuses to start without them — `${VAR:?...}` interpolation):
+- `SECRET_KEY` — session/JWT signing. Generate with `openssl rand -hex 32` or `just genkey`.
+- `POSTGRES_PASSWORD` — database password.
+
+Recommended:
+- `OPENAI_API_KEY` — pre-fills the wizard. The wizard / admin panel can also
+  store the key in `ai_settings.openai_api_key`, which takes precedence over
+  this env var.
+- `FRONTEND_URL` — public URL used in QR codes and share links.
+- `CORS_ORIGINS` — comma-separated additional origins.
+
+Internal (set by compose):
+- `DATABASE_URL`, `REDIS_URL`, `UPLOAD_DIR`
 
 ---
 
@@ -551,5 +614,8 @@ Managed via Alembic. Current migrations:
 12. Add backup_config table
 13. Add ai_settings table (OpenAI configuration)
 14. Remove segmentation feature
+15. Switch AI translations to JSONB (`ai_names`, `ai_descriptions`) and add `supported_languages` / `default_language` to `ai_settings`
+16. Add `container_type` and `image_filepath` to containers
+17. Add `openai_api_key` to `ai_settings` (persisted across restarts)
 
 Run migrations: `alembic upgrade head`

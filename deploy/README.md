@@ -51,10 +51,17 @@ cp deploy/.env.production.example deploy/.env.production
 nano deploy/.env.production  # Edit with your settings
 ```
 
-Important settings to configure:
-- `SECRET_KEY` - Generate a secure random key
-- `OPENAI_API_KEY` - For AI features
-- Domain/SSL settings if using HTTPS
+**Required** (compose refuses to start without them — `${VAR:?...}` interpolation):
+- `SECRET_KEY` — generate with `openssl rand -hex 32` (or `just genkey`)
+- `POSTGRES_PASSWORD` — any strong password
+
+Optional but recommended:
+- `OPENAI_API_KEY` — pre-fills the wizard's AI step. You can also paste it
+  during onboarding or set it later under Admin → AI Settings.
+- `FRONTEND_URL` — public URL where users will reach the app, used for QR
+  codes and share links.
+- `CORS_ORIGINS` — comma-separated additional origins (e.g. LAN IP plus a
+  domain name).
 
 ### Step 4: Initial Deployment
 
@@ -62,21 +69,27 @@ Important settings to configure:
 ./deploy/deploy.sh
 ```
 
-### Step 5: Create First Admin User
+### Step 5: Run the Setup Wizard
 
-After the initial deployment, create your first admin user:
+Open `https://192.168.200.13` in a browser. With an empty database the app
+detects this is a fresh install and redirects you to `/setup`. The wizard
+walks you through:
 
-```bash
-# With password (recommended for production)
-./deploy/create-admin.sh "Your Name" "your@email.com" "your-password"
+1. Creating the admin account (email + password are required — admins sign
+   in via "Administer this instance" on the login screen, not the household
+   card grid).
+2. Pasting an OpenAI API key (optional; persisted in the database, can be
+   rotated later in Admin → AI Settings).
+3. Picking the languages the AI generates content in (defaults to `en, no`).
+4. Adding your first storage location (optional).
 
-# Without password (household mode - anyone can select the user)
-./deploy/create-admin.sh "Your Name"
-```
+After "Open StorageHub" you're already logged in.
 
-You can now access StorageHub at `https://192.168.200.13`
-
-> **Note:** The first time you visit, your browser will warn about the self-signed certificate. This is expected for local network deployments. Click "Advanced" and "Proceed" to continue.
+> **Note:** The first time you visit, your browser will warn about the
+> self-signed certificate. nginx generates one automatically on first boot
+> so HTTPS works out of the box. Click "Advanced" and "Proceed". For a real
+> domain you can later replace the cert via the SSL admin panel (custom
+> upload or Let's Encrypt through the bundled certbot service).
 
 ---
 
@@ -85,11 +98,17 @@ You can now access StorageHub at `https://192.168.200.13`
 ### Development (Laptop)
 
 ```bash
-# Start local development
-docker-compose up
+# Start local development (the justfile at the repo root wraps the most
+# common operations — see `just --list`)
+just up
+just logs backend       # tail logs for one service
+just check              # frontend type checks before committing
 
-# Make changes, test locally
-# Commit when ready
+# .githooks/pre-commit runs `just check` automatically on staged frontend
+# changes. Enable it once per clone:
+just install-hooks
+
+# Commit and push as usual
 git add . && git commit -m "feat: My new feature"
 git push
 ```
@@ -137,7 +156,8 @@ ssh user@192.168.200.13
 # Backup production database
 ./deploy/backup.sh
 
-# Create a new user
+# Create an additional user from the CLI (the first admin is created by
+# the in-app /setup wizard; this script is for adding more users later)
 ./deploy/create-admin.sh "Name" "email@example.com" "password"
 ```
 

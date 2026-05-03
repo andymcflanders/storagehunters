@@ -6,7 +6,8 @@ A self-hosted web application for tracking personal belongings across multiple s
 
 ### Core Inventory
 - **Location Management**: Organize your storage by locations (garage, loft, storage units)
-- **Container Tracking**: Create containers with QR codes for easy identification
+- **Container Tracking**: Containers with type (box, drawer, shelf, …), QR code, and an
+  optional hero image you can snap with the device camera
 - **Nested Containers**: Support for containers within containers (drawers in cabinets)
 - **Item Catalog**: Track items with photos, descriptions, and metadata
 - **Owner Tracking**: Assign items to family members or users
@@ -14,8 +15,12 @@ A self-hosted web application for tracking personal belongings across multiple s
 ### AI Features
 - **AI Image Classification**: Automatic item identification using OpenAI Vision
 - **Configurable AI Models**: Choose models, adjust temperature, max tokens, and view cost estimates
-- **Bilingual Support**: AI-generated descriptions in English and Norwegian
-- **Smart Search**: Natural language search with color and synonym understanding
+- **Multi-language Translations**: AI generates names and descriptions in every language
+  configured under Admin → AI Settings (defaults to English + Norwegian; add more with a
+  config tweak — no code or migration required)
+- **Smart Search**: Natural-language query understanding with color and clothing-type
+  synonyms across both languages (e.g. "rød ullgenser" matches an item named "Red Wool
+  Cardigan")
 
 ### User Interface
 - **God View**: Complete inventory tree with inline editing and drag-and-drop
@@ -41,8 +46,15 @@ A self-hosted web application for tracking personal belongings across multiple s
 - **Activity Logs**: Complete audit trail of all changes
 
 ### Admin Features
+- **First-run Setup Wizard**: A clean install lands on `/setup` to create the admin
+  account, optionally save an OpenAI API key, pick AI languages, and add the first
+  location — no `curl` ceremony required
+- **Separate Admin Identity**: Admins sign in via email + password through an
+  "Administer this instance" link on the login screen; they're hidden from the
+  household card grid so they don't get used as everyday accounts
 - **User Management**: Create and manage user accounts with role-based access
-- **AI Configuration**: Configure OpenAI models, temperature, max tokens, and view cost estimates
+- **AI Configuration**: Configure OpenAI models, temperature, max tokens, view cost
+  estimates, and rotate the API key — all from the admin panel
 - **System Statistics**: Dashboard with usage metrics and growth trends
 
 ## Tech Stack
@@ -84,16 +96,14 @@ docker compose logs -f
 ```
 
 Access the application:
-- **Application**: http://localhost
+- **Application**: http://localhost (or https://localhost — nginx generates a
+  self-signed cert on first boot, so HTTPS works without any extra setup)
 - **API Docs**: http://localhost/docs
 
-Create the first admin user (run once, after services are up):
-
-```bash
-curl -X POST http://localhost/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Admin","email":"you@example.com","password":"your-password","requires_password":true,"role":"admin","language":"en"}'
-```
+**First visit**: the app detects an empty database and redirects you to `/setup`.
+The wizard walks you through creating the admin account, pasting an OpenAI key
+(optional, can be added later), picking AI languages, and adding your first
+location. After you click "Open StorageHub" you're already logged in.
 
 To stop:
 ```bash
@@ -103,6 +113,22 @@ docker compose down
 To reset everything (including data):
 ```bash
 docker compose down -v
+```
+
+### Common operations via `just`
+
+A `justfile` at the repo root wraps the most-used commands:
+
+```bash
+just up              # docker compose up -d
+just down            # stop, keep data
+just build           # rebuild images and start
+just logs backend    # tail logs for one service
+just check           # run frontend type checks (svelte-check)
+just genkey          # generate a fresh SECRET_KEY
+just shell-db        # psql into the running database
+just install-hooks   # one-time: enable .githooks/pre-commit
+just reset           # DESTRUCTIVE: down -v
 ```
 
 ### Production Checklist
@@ -116,8 +142,10 @@ When deploying to a real server (single VPS, cloud, etc.):
    share links — wrong values will produce broken links.
 4. **Set `CORS_ORIGINS`** if the app is reachable at additional URLs (LAN IP,
    alternate domains). Comma-separated.
-5. **Configure HTTPS** — see `deploy/README.md` for the Let's Encrypt flow
-   via the bundled certbot service.
+5. **Configure HTTPS** — nginx auto-generates a self-signed cert on first boot
+   so HTTPS works immediately. For a real domain, use the bundled `certbot`
+   service to obtain a Let's Encrypt cert; the SSL admin panel can also accept
+   a custom upload. See `deploy/README.md`.
 6. **Back up regularly** — use the in-app Admin → Backups panel, or the
    `deploy/backup.sh` script for CLI dumps.
 
@@ -131,8 +159,8 @@ laptop→server workflow.
 #### Prerequisites
 
 - Python 3.11+
-- Node.js 18+
-- PostgreSQL 15+
+- Node.js 20+
+- PostgreSQL 16+
 - Redis (for Celery)
 
 #### Backend Setup
