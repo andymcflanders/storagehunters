@@ -3,13 +3,13 @@
 	import { goto } from '$app/navigation';
 	import { user } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
-	import { admin, ssl, backup } from '$lib/api';
+	import { admin, ssl, backup, apiKeys } from '$lib/api';
 	import { Card, Button, Input } from '$lib/components';
 	import type { SystemStats, AdminUser, ActivityLogItem, OpenAISettings } from '$lib/api/admin';
 	import type { SSLStatus, SSLMode } from '$lib/api/ssl';
 	import type { BackupHistory, BackupPreview, ProviderStatus, RemoteBackup, BackupSchedule } from '$lib/api/backup';
 
-	type Tab = 'dashboard' | 'users' | 'activity' | 'ssl' | 'ai' | 'backups';
+	type Tab = 'dashboard' | 'users' | 'activity' | 'ssl' | 'ai' | 'backups' | 'api-keys';
 
 	let activeTab: Tab = 'dashboard';
 	let stats: SystemStats | null = null;
@@ -164,6 +164,7 @@
 		{ id: 'activity', label: 'Activity Logs', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
 		{ id: 'ssl', label: 'SSL/HTTPS', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
 		{ id: 'ai', label: 'AI Settings', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
+		{ id: 'api-keys', label: 'API Keys', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
 		{ id: 'backups', label: 'Backups', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' }
 	];
 
@@ -243,6 +244,105 @@
 			loadAISettings();
 		} else if (tabId === 'backups' && backups.length === 0) {
 			loadBackups();
+		} else if (tabId === 'api-keys' && apiKeyList.length === 0) {
+			loadApiKeys();
+		}
+	}
+
+	// API Keys tab — admin manages their own keys (backend scopes
+	// per-user). Created keys reveal the raw value once via the
+	// reveal-once banner; after the user dismisses it, only the
+	// prefix is ever shown.
+	import type { APIKeyResponse, APIKeyCreatedResponse, APIKeyScope } from '$lib/api/api-keys';
+	let apiKeyList: APIKeyResponse[] = [];
+	let loadingApiKeys = false;
+	let showApiKeyModal = false;
+	let creatingApiKey = false;
+	let revealedApiKey: APIKeyCreatedResponse | null = null;
+	let apiKeyForm: { name: string; description: string; scopes: Record<APIKeyScope, boolean> } = {
+		name: '',
+		description: '',
+		scopes: { read: true, search: true, write: false, webhooks: false, admin: false }
+	};
+	const ALL_SCOPES: { value: APIKeyScope; label: string; hint: string }[] = [
+		{ value: 'read', label: 'read', hint: 'List + read items, containers, locations, tags' },
+		{ value: 'search', label: 'search', hint: 'Use /api/ha/search and /api/search' },
+		{ value: 'write', label: 'write', hint: 'Create/update items and containers' },
+		{ value: 'webhooks', label: 'webhooks', hint: 'Manage webhooks' },
+		{ value: 'admin', label: 'admin', hint: 'Full access — implies all other scopes' }
+	];
+
+	async function loadApiKeys() {
+		loadingApiKeys = true;
+		try {
+			apiKeyList = await apiKeys.listApiKeys();
+		} catch {
+			toast.error('Failed to load API keys');
+		} finally {
+			loadingApiKeys = false;
+		}
+	}
+
+	function openApiKeyModal() {
+		apiKeyForm = {
+			name: '',
+			description: '',
+			scopes: { read: true, search: true, write: false, webhooks: false, admin: false }
+		};
+		revealedApiKey = null;
+		showApiKeyModal = true;
+	}
+
+	async function handleCreateApiKey() {
+		if (!apiKeyForm.name.trim()) {
+			toast.warning('Give the key a name');
+			return;
+		}
+		const selected = (Object.keys(apiKeyForm.scopes) as APIKeyScope[]).filter(
+			(s) => apiKeyForm.scopes[s]
+		);
+		if (selected.length === 0) {
+			toast.warning('Pick at least one scope');
+			return;
+		}
+
+		creatingApiKey = true;
+		try {
+			const created = await apiKeys.createApiKey({
+				name: apiKeyForm.name.trim(),
+				description: apiKeyForm.description.trim() || null,
+				scopes: selected
+			});
+			// Show the raw key once — the modal switches to reveal mode.
+			revealedApiKey = created;
+			await loadApiKeys();
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : 'Failed to create key';
+			toast.error(message);
+		} finally {
+			creatingApiKey = false;
+		}
+	}
+
+	async function copyKeyToClipboard() {
+		if (!revealedApiKey) return;
+		try {
+			await navigator.clipboard.writeText(revealedApiKey.key);
+			toast.success('Copied to clipboard');
+		} catch {
+			toast.error('Clipboard access denied — select and copy manually');
+		}
+	}
+
+	async function handleDeleteApiKey(key: APIKeyResponse) {
+		if (!confirm(`Delete API key "${key.name}"? Anything using it will start getting 401s.`))
+			return;
+		try {
+			await apiKeys.deleteApiKey(key.id);
+			toast.success('Key deleted');
+			await loadApiKeys();
+		} catch {
+			toast.error('Failed to delete key');
 		}
 	}
 
@@ -2088,6 +2188,95 @@
 		</div>
 	{/if}
 
+	<!-- API Keys Tab -->
+	{#if activeTab === 'api-keys'}
+		<div class="space-y-6">
+			<Card>
+				<div class="flex flex-wrap items-start justify-between gap-3">
+					<div>
+						<h3 class="text-lg font-semibold text-slate-900 dark:text-white">API Keys</h3>
+						<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+							Used by external integrations (e.g. Home Assistant) to authenticate
+							against the StorageHub API. Keys are scoped per user — you only see
+							your own here. The raw key value is only shown once at creation;
+							lose it and you'll need to mint a fresh one.
+						</p>
+					</div>
+					<Button on:click={openApiKeyModal}>
+						+ New Key
+					</Button>
+				</div>
+
+				<div class="mt-4">
+					{#if loadingApiKeys}
+						<p class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+					{:else if apiKeyList.length === 0}
+						<div class="rounded-lg border border-dashed border-slate-300 dark:border-slate-600 py-12 text-center">
+							<p class="text-sm font-medium text-slate-700 dark:text-slate-200">No API keys yet</p>
+							<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+								Click <strong>+ New Key</strong> to mint one for an integration.
+							</p>
+						</div>
+					{:else}
+						<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+							<table class="w-full text-left text-sm">
+								<thead class="bg-slate-50 dark:bg-slate-700/40 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+									<tr>
+										<th class="px-3 py-2">Name</th>
+										<th class="px-3 py-2">Prefix</th>
+										<th class="px-3 py-2">Scopes</th>
+										<th class="px-3 py-2">Created</th>
+										<th class="px-3 py-2">Last used</th>
+										<th class="px-3 py-2"></th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+									{#each apiKeyList as key (key.id)}
+										<tr>
+											<td class="px-3 py-2 align-top">
+												<p class="font-medium text-slate-900 dark:text-slate-100">{key.name}</p>
+												{#if key.description}
+													<p class="text-xs text-slate-500 dark:text-slate-400">{key.description}</p>
+												{/if}
+											</td>
+											<td class="px-3 py-2 align-top font-mono text-xs text-slate-500 dark:text-slate-400">
+												{key.key_prefix}…
+											</td>
+											<td class="px-3 py-2 align-top">
+												<div class="flex flex-wrap gap-1">
+													{#each key.scopes as scope}
+														<span class="rounded-full bg-slate-100 dark:bg-slate-700 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
+															{scope}
+														</span>
+													{/each}
+												</div>
+											</td>
+											<td class="px-3 py-2 align-top text-xs text-slate-500 dark:text-slate-400">
+												{new Date(key.created_at).toLocaleDateString()}
+											</td>
+											<td class="px-3 py-2 align-top text-xs text-slate-500 dark:text-slate-400">
+												{key.last_used_at ? new Date(key.last_used_at).toLocaleString() : '—'}
+											</td>
+											<td class="px-3 py-2 align-top text-right">
+												<button
+													type="button"
+													on:click={() => handleDeleteApiKey(key)}
+													class="text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+												>
+													Delete
+												</button>
+											</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					{/if}
+				</div>
+			</Card>
+		</div>
+	{/if}
+
 	<!-- Backups Tab -->
 	{#if activeTab === 'backups'}
 		<div class="space-y-6">
@@ -2868,6 +3057,122 @@
 					{editingUser ? 'Save Changes' : 'Create User'}
 				</Button>
 			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- API Key Modal — create + reveal-once -->
+{#if showApiKeyModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+		<div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-slate-800">
+			{#if revealedApiKey}
+				<!-- Reveal-once view: the raw key has just been generated. -->
+				<h2 class="text-xl font-bold text-slate-900 dark:text-white">
+					Save your new API key
+				</h2>
+				<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+					Copy it now. The full key is <strong>only shown once</strong> — we
+					hash it and only store the prefix afterwards.
+				</p>
+
+				<div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-900/20">
+					<p class="text-xs font-medium text-amber-800 dark:text-amber-200">
+						{revealedApiKey.name}
+					</p>
+					<div class="mt-2 flex items-center gap-2">
+						<code class="flex-1 break-all rounded bg-white dark:bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-900 dark:text-slate-100">
+							{revealedApiKey.key}
+						</code>
+						<button
+							type="button"
+							on:click={copyKeyToClipboard}
+							class="shrink-0 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+						>
+							Copy
+						</button>
+					</div>
+				</div>
+
+				<div class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+					<p><span class="font-medium">Scopes:</span> {revealedApiKey.scopes.join(', ')}</p>
+					<p class="mt-1"><span class="font-medium">Header:</span> <code class="font-mono">X-API-Key: {revealedApiKey.key_prefix}…</code></p>
+				</div>
+
+				<div class="mt-6 flex justify-end">
+					<Button
+						on:click={() => {
+							revealedApiKey = null;
+							showApiKeyModal = false;
+						}}
+					>
+						Done
+					</Button>
+				</div>
+			{:else}
+				<!-- Create form. -->
+				<h2 class="text-xl font-bold text-slate-900 dark:text-white">New API Key</h2>
+
+				<form on:submit|preventDefault={handleCreateApiKey} class="mt-4 space-y-4">
+					<div>
+						<label for="key-name" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+							Name
+						</label>
+						<input
+							id="key-name"
+							type="text"
+							bind:value={apiKeyForm.name}
+							required
+							placeholder="e.g. Home Assistant integration"
+							class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
+						/>
+					</div>
+
+					<div>
+						<label for="key-description" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+							Description (optional)
+						</label>
+						<input
+							id="key-description"
+							type="text"
+							bind:value={apiKeyForm.description}
+							placeholder="What's this key used for?"
+							class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500"
+						/>
+					</div>
+
+					<div>
+						<p class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+							Scopes
+						</p>
+						<div class="space-y-2 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+							{#each ALL_SCOPES as scope}
+								<label class="flex items-start gap-2">
+									<input
+										type="checkbox"
+										bind:checked={apiKeyForm.scopes[scope.value]}
+										class="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary-600"
+									/>
+									<span class="text-sm text-slate-700 dark:text-slate-300">
+										<span class="font-mono font-medium">{scope.label}</span>
+										<span class="ml-2 text-xs text-slate-500 dark:text-slate-400">
+											{scope.hint}
+										</span>
+									</span>
+								</label>
+							{/each}
+						</div>
+					</div>
+				</form>
+
+				<div class="mt-6 flex justify-end gap-3">
+					<Button variant="secondary" on:click={() => (showApiKeyModal = false)}>
+						Cancel
+					</Button>
+					<Button loading={creatingApiKey} on:click={handleCreateApiKey}>
+						Create Key
+					</Button>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
