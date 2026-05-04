@@ -564,7 +564,7 @@ async def list_items(
     query = select(Item).options(
         selectinload(Item.container).selectinload(Container.location),
         selectinload(Item.owner),
-        selectinload(Item.tags),
+        selectinload(Item.item_tags).selectinload(ItemTag.tag),
         selectinload(Item.images),
     )
 
@@ -685,7 +685,7 @@ async def get_item(
         .options(
             selectinload(Item.container).selectinload(Container.location),
             selectinload(Item.owner),
-            selectinload(Item.tags),
+            selectinload(Item.item_tags).selectinload(ItemTag.tag),
             selectinload(Item.images),
         )
         .where(Item.id == item_id)
@@ -701,24 +701,34 @@ async def get_item(
     return _item_to_summary(item)
 
 
-def _tokenize_search(q: str) -> list[str]:
-    """Split a search query into searchable tokens.
+def _build_token_patterns(q: str) -> list[list[str]]:
+    """Turn a query string into one pattern-set per typed token.
 
-    Handles English apostrophe-s possessive ("Sverre's" → "Sverre")
-    so voice queries like "Where is Sverre's jakke?" reach the owner
-    field. Norwegian's possessive `s` and other suffixes don't need
-    explicit handling — the substring `LIKE %sverre%` already
-    matches both "Sverre" and "Sverres" in the indexed text.
+    Each set is the list of substrings to try for that token; the
+    token matches a field if ANY pattern in its set occurs in the
+    field. For most tokens the set is just `[token]`, but Norwegian
+    possessive "s" is unmarked (no apostrophe) — so for tokens
+    ending in `s` we ALSO try the stem so "Sverres" matches an
+    owner named "Sverre". `LIKE %sverres%` against "Sverre" returns
+    false (the substring goes the wrong direction), which is why
+    the spec's earlier "substring matching covers it" wasn't true.
 
-    Tokens shorter than 2 characters are dropped so a stray
-    one-letter article doesn't fan out to "every item".
+    English apostrophe-s ("Sverre's") is stripped before tokens are
+    inspected. Tokens shorter than 2 chars are dropped to avoid
+    runaway matches; the stem is only added when the token is at
+    least 4 chars so we don't strip "is"/"us"/"his" into nothing
+    useful.
     """
-    out: list[str] = []
+    out: list[list[str]] = []
     for raw in q.lower().split():
         if raw.endswith("'s"):
             raw = raw[:-2]
-        if len(raw) >= 2:
-            out.append(raw)
+        if len(raw) < 2:
+            continue
+        patterns = [raw]
+        if len(raw) >= 4 and raw.endswith("s"):
+            patterns.append(raw[:-1])
+        out.append(patterns)
     return out
 
 
@@ -739,33 +749,45 @@ async def search_items(
     that's how "Sverre jakke" finds Sverre's jackets without the
     caller passing an explicit owner filter. Owner-name and
     item-name tokens can land in the same query in any order.
+
+    Norwegian possessive `s` (no apostrophe) is handled by also
+    trying the stem-stripped form per token, so "Sverres jakke"
+    behaves the same as "Sverre jakke".
     """
+    from sqlalchemy import or_
+
     user, api_key = api_user
 
-    tokens = _tokenize_search(q)
-    if not tokens:
+    token_patterns = _build_token_patterns(q)
+    if not token_patterns:
         # Nothing meaningful to search for; return an empty result
         # rather than raising so the integration's error path stays
         # quiet on noise queries.
         return SearchResult(items=[], total_count=0, query=q)
 
-    # Build per-token "matches any field" predicates and AND them
-    # together. The JSONB cast-to-text catches every language the
-    # AI has stored — adding German etc. doesn't require a code
-    # change here. Owner name is searched via a left-joined User.
-    def token_predicate(token: str):
-        pat = f"%{token}%"
-        return (
-            func.lower(Item.name).like(pat)
-            | func.lower(Item.description).like(pat)
-            | func.lower(func.cast(Item.ai_names, Text)).like(pat)
-            | func.lower(func.cast(Item.ai_descriptions, Text)).like(pat)
-            | func.lower(User.name).like(pat)
-        )
+    # Build per-token "matches any field via any pattern" predicates
+    # and AND them together. The JSONB cast-to-text catches every
+    # language the AI has stored — adding German etc. doesn't require
+    # a code change here. Owner name is searched via a left-joined
+    # User.
+    def token_predicate(patterns: list[str]):
+        clauses = []
+        for p in patterns:
+            pat = f"%{p}%"
+            clauses.extend(
+                [
+                    func.lower(Item.name).like(pat),
+                    func.lower(Item.description).like(pat),
+                    func.lower(func.cast(Item.ai_names, Text)).like(pat),
+                    func.lower(func.cast(Item.ai_descriptions, Text)).like(pat),
+                    func.lower(User.name).like(pat),
+                ]
+            )
+        return or_(*clauses)
 
     base = select(Item).join(Item.owner, isouter=True)
-    for token in tokens:
-        base = base.where(token_predicate(token))
+    for patterns in token_patterns:
+        base = base.where(token_predicate(patterns))
 
     query = base.options(
         selectinload(Item.container).selectinload(Container.location),
@@ -778,8 +800,8 @@ async def search_items(
     items = result.scalars().all()
 
     count_base = select(func.count(Item.id)).join(Item.owner, isouter=True)
-    for token in tokens:
-        count_base = count_base.where(token_predicate(token))
+    for patterns in token_patterns:
+        count_base = count_base.where(token_predicate(patterns))
     total = await db.scalar(count_base) or 0
 
     return SearchResult(
@@ -807,17 +829,19 @@ async def list_tags(
 
     tag_list = []
     for tag in tags:
+        # Count via the join table directly — `Item.tags` doesn't
+        # exist; the M2M lives on Item.item_tags / ItemTag.tag.
         item_count = await db.scalar(
-            select(func.count())
-            .select_from(Item)
-            .join(Item.tags)
-            .where(Tag.id == tag.id)
+            select(func.count(ItemTag.item_id)).where(ItemTag.tag_id == tag.id)
         ) or 0
 
         tag_list.append({
             "id": str(tag.id),
             "name": tag.name,
-            "is_ai_generated": tag.is_ai_generated,
+            # Tag.user_created is True when the user added it manually;
+            # invert for the integration's "AI-generated" flag so the
+            # boolean's semantic is what HA expects.
+            "is_ai_generated": not tag.user_created,
             "item_count": item_count,
         })
 
@@ -852,5 +876,8 @@ def _item_to_summary(item: Item) -> ItemSummary:
         value_estimate=item.value_estimate,
         owner_name=item.owner.name if item.owner else None,
         primary_image_url=primary_image_url,
-        tags=[tag.name for tag in item.tags] if item.tags else [],
+        # Item has no `.tags` shortcut — walk the M2M through item_tags.
+        # Callers must selectinload(Item.item_tags).selectinload(ItemTag.tag)
+        # to avoid a lazy-load explosion here.
+        tags=[it.tag.name for it in item.item_tags] if item.item_tags else [],
     )
