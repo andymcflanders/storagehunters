@@ -863,7 +863,11 @@ def _item_to_summary(item: Item) -> ItemSummary:
             item.images[0] if item.images else None,
         )
         if primary:
-            primary_image_url = f"/uploads/{primary.file_path}"
+            # The model column is `filepath` (no underscore). Route
+            # through ImageStorageService to mirror what /api/items
+            # does — gives the integration a consistent URL shape.
+            from app.services.image_storage import ImageStorageService
+            primary_image_url = ImageStorageService().get_url(primary.filepath)
 
     return ItemSummary(
         id=item.id,
