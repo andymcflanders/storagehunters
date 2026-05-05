@@ -412,9 +412,11 @@ Response:
 ### Items Index (lite, ETag-cached)
 
 Pre-loaded by the HA Lovelace card so it can substring-filter as
-the user types without per-keystroke round-trips. Heavy fields
-(images, tags, descriptions, full container objects) are
-deliberately omitted.
+the user types without per-keystroke round-trips. Tag arrays,
+descriptions, and full container objects are deliberately
+omitted; one `primary_image_url` per item is included so the
+card can render a thumbnail next to each row consistently with
+results merged in from `/api/ha/search*`.
 
 ```http
 GET /api/ha/items/index
@@ -437,15 +439,25 @@ Content-Encoding: gzip
     "owner_name": "Sverre",
     "container_name": "Winter Box",
     "location_name": "Attic",
-    "ai_names": ["Rød ullgenser"]
+    "ai_names": ["Rød ullgenser"],
+    "primary_image_url": "/uploads/images/abc123.jpg"
   }
 ]
 ```
 
+`primary_image_url` is the relative path of the item's chosen hero
+image — `primary_image_id` if set, else the earliest uploaded
+image. `null` when the item has no images. Same shape as the
+URL returned by `/api/ha/items` and `/api/ha/search*`, so the
+card joins it against its `storagehub_url` config to produce an
+absolute URL.
+
 When `If-None-Match` matches the current ETag, the server returns
 **304 Not Modified** with no body. The ETag is derived from the
 `MAX(updated_at)` across `items`, `containers`, `locations`, and
-`users`, hashed for compactness.
+`users`, plus `MAX(item_images.created_at)` so a fresh image
+upload invalidates the cache even before AI processing bumps
+`Item.updated_at`. Hashed for compactness.
 
 ### Search
 
@@ -1030,6 +1042,19 @@ curl -X POST http://storagehub.local/api/webhooks \
 ---
 
 ## Changelog
+
+### v1.2.2 (2026-05-05) — primary_image_url on lite index
+
+- **`GET /api/ha/items/index`** now includes `primary_image_url`
+  per row (relative path or `null`). Lets the HA Lovelace card
+  render thumbnails on local-hit rows so they look consistent
+  with rows merged in from `/api/ha/search*`. URL is computed
+  via the same rule the other endpoints use (primary if set,
+  earliest image otherwise).
+- ETag now also covers `MAX(item_images.created_at)` so a fresh
+  image upload invalidates the cached index even before the AI
+  pipeline bumps `Item.updated_at`. Wire size up by ~12 KB
+  gzipped at 10k items — well inside the budget.
 
 ### v1.2.1 (2026-05-05) — semantic search for HA
 

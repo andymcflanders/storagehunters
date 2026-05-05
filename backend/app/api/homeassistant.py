@@ -25,6 +25,7 @@ from app.models.location import Location
 from app.models.reminder import Reminder, ReminderType
 from app.models.tag import Tag
 from app.models.user import User
+from app.services.image_storage import ImageStorageService
 
 router = APIRouter()
 
@@ -594,13 +595,18 @@ async def items_index(
 
     Pre-loads a minimal record per item so the card can substring-
     filter in JavaScript without a network round-trip per keystroke.
-    Heavy fields (images, tags, descriptions, full container
-    objects) are deliberately omitted — target wire size for a
-    10k-item inventory is under 200 KB gzipped.
+    Tag arrays, descriptions, and full container objects are
+    deliberately omitted — target wire size for a 10k-item
+    inventory is under 200 KB gzipped. Image URLs *are* included
+    (one per item) so card thumbnails stay consistent between
+    local-hit rows and rows merged in from /api/ha/search* —
+    inconsistent thumbs are worse UX than no thumbs.
 
     The response carries an ETag derived from the MAX(updated_at)
-    across items, containers, locations, and users — the four
-    tables whose changes can invalidate the card's cached index.
+    across items, containers, locations, users, and the
+    item_images.created_at — uploading a fresh image bumps the
+    fingerprint even when the parent Item.updated_at hasn't been
+    touched yet.
     Clients send `If-None-Match` to get a 304 on the no-change path.
 
     Note: this endpoint reads the card's view of every item the API
@@ -608,8 +614,12 @@ async def items_index(
     is configured with one shared key per HA install.
     """
 
-    # Single round-trip ETag over the four tables that can
-    # invalidate a cached client copy.
+    # Single round-trip ETag over the five tables that can
+    # invalidate a cached client copy. ItemImage.created_at is in
+    # the set so a fresh image upload bumps the fingerprint even
+    # when the parent Item.updated_at hasn't moved yet (the AI
+    # pipeline only touches Item.updated_at on classification
+    # completion).
     fingerprint_row = await db.execute(
         select(
             func.greatest(
@@ -617,6 +627,7 @@ async def items_index(
                 select(func.max(Container.updated_at)).scalar_subquery(),
                 select(func.max(Location.updated_at)).scalar_subquery(),
                 select(func.max(User.updated_at)).scalar_subquery(),
+                select(func.max(ItemImage.created_at)).scalar_subquery(),
             )
         )
     )
@@ -633,8 +644,27 @@ async def items_index(
     if if_none_match and if_none_match.strip() == etag:
         return Response(status_code=304, headers=cache_headers)
 
+    # Per-row primary-image filepath. Mirrors the rule in
+    # _item_to_summary: prefer the image whose id matches
+    # Item.primary_image_id, fall back to the earliest image. The
+    # boolean (id == primary_image_id) sorts TRUE before FALSE
+    # under DESC, so the chosen image bubbles to the top and
+    # LIMIT 1 picks it.
+    primary_filepath = (
+        select(ItemImage.filepath)
+        .where(ItemImage.item_id == Item.id)
+        .order_by(
+            (ItemImage.id == Item.primary_image_id).desc(),
+            ItemImage.created_at.asc(),
+        )
+        .limit(1)
+        .correlate(Item)
+        .scalar_subquery()
+        .label("primary_filepath")
+    )
+
     # Tuple-yielding select keeps the query lean — no selectinload
-    # of images/tags/etc, just the five columns the card needs.
+    # of full image/tag rows, just the seven columns the card needs.
     stmt = (
         select(
             Item.id,
@@ -643,6 +673,7 @@ async def items_index(
             User.name.label("owner_name"),
             Container.name.label("container_name"),
             Location.name.label("location_name"),
+            primary_filepath,
         )
         .outerjoin(User, Item.owner_id == User.id)
         .outerjoin(Container, Item.container_id == Container.id)
@@ -650,6 +681,8 @@ async def items_index(
         .order_by(Item.name)
     )
     rows = (await db.execute(stmt)).all()
+
+    storage = ImageStorageService()
 
     payload = [
         {
@@ -662,6 +695,14 @@ async def items_index(
             # values — the card just wants searchable strings, it
             # doesn't care which language each one is in.
             "ai_names": [v for v in (row.ai_names or {}).values() if v],
+            # Same URL shape as /api/ha/items / /api/ha/search so
+            # the card can render thumbnails consistently regardless
+            # of which endpoint surfaced the row.
+            "primary_image_url": (
+                storage.get_url(row.primary_filepath)
+                if row.primary_filepath
+                else None
+            ),
         }
         for row in rows
     ]
@@ -1043,7 +1084,6 @@ def _item_to_summary(item: Item) -> ItemSummary:
             # The model column is `filepath` (no underscore). Route
             # through ImageStorageService to mirror what /api/items
             # does — gives the integration a consistent URL shape.
-            from app.services.image_storage import ImageStorageService
             primary_image_url = ImageStorageService().get_url(primary.filepath)
 
     return ItemSummary(
