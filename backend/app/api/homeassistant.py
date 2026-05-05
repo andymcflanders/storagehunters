@@ -14,7 +14,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import Text, func, select
+from sqlalchemy import Text, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import APIUser, DbSession, require_scope
@@ -754,8 +754,6 @@ async def search_items(
     trying the stem-stripped form per token, so "Sverres jakke"
     behaves the same as "Sverre jakke".
     """
-    from sqlalchemy import or_
-
     user, api_key = api_user
 
     token_patterns = _build_token_patterns(q)
@@ -806,6 +804,185 @@ async def search_items(
 
     return SearchResult(
         items=[_item_to_summary(item) for item in items],
+        total_count=total,
+        query=q,
+    )
+
+
+@router.get("/search/semantic", response_model=SearchResult)
+async def search_items_semantic(
+    db: DbSession,
+    api_user: Annotated[tuple, Depends(require_scope(APIKeyScope.SEARCH))],
+    q: str = Query(..., min_length=1, description="Search query"),
+    limit: int = Query(default=20, le=100),
+) -> SearchResult:
+    """Semantic search with owner pre-filter and synonym expansion.
+
+    Note: this endpoint is "semantic" in the same sense the web UI's
+    /api/search is — synonym-expanded LIKE matching plus optional
+    GPT-4o-mini query parsing for attribute extraction. There are
+    no item embeddings or vector similarity at this layer; the
+    synonym dictionaries (color + clothing terms in EN+NO) are how
+    queries like `genser` reach items named `Cardigan`. If those
+    dictionaries fall short for a real query, extending them is
+    cheaper than introducing a vector index.
+
+    Behavior:
+    - Owner pre-filter: tokens whose stem (English `'s` strip,
+      Norwegian `s` ≥ 4 chars) substring-matches a User.name are
+      pulled out as owner filters. The rest go to content search.
+    - Content search: parse_query() expands the remaining tokens
+      to colors/types/synonyms/etc, then OR-of-LIKE across name /
+      description / ai_names / ai_descriptions / tags / AI image tags.
+    - When all tokens are owner-matching (e.g. `?q=Sverre`), the
+      content search is skipped and every item owned by that user
+      is returned.
+
+    Same response shape as /api/ha/search so callers can switch
+    drop-in.
+    """
+    from app.models.item import SeasonalEnum
+    from app.services.semantic_search import get_semantic_search_service
+
+    user, api_key = api_user
+
+    token_patterns = _build_token_patterns(q)
+    if not token_patterns:
+        return SearchResult(items=[], total_count=0, query=q)
+
+    # Owner pre-filter. Pull every active non-admin user once and
+    # check each token's pattern set against User.name (case-
+    # insensitive substring). A token "hit" yanks it out of the
+    # content stream so we don't waste a LIKE round on
+    # owner-as-content.
+    from app.models.user import UserRole
+
+    users_result = await db.execute(
+        select(User).where(
+            User.role != UserRole.ADMIN,
+            User.is_active == True,  # noqa: E712
+        )
+    )
+    all_users = users_result.scalars().all()
+
+    matched_owner_ids: set = set()
+    content_tokens: list[str] = []
+    for patterns in token_patterns:
+        hit = False
+        for u in all_users:
+            uname = u.name.lower()
+            if any(p in uname for p in patterns):
+                matched_owner_ids.add(u.id)
+                hit = True
+        if not hit:
+            # Use the longest pattern (which is the user's typed
+            # token, not the stem) as the content term.
+            content_tokens.append(patterns[0])
+
+    # Content search via the synonym expander. Skip parse_query
+    # entirely when there's no content portion — the owner filter
+    # alone is enough to return every item belonging to the
+    # matched user(s).
+    content_conditions = []
+    if content_tokens:
+        content_query = " ".join(content_tokens)
+        search_service = get_semantic_search_service()
+        try:
+            parsed = await search_service.parse_query(content_query)
+        except Exception:
+            # parse_query already swallows AI failures via _local_parse
+            # fallback, but defensive in case the local path also
+            # blows up on weird input.
+            parsed = None
+
+        all_terms: set[str] = set()
+        if parsed:
+            all_terms.update(t.lower() for t in parsed.search_terms)
+            all_terms.update(t.lower() for t in parsed.colors)
+            all_terms.update(t.lower() for t in parsed.color_synonyms)
+            all_terms.update(t.lower() for t in parsed.item_types)
+            all_terms.update(t.lower() for t in parsed.type_synonyms)
+            all_terms.update(t.lower() for t in parsed.materials)
+            all_terms.update(t.lower() for t in parsed.brands)
+        # Always include the raw content tokens so we don't lose
+        # signal if parse_query returns thin results.
+        all_terms.update(content_tokens)
+
+        for term in all_terms:
+            if len(term) < 2:
+                continue
+            pat = f"%{term}%"
+            content_conditions.extend(
+                [
+                    func.lower(Item.name).like(pat),
+                    func.lower(Item.description).like(pat),
+                    func.lower(func.cast(Item.ai_names, Text)).like(pat),
+                    func.lower(func.cast(Item.ai_descriptions, Text)).like(pat),
+                ]
+            )
+            # Tag table match (manual + AI tags share the Tag table
+            # via item_tags) and the per-image AI-tag array.
+            tag_subquery = (
+                select(ItemTag.item_id)
+                .join(Tag, Tag.id == ItemTag.tag_id)
+                .where(func.lower(Tag.name).like(pat))
+            )
+            content_conditions.append(Item.id.in_(tag_subquery))
+            ai_tag_subquery = (
+                select(ItemImage.item_id).where(ItemImage.ai_tags.any(term))
+            )
+            content_conditions.append(Item.id.in_(ai_tag_subquery))
+
+        # Size + season filters from parse_query — same idea as
+        # the web UI's smart-search path.
+        if parsed:
+            for parsed_size in parsed.sizes:
+                content_conditions.append(
+                    func.lower(Item.size).like(f"%{parsed_size.lower()}%")
+                )
+            season_map = {
+                "winter": SeasonalEnum.WINTER,
+                "summer": SeasonalEnum.SUMMER,
+                "spring": SeasonalEnum.SPRING,
+                "fall": SeasonalEnum.FALL,
+                "autumn": SeasonalEnum.FALL,
+                "holiday": SeasonalEnum.HOLIDAY,
+            }
+            for season in parsed.seasons:
+                if season.lower() in season_map:
+                    content_conditions.append(Item.seasonal == season_map[season.lower()])
+
+    # Compose owner filter AND content filter.
+    base = select(Item)
+    where_clauses = []
+    if matched_owner_ids:
+        where_clauses.append(Item.owner_id.in_(matched_owner_ids))
+    if content_conditions:
+        where_clauses.append(or_(*content_conditions))
+    if not where_clauses:
+        # Empty query after stripping noise — return empty rather
+        # than every item in the system.
+        return SearchResult(items=[], total_count=0, query=q)
+
+    for clause in where_clauses:
+        base = base.where(clause)
+
+    fetch = base.options(
+        selectinload(Item.container).selectinload(Container.location),
+        selectinload(Item.owner),
+        selectinload(Item.item_tags).selectinload(ItemTag.tag),
+        selectinload(Item.images),
+    ).order_by(Item.name).limit(limit)
+
+    rows = (await db.execute(fetch)).scalars().all()
+
+    count_base = select(func.count(Item.id))
+    for clause in where_clauses:
+        count_base = count_base.where(clause)
+    total = await db.scalar(count_base) or 0
+
+    return SearchResult(
+        items=[_item_to_summary(item) for item in rows],
         total_count=total,
         query=q,
     )

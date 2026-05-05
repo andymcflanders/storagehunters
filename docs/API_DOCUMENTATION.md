@@ -471,6 +471,46 @@ Response:
 }
 ```
 
+### Semantic Search
+
+Same response shape as `/api/ha/search`, but with two extra layers
+designed for voice queries and "Smart matches" surfaces:
+
+1. **Owner pre-filter.** Tokens whose stem matches a `User.name`
+   are pulled out of the search and used as a hard owner filter.
+   Handles English `'s` and Norwegian `s` suffixes (`Sverres
+   genser` is restricted to Sverre's items).
+2. **Synonym expansion.** Remaining tokens go through the same
+   color/clothing dictionaries the web UI uses. `genser` →
+   `sweater` → `[cardigan, pullover, jumper, …]`, so a query for
+   *genser* matches an item literally named *Cardigan*.
+
+This is **not** vector-embedding similarity — it's expanded
+substring matching. If the synonym dictionaries don't cover a
+domain, extend them in `services/semantic_search.py`.
+
+```http
+GET /api/ha/search/semantic?q=Sverres%20genser&limit=20
+X-API-Key: your-api-key
+```
+
+Response (same shape as `/api/ha/search`):
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "name": "Hvit Oasis Cardigan",
+      "owner_name": "Sverre",
+      "container_name": "Winter Box",
+      ...
+    }
+  ],
+  "total_count": 1,
+  "query": "Sverres genser"
+}
+```
+
 ### Tags
 
 ```http
@@ -990,6 +1030,20 @@ curl -X POST http://storagehub.local/api/webhooks \
 ---
 
 ## Changelog
+
+### v1.2.1 (2026-05-05) — semantic search for HA
+
+- **`GET /api/ha/search/semantic`** is new. Same response shape as
+  `/api/ha/search`. Adds two pieces over the lexical endpoint:
+  *(a)* owner pre-filter via the same token-pattern logic from v1.2.0
+  (English `'s` strip + Norwegian `s`-stem ≥ 4 chars), so
+  `?q=Sverres+genser` is restricted to Sverre's items; *(b)* synonym
+  expansion via the same machinery the web UI uses
+  (`SemanticSearchService.parse_query()`), so `?q=genser` finds
+  items named `Cardigan` even though no field literally contains
+  "genser". Implementation is synonym-expanded LIKE matching, not
+  vector embeddings — the response includes only items the
+  expansion reaches. Requires the `search` scope.
 
 ### v1.2.0 (2026-05-03) — HA integration support
 
