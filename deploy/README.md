@@ -177,23 +177,29 @@ StorageHub has a built-in backup system accessible from the Admin panel:
 ### Manual Database Backup (CLI)
 
 ```bash
-# Create a database dump
+# Create a database dump (runs pg_dump on the server over SSH)
 ./deploy/backup.sh
 
-# Backups are stored in /opt/storagehub/backups on the server
+# Backups are saved on your LOCAL machine in ./backups
+# as storagehub_<timestamp>.sql.gz
 ```
+
+> **Warning:** `backup.sh` backs up the **database only**. Uploaded photos
+> (the `uploads_data` Docker volume on the server) are NOT included — back
+> those up separately if you need them.
 
 ### Restoring from Backup
 
-Use the Admin panel to restore from any backup, or manually:
+Use the Admin panel to restore from any backup, or manually. Backups are
+gzipped SQL dumps, so restore them with `psql` (not `pg_restore`):
 
 ```bash
-# SSH to server
-ssh user@192.168.200.13
+# From your laptop — pipe the local backup into postgres on the server
+gunzip -c backups/storagehub_YYYYMMDD_HHMMSS.sql.gz | \
+  ssh user@192.168.200.13 "cd /opt/storagehub && docker compose exec -T postgres psql -U storagehub storagehub"
 
-# Restore from backup file
-cd /opt/storagehub
-docker compose exec -T postgres pg_restore -U storagehub -d storagehub < backups/backup-file.dump
+# Or, if the backup file is already on the server:
+gunzip -c backups/<file>.sql.gz | docker compose exec -T postgres psql -U storagehub storagehub
 ```
 
 ---

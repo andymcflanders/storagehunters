@@ -11,6 +11,8 @@ A self-hosted web application for tracking personal belongings across multiple s
 - **Nested Containers**: Support for containers within containers (drawers in cabinets)
 - **Item Catalog**: Track items with photos, descriptions, and metadata
 - **Owner Tracking**: Assign items to family members or users
+- **Profile Users**: Household members (e.g. kids) can own items without needing
+  a login of their own
 
 ### AI Features
 - **AI Image Classification**: Automatic item identification using OpenAI Vision
@@ -27,6 +29,10 @@ A self-hosted web application for tracking personal belongings across multiple s
 - **Dark Mode**: Full dark theme support
 - **PWA Support**: Install as an app with offline capabilities
 - **QR Scanner**: Built-in scanner for quick container access
+- **Declutter Mode**: "Tinder for items" — a triage workflow with mobile swipe
+  gestures for quick keep/discard decisions
+- **Outgrown View**: Tracks kids' clothing by size and age, surfacing items the
+  household has grown out of
 
 ### Printing & Labels
 - **Label Printing**: Print QR-coded labels for containers
@@ -36,14 +42,19 @@ A self-hosted web application for tracking personal belongings across multiple s
 
 ### Backup & Restore
 - **Full Backup**: Export complete database as downloadable archive
-- **Google Drive Sync**: Automatic backups to Google Drive
+- **Google Drive Sync**: Automatic backups to Google Drive via a service-account
+  JSON (no OAuth flow required)
+- **Dropbox Sync**: Dropbox as an alternative off-site backup provider
 - **Point-in-Time Restore**: Restore from any backup
 - **Scheduled Backups**: Configure automatic backup frequency
+- **Data Export**: Download the full inventory as JSON or CSV
 
 ### Sharing & Collaboration
 - **Share Links**: Create public links for containers without requiring login
 - **Reminders**: Set recurring reminders for maintenance, expiration, restocking
 - **Activity Logs**: Complete audit trail of all changes
+- **Home Assistant Integration**: Dedicated `/api/ha` API with API-key
+  authentication, designed for Home Assistant sensors and automations
 
 ### Admin Features
 - **First-run Setup Wizard**: A clean install lands on `/setup` to create the admin
@@ -55,6 +66,8 @@ A self-hosted web application for tracking personal belongings across multiple s
 - **User Management**: Create and manage user accounts with role-based access
 - **AI Configuration**: Configure OpenAI models, temperature, max tokens, view cost
   estimates, and rotate the API key — all from the admin panel
+- **API Key Management**: Create and revoke scoped API keys (for Home Assistant
+  and other integrations) from the Admin → API Keys tab
 - **System Statistics**: Dashboard with usage metrics and growth trends
 
 ## Tech Stack
@@ -177,7 +190,9 @@ pip install -r requirements.txt
 
 # Copy environment file
 cp ../.env.example ../.env
-# Edit .env with your database credentials
+# Note: .env.example has no DATABASE_URL — for manual dev the backend falls
+# back to the default localhost DATABASE_URL from backend/app/config.py
+# (postgresql://user:password@localhost:5432/storagehub) unless you export one
 
 # Create database
 createdb storagehub
