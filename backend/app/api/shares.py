@@ -64,7 +64,6 @@ class PublicItemResponse(BaseModel):
     id: uuid.UUID
     name: str
     description: str | None
-    quantity: int
     image_url: str | None
 
 
@@ -234,7 +233,9 @@ async def get_public_share(
         select(ShareLink)
         .options(
             selectinload(ShareLink.container).selectinload(Container.location),
-            selectinload(ShareLink.container).selectinload(Container.items),
+            selectinload(ShareLink.container)
+            .selectinload(Container.items)
+            .selectinload(Item.images),
         )
         .where(ShareLink.token == token)
     )
@@ -260,8 +261,8 @@ async def get_public_share(
             detail="This share link has expired",
         )
 
-    # Increment view count
-    share_link.view_count += 1
+    # Increment view count atomically (concurrent views must not lose counts)
+    share_link.view_count = ShareLink.view_count + 1
 
     container = share_link.container
     items = None
@@ -272,8 +273,7 @@ async def get_public_share(
                 id=item.id,
                 name=item.name,
                 description=item.description,
-                quantity=item.quantity,
-                image_url=item.images[0].url if item.images else None,
+                image_url=f"/uploads/{item.images[0].filepath}" if item.images else None,
             )
             for item in container.items
         ]

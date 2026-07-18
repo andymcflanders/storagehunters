@@ -99,7 +99,7 @@ async def export_json(
                 "size": item.size,
                 "condition": item.condition.value if item.condition else None,
                 "seasonal": item.seasonal.value if item.seasonal else None,
-                "value_estimate": item.value_estimate,
+                "value_estimate": float(item.value_estimate) if item.value_estimate is not None else None,
                 "tags": item_tag_map.get(str(item.id), []),
                 "images": item_image_map.get(str(item.id), []),
             }

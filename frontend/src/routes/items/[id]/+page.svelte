@@ -9,7 +9,7 @@
 	import { _, locale } from '$lib/i18n';
 	import { getLocalizedAI } from '$lib/utils/localized';
 	import { CONDITION_KEYS, SEASONAL_KEYS } from '$lib/utils/itemEnums';
-	import type { ItemWithDetails, ItemUpdate, User, Condition, Seasonal } from '$lib/types';
+	import type { ItemWithDetails, ItemUpdate, PublicUser, Condition, Seasonal } from '$lib/types';
 
 	let item: ItemWithDetails | null = null;
 	let loading = true;
@@ -46,7 +46,7 @@
 	}
 
 	// Users for owner selection
-	let userList: User[] = [];
+	let userList: PublicUser[] = [];
 
 	// Polling for AI processing
 	let pollInterval: ReturnType<typeof setInterval> | null = null;

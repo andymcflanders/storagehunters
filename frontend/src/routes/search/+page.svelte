@@ -7,7 +7,7 @@
 	import { search, locations, users } from '$lib/api';
 	import { Card, Input, Button } from '$lib/components';
 	import type { SearchResultItem, SearchFilters } from '$lib/api/search';
-	import type { Location, User, Condition, Seasonal } from '$lib/types';
+	import type { Location, PublicUser, Condition, Seasonal } from '$lib/types';
 
 	let query = '';
 	let results: SearchResultItem[] = [];
@@ -17,7 +17,7 @@
 
 	// Filter options
 	let locationList: Location[] = [];
-	let userList: User[] = [];
+	let userList: PublicUser[] = [];
 
 	// Active filters
 	let filters: SearchFilters = {};

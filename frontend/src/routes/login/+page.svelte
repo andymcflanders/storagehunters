@@ -6,11 +6,11 @@
 	import { toast } from '$lib/stores/toast';
 	import { users } from '$lib/api';
 	import { UserCard, Button, Input, Modal } from '$lib/components';
-	import type { User } from '$lib/types';
+	import type { PublicUser } from '$lib/types';
 
-	let userList: User[] = [];
+	let userList: PublicUser[] = [];
 	let loading = true;
-	let selectedUser: User | null = null;
+	let selectedUser: PublicUser | null = null;
 	let password = '';
 	let loggingIn = false;
 	let showPasswordModal = false;
@@ -37,7 +37,7 @@
 		}
 	});
 
-	async function handleUserClick(clickedUser: User) {
+	async function handleUserClick(clickedUser: PublicUser) {
 		if (clickedUser.requires_password) {
 			selectedUser = clickedUser;
 			showPasswordModal = true;

@@ -63,6 +63,7 @@ async def build_item_path(item: Item, db) -> list[ContainerPath]:
 @router.get("", response_model=list[ItemResponse])
 async def list_items(
     db: DbSession,
+    current_user: CurrentUser,
     container_id: UUID | None = None,
     owner_id: UUID | None = None,
 ) -> list[ItemResponse]:
@@ -110,7 +111,7 @@ async def create_item(
 
 
 @router.get("/{item_id}", response_model=ItemWithDetails)
-async def get_item(item_id: UUID, db: DbSession) -> ItemWithDetails:
+async def get_item(item_id: UUID, db: DbSession, current_user: CurrentUser) -> ItemWithDetails:
     """Get an item with full details."""
     result = await db.execute(
         select(Item)

@@ -77,6 +77,7 @@ async def build_container_path(
 @router.get("", response_model=list[ContainerResponse])
 async def list_containers(
     db: DbSession,
+    current_user: CurrentUser,
     location_id: UUID | None = None,
 ) -> list[ContainerResponse]:
     """List containers, optionally filtered by location."""
@@ -134,7 +135,9 @@ async def create_container(
 
 
 @router.get("/qr/{qr_code}", response_model=ContainerWithItems)
-async def get_container_by_qr(qr_code: str, db: DbSession) -> ContainerWithItems:
+async def get_container_by_qr(
+    qr_code: str, db: DbSession, current_user: CurrentUser
+) -> ContainerWithItems:
     """Get a container by QR code."""
     result = await db.execute(
         select(Container)
@@ -170,7 +173,9 @@ async def get_container_by_qr(qr_code: str, db: DbSession) -> ContainerWithItems
 
 
 @router.get("/{container_id}", response_model=ContainerWithItems)
-async def get_container(container_id: UUID, db: DbSession) -> ContainerWithItems:
+async def get_container(
+    container_id: UUID, db: DbSession, current_user: CurrentUser
+) -> ContainerWithItems:
     """Get a container with its items."""
     result = await db.execute(
         select(Container)
@@ -450,7 +455,9 @@ async def delete_container(
 
 
 @router.get("/{container_id}/qr")
-async def get_container_qr_code(container_id: UUID, db: DbSession) -> Response:
+async def get_container_qr_code(
+    container_id: UUID, db: DbSession, current_user: CurrentUser
+) -> Response:
     """Get the QR code image for a container."""
     result = await db.execute(select(Container).where(Container.id == container_id))
     container = result.scalar_one_or_none()
@@ -468,7 +475,7 @@ async def get_container_qr_code(container_id: UUID, db: DbSession) -> Response:
 
 @router.get("/{container_id}/path")
 async def get_container_path(
-    container_id: UUID, db: DbSession
+    container_id: UUID, db: DbSession, current_user: CurrentUser
 ) -> list[dict[str, str]]:
     """Get the full path to a container."""
     result = await db.execute(select(Container).where(Container.id == container_id))

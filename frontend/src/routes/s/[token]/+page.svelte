@@ -133,9 +133,6 @@
 											<p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400 line-clamp-2">{item.description}</p>
 										{/if}
 									</div>
-									<div class="flex-shrink-0 text-right">
-										<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Qty: {item.quantity}</span>
-									</div>
 								</div>
 							{/each}
 						</div>

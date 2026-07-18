@@ -317,7 +317,7 @@ async def build_label_content(
 
 
 @router.get("", response_model=list[PrinterResponse])
-async def list_printers(db: DbSession) -> list[PrinterResponse]:
+async def list_printers(db: DbSession, current_user: CurrentUser) -> list[PrinterResponse]:
     """List all configured printers."""
     result = await db.execute(select(Printer).order_by(Printer.name))
     printers = result.scalars().all()
@@ -345,7 +345,7 @@ async def create_printer(
 
 
 @router.get("/{printer_id}", response_model=PrinterResponse)
-async def get_printer(printer_id: UUID, db: DbSession) -> PrinterResponse:
+async def get_printer(printer_id: UUID, db: DbSession, current_user: CurrentUser) -> PrinterResponse:
     """Get a printer by ID."""
     result = await db.execute(select(Printer).where(Printer.id == printer_id))
     printer = result.scalar_one_or_none()
@@ -501,6 +501,7 @@ async def print_label(
 async def download_label(
     printer_id: UUID,
     container_id: UUID,
+    current_user: CurrentUser,
     template: LabelTemplate = Query(default=LabelTemplate.QR_ONLY),
     db: DbSession = None,
 ) -> Response:
@@ -560,6 +561,7 @@ async def download_label(
 async def preview_label(
     printer_id: UUID,
     container_id: UUID,
+    current_user: CurrentUser,
     template: LabelTemplate = Query(default=LabelTemplate.QR_ONLY),
     include_contents: bool = False,  # Legacy parameter
     db: DbSession = None,
@@ -609,6 +611,7 @@ async def preview_label(
 async def detect_printer_media(
     printer_id: UUID,
     db: DbSession,
+    current_user: CurrentUser,
 ) -> MediaSuggestion:
     """Detect media loaded in the printer and suggest appropriate template.
 

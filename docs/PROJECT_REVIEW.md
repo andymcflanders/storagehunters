@@ -5,6 +5,34 @@ verified against the code (file:line references included). Findings are grouped 
 severity; the documentation drift that was found has been **fixed in this same branch**,
 so this file records only the code/infra issues that still need fixing.
 
+## Fixed in this branch
+
+A follow-up commit ("harden auth + fix broken endpoints + add smoke suite") resolved the
+authorization holes and the never-exercised endpoints, and added the missing test/CI
+safety net:
+
+- **C1 / C2 / H1 — authorization.** `POST /api/users` and `DELETE /api/users/{id}` are
+  now admin-only; `PATCH`/avatar are self-or-admin; first-boot bootstrap goes through the
+  one-shot `POST /api/setup/complete`. Every previously open read endpoint (items,
+  containers, locations, tags, search, printers, QR) now requires a session. `GET /api/users`
+  stays public for the login card grid but returns a minimal PII-free projection
+  (`PublicUserResponse`). Deploy tooling (`create-admin.sh`, `justfile`) updated to the
+  setup endpoint.
+- **C3 — public share links** no longer 500 (dropped the non-existent `quantity`, use
+  `filepath`, eager-load `Item.images`, atomic view-count increment).
+- **H6 — HA reminders** month-end crash fixed (`timedelta(days=7)`).
+- **H7 — tag merge** now takes the `TagMerge` body the frontend sends.
+- **H8 — JSON export** serializes `Decimal` value estimates.
+- **H5 — `network_ipp` printers** creatable (migration `024`).
+- **M12 — `UserUpdate`** no longer advertises `role`/`is_active` (admin-only concerns).
+- **Tests/CI** — a pytest smoke suite (`backend/tests/`) now logs in and exercises all 158
+  API routes once, with a coverage guard that fails if any route goes untested, regression
+  tests for each bug above, and auth-enforcement tests. A GitHub Actions workflow
+  (`.github/workflows/ci.yml`) runs it against Postgres + Redis, plus frontend
+  `svelte-check`. A `frontend/package-lock.json` was committed (fixes M16).
+
+The remaining findings below are **not yet fixed** and are the recommended next steps.
+
 ---
 
 ## Critical

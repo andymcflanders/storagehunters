@@ -7,7 +7,7 @@ from fastapi import APIRouter, Query
 from sqlalchemy import Text, and_, func, or_, select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import DbSession
+from app.api.deps import CurrentUser, DbSession
 from app.models.container import Container
 from app.models.item import ConditionEnum, Item, ItemImage, ItemTag, SeasonalEnum
 from app.models.location import Location
@@ -23,6 +23,7 @@ router = APIRouter()
 @router.get("/autocomplete", response_model=SearchResult)
 async def autocomplete_items(
     db: DbSession,
+    current_user: CurrentUser,
     q: str = Query(..., min_length=1, description="Search query"),
     limit: int = Query(8, le=20, description="Max results"),
 ) -> SearchResult:
@@ -294,6 +295,7 @@ def calculate_relevance_score(
 @router.get("", response_model=SearchResult)
 async def search_items(
     db: DbSession,
+    current_user: CurrentUser,
     q: str | None = Query(None, description="Search query"),
     owner: UUID | None = Query(None, description="Filter by owner ID"),
     location: UUID | None = Query(None, description="Filter by location ID"),

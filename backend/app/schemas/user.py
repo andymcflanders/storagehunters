@@ -55,18 +55,37 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    """Schema for updating a user."""
+    """Schema for updating a user.
+
+    Role and active-state changes are admin operations and live on the
+    admin API (`AdminUserUpdate`); they are deliberately not accepted here.
+    """
 
     name: str | None = Field(None, min_length=1, max_length=255)
     email: EmailStr | None = None
     requires_password: bool | None = None
     password: str | None = Field(None, min_length=4)
-    role: UserRole | None = None
     language: Language | None = None
-    is_active: bool | None = None
     is_profile: bool | None = None
     birthdate: date | None = None
     gender: Gender | None = None
+
+
+class PublicUserResponse(BaseModel):
+    """Minimal user info exposed without authentication.
+
+    The pre-login card grid needs just enough to render a card and decide
+    whether to prompt for a password. Everything else (email, birthdate,
+    gender, role, …) is PII and stays behind authentication.
+    """
+
+    id: UUID
+    name: str
+    avatar_url: str | None
+    requires_password: bool
+    is_profile: bool = False
+
+    model_config = {"from_attributes": True}
 
 
 class UserResponse(BaseModel):

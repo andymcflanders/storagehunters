@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { User } from '$lib/types';
+	import type { PublicUser } from '$lib/types';
 
-	export let user: User;
+	export let user: PublicUser;
 	export let selected = false;
 </script>
 

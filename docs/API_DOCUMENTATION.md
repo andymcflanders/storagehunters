@@ -674,17 +674,21 @@ See [Authentication](#authentication) above for the login flow details.
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/api/users` | List users (`?include_admins=`, `?include_profiles=` filters) | None |
-| POST | `/api/users` | Create a user | None |
-| GET | `/api/users/{id}` | Get a user by ID | None |
-| PATCH | `/api/users/{id}` | Update a user (admins can't be marked as profiles) | Session |
-| DELETE | `/api/users/{id}` | Delete a user | Session |
-| POST | `/api/users/{id}/avatar` | Upload an avatar image (multipart `file`) | Session |
+| GET | `/api/users` | List users (`?include_admins=`, `?include_profiles=` filters) | None (public, minimal fields) |
+| POST | `/api/users` | Create a user | Admin |
+| GET | `/api/users/{id}` | Get a user by ID | Session |
+| PATCH | `/api/users/{id}` | Update a user (self, or admin for anyone) | Session |
+| DELETE | `/api/users/{id}` | Delete a user (cannot delete self) | Admin |
+| POST | `/api/users/{id}/avatar` | Upload an avatar image (multipart `file`) | Session (self or admin) |
 
-> **Note:** `GET /api/users`, `POST /api/users`, and `GET /api/users/{id}`
-> currently require **no authentication** — the list endpoint powers the
-> login screen's card grid. The PATCH/DELETE/avatar endpoints require a
-> session.
+> **Note:** `GET /api/users` is intentionally public — it powers the login
+> screen's card grid — but returns only the minimal fields a card needs
+> (`id`, `name`, `avatar_url`, `requires_password`, `is_profile`). It does
+> **not** expose email, birthdate, gender, or role. All other user
+> endpoints require authentication; creating and deleting users is
+> admin-only, and a regular user may update only their own account.
+> First-boot admin creation goes through the one-shot public
+> `POST /api/setup/complete`, which refuses once any user exists.
 
 ### Locations
 

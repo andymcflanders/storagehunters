@@ -7,7 +7,7 @@ sensor data and automations.
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -238,7 +238,7 @@ async def get_reminder_summary(
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-    week_end = today_start.replace(day=today_start.day + 7)
+    week_end = today_start + timedelta(days=7)
 
     # Total reminders
     total = await db.scalar(

@@ -23,6 +23,15 @@ export interface User {
 	updated_at: string;
 }
 
+/** Minimal user info returned by the public GET /users list (login card grid, owner pickers). */
+export interface PublicUser {
+	id: string;
+	name: string;
+	avatar_url: string | null;
+	requires_password: boolean;
+	is_profile: boolean;
+}
+
 export interface UserCreate {
 	name: string;
 	email?: string;

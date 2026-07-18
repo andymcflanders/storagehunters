@@ -5,16 +5,16 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AdminUser, CurrentUser, DbSession
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.schemas.user import PublicUserResponse, UserCreate, UserResponse, UserUpdate
 from app.services.auth import AuthService
 from app.services.image_storage import ImageStorageService
 
 router = APIRouter()
 
 
-@router.get("", response_model=list[UserResponse])
+@router.get("", response_model=list[PublicUserResponse])
 async def list_users(
     db: DbSession,
     include_admins: bool = Query(
@@ -34,8 +34,13 @@ async def list_users(
             "card grid; owner pickers leave it at the default true."
         ),
     ),
-) -> list[UserResponse]:
-    """List users; optionally hide admins and/or profile users."""
+) -> list[PublicUserResponse]:
+    """List users; optionally hide admins and/or profile users.
+
+    Deliberately public: the pre-login card grid needs it. The response
+    is stripped to the minimal fields a login card needs — no email,
+    birthdate, gender, or role.
+    """
     query = select(User).order_by(User.name)
     if not include_admins:
         query = query.where(User.role != UserRole.ADMIN)
@@ -43,15 +48,20 @@ async def list_users(
         query = query.where(User.is_profile == False)  # noqa: E712
     result = await db.execute(query)
     users = result.scalars().all()
-    return [UserResponse.model_validate(u) for u in users]
+    return [PublicUserResponse.model_validate(u) for u in users]
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     user_data: UserCreate,
     db: DbSession,
+    admin: AdminUser,
 ) -> UserResponse:
-    """Create a new user."""
+    """Create a new user. Admin only.
+
+    First-boot bootstrap goes through the public one-shot
+    POST /api/setup/complete, which refuses once any user exists.
+    """
     # Check for duplicate email
     if user_data.email:
         result = await db.execute(select(User).where(User.email == user_data.email))
@@ -91,8 +101,8 @@ async def create_user(
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: UUID, db: DbSession) -> UserResponse:
-    """Get a user by ID."""
+async def get_user(user_id: UUID, db: DbSession, current_user: CurrentUser) -> UserResponse:
+    """Get a user by ID. Requires authentication."""
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -110,7 +120,13 @@ async def update_user(
     db: DbSession,
     current_user: CurrentUser,
 ) -> UserResponse:
-    """Update a user."""
+    """Update a user. Users may update themselves; admins may update anyone."""
+    if current_user.id != user_id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own account",
+        )
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -166,9 +182,14 @@ async def update_user(
 async def delete_user(
     user_id: UUID,
     db: DbSession,
-    current_user: CurrentUser,
+    admin: AdminUser,
 ) -> None:
-    """Delete a user."""
+    """Delete a user. Admin only."""
+    if admin.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own account",
+        )
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -187,7 +208,12 @@ async def upload_avatar(
     db: DbSession,
     current_user: CurrentUser,
 ) -> UserResponse:
-    """Upload a user avatar."""
+    """Upload a user avatar. Users may set their own; admins may set anyone's."""
+    if current_user.id != user_id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only change your own avatar",
+        )
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:

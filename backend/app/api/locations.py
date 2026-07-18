@@ -35,7 +35,7 @@ class DashboardStats(BaseModel):
 
 
 @router.get("/stats", response_model=DashboardStats)
-async def get_dashboard_stats(db: DbSession) -> DashboardStats:
+async def get_dashboard_stats(db: DbSession, current_user: CurrentUser) -> DashboardStats:
     """Get dashboard statistics."""
     locations_count = await db.scalar(select(func.count(Location.id))) or 0
     containers_count = await db.scalar(select(func.count(Container.id))) or 0
@@ -51,7 +51,7 @@ async def get_dashboard_stats(db: DbSession) -> DashboardStats:
 
 
 @router.get("", response_model=list[LocationResponse])
-async def list_locations(db: DbSession) -> list[LocationResponse]:
+async def list_locations(db: DbSession, current_user: CurrentUser) -> list[LocationResponse]:
     """List all locations with container counts."""
     result = await db.execute(select(Location).order_by(Location.sort_order, Location.name))
     locations_list = result.scalars().all()
@@ -102,7 +102,9 @@ async def create_location(
 
 
 @router.get("/{location_id}", response_model=LocationWithContainers)
-async def get_location(location_id: UUID, db: DbSession) -> LocationWithContainers:
+async def get_location(
+    location_id: UUID, db: DbSession, current_user: CurrentUser
+) -> LocationWithContainers:
     """Get a location with its containers."""
     result = await db.execute(
         select(Location)

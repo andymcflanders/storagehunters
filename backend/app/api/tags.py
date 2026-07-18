@@ -8,13 +8,13 @@ from sqlalchemy import func, select
 from app.api.deps import CurrentUser, DbSession
 from app.models.item import ItemTag
 from app.models.tag import Tag
-from app.schemas.tag import TagCreate, TagResponse
+from app.schemas.tag import TagCreate, TagMerge, TagResponse
 
 router = APIRouter()
 
 
 @router.get("", response_model=list[TagResponse])
-async def list_tags(db: DbSession) -> list[TagResponse]:
+async def list_tags(db: DbSession, current_user: CurrentUser) -> list[TagResponse]:
     """List all tags."""
     result = await db.execute(select(Tag).order_by(Tag.name))
     tags = result.scalars().all()
@@ -95,12 +95,13 @@ async def delete_tag(
 
 @router.post("/merge")
 async def merge_tags(
-    source_tag_ids: list[UUID],
-    target_tag_id: UUID,
+    merge: TagMerge,
     db: DbSession,
     current_user: CurrentUser,
 ) -> TagResponse:
     """Merge multiple tags into one."""
+    source_tag_ids = merge.source_tag_ids
+    target_tag_id = merge.target_tag_id
     # Get target tag
     result = await db.execute(select(Tag).where(Tag.id == target_tag_id))
     target_tag = result.scalar_one_or_none()

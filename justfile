@@ -38,11 +38,11 @@ shell-backend:
 shell-db:
     docker compose exec postgres psql -U "${POSTGRES_USER:-storagehub}" "${POSTGRES_DB:-storagehub}"
 
-# Create the first admin user (interactive prompts)
+# Create the first admin on a FRESH instance (one-shot bootstrap; refuses once any user exists)
 admin name email password:
-    curl -sS -X POST http://localhost/api/users \
+    curl -sS -X POST http://localhost/api/setup/complete \
       -H "Content-Type: application/json" \
-      -d '{"name":"{{name}}","email":"{{email}}","password":"{{password}}","requires_password":true,"role":"admin","language":"en"}'
+      -d '{"admin_name":"{{name}}","admin_email":"{{email}}","admin_password":"{{password}}","admin_language":"en"}'
     @echo
 
 # Generate a fresh SECRET_KEY (paste the output into .env)

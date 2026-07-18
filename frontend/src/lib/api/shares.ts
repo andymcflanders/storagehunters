@@ -39,7 +39,6 @@ export interface PublicItem {
 	id: string;
 	name: string;
 	description: string | null;
-	quantity: number;
 	image_url: string | null;
 }
 
