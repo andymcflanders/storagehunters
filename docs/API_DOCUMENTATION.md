@@ -29,8 +29,9 @@ http://your-storagehub-instance/api
 ### API Versions
 
 - **v1.0**: Current stable version
-- OpenAPI/Swagger documentation available at `/api/docs`
-- ReDoc documentation available at `/api/redoc`
+- OpenAPI/Swagger documentation available at `/docs` (nginx proxies `/docs`
+  and `/openapi.json` to the backend; `/api/docs` returns 404 and `/redoc`
+  is not routed)
 
 ### Content Type
 
@@ -150,8 +151,8 @@ API keys are the recommended method for Home Assistant and other external integr
 
 #### Creating an API Key
 
-1. Log into the StorageHub web UI
-2. Navigate to Settings > API Keys
+1. Log into the StorageHub web UI as an admin
+2. Open the Admin panel and select the **API Keys** tab
 3. Click "Create API Key"
 4. Select the required scopes
 5. Copy the key immediately (it's only shown once!)
@@ -548,6 +549,17 @@ Response:
 
 Webhooks allow you to receive real-time notifications when events occur in StorageHub.
 
+> **⚠️ Current status: event delivery is not yet wired up.** Webhooks can
+> be created, managed, and test-fired via `POST /api/webhooks/{id}/test`,
+> and the delivery machinery (HMAC signing, retries, delivery history)
+> works — but no production code path currently emits real events. The
+> dispatcher (`trigger_webhook_event` in
+> `backend/app/services/webhook_service.py`) has no callers, and the
+> background scheduler only runs the scheduled-backup check. Until events
+> are wired in, subscriptions to `item.created`, `reminder.due`, etc.
+> will never fire on their own. The table below is the **planned** event
+> catalog.
+
 ### Available Events
 
 | Event | Description |
@@ -565,6 +577,7 @@ Webhooks allow you to receive real-time notifications when events occur in Stora
 | `reminder.due` | Reminder becomes due |
 | `reminder.overdue` | Reminder is overdue |
 | `reminder.completed` | Reminder marked complete |
+| `search.performed` | A search was performed |
 | `stats.updated` | Inventory statistics changed |
 
 ### Creating a Webhook
@@ -647,6 +660,32 @@ Cookie: session_token=your-session
 
 ## Core API Reference
 
+### Auth
+
+See [Authentication](#authentication) above for the login flow details.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/auth/login` | Log in (card-tap `user_id` or admin `email` + password), sets session cookie | None |
+| POST | `/api/auth/logout` | Log out and clear the session cookie | Session |
+| GET | `/api/auth/me` | Get the current authenticated user | Session |
+
+### Users
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/users` | List users (`?include_admins=`, `?include_profiles=` filters) | None |
+| POST | `/api/users` | Create a user | None |
+| GET | `/api/users/{id}` | Get a user by ID | None |
+| PATCH | `/api/users/{id}` | Update a user (admins can't be marked as profiles) | Session |
+| DELETE | `/api/users/{id}` | Delete a user | Session |
+| POST | `/api/users/{id}/avatar` | Upload an avatar image (multipart `file`) | Session |
+
+> **Note:** `GET /api/users`, `POST /api/users`, and `GET /api/users/{id}`
+> currently require **no authentication** — the list endpoint powers the
+> login screen's card grid. The PATCH/DELETE/avatar endpoints require a
+> session.
+
 ### Locations
 
 | Method | Endpoint | Description |
@@ -668,6 +707,7 @@ Cookie: session_token=your-session
 | PATCH | `/api/containers/{id}` | Update container (name, type, notes, parent) |
 | DELETE | `/api/containers/{id}` | Delete container (`?mode=fail|recursive|transfer`) |
 | GET | `/api/containers/{id}/qr` | Get QR code image (PNG) |
+| GET | `/api/containers/{id}/path` | Breadcrumb path (location → parent containers → container) |
 | GET | `/api/containers/qr/{qr_code}` | Look up by QR token |
 | POST | `/api/containers/{id}/image` | Upload (or replace) the hero image (multipart `file`) |
 | DELETE | `/api/containers/{id}/image` | Remove the hero image |
@@ -770,6 +810,54 @@ same filtered pool so the UI can show "12 items remaining".
 | GET | `/api/search` | Full search |
 | GET | `/api/search/autocomplete` | Fast autocomplete |
 
+`GET /api/search` query parameters:
+
+- `q`: Search query (optional — filters can be used alone)
+- `owner`: Filter by owner ID
+- `location`: Filter by location ID
+- `container`: Filter by container ID
+- `size`: Filter by size
+- `condition`: Filter by condition
+- `seasonal`: Filter by season
+- `tags`: Comma-separated tag names
+- `smart_search`: Enable AI-powered semantic search (default: `true`)
+- `limit`: Max results (default: 50, max: 100)
+- `offset`: Pagination offset
+
+### Shares
+
+Public share links for containers. The public view endpoint is meant to
+be consumed by the `/s/{token}` frontend page.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/shares` | Create a share link for a container (`allow_item_view`, `expires_in_days`) | Session |
+| GET | `/api/shares` | List your share links (optional `?container_id=`) | Session |
+| DELETE | `/api/shares/{id}` | Delete a share link | Session |
+| PATCH | `/api/shares/{id}/toggle` | Toggle a share link's active status | Session |
+| GET | `/api/shares/public/{token}` | Public share view (container + items if allowed; 403 when deactivated/expired) | None |
+
+### Inventory (God View)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/inventory/tree` | Complete hierarchy — all locations with nested containers and items in one response | Session |
+| POST | `/api/inventory/{container_id}/move` | Move a container to another location and/or parent container | Session |
+
+### Export
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/export/json` | Export all data (locations, containers, items, tags) as JSON | Session |
+| GET | `/api/export/csv` | Export items as CSV | Session |
+
+### Activity
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/activity` | Paginated activity log feed (`?entity_type=`, `?action=` filters) | Session |
+| GET | `/api/activity/my` | Current user's activity log | Session |
+
 ### Tags
 
 | Method | Endpoint | Description |
@@ -786,6 +874,8 @@ same filtered pool so the UI can show "12 items remaining".
 |--------|----------|-------------|
 | GET | `/api/reminders` | List reminders |
 | POST | `/api/reminders` | Create reminder |
+| GET | `/api/reminders/upcoming` | Incomplete reminders due within the next N days (`?days=`, default 7, max 30) |
+| GET | `/api/reminders/{id}` | Get a specific reminder |
 | PATCH | `/api/reminders/{id}` | Update reminder |
 | POST | `/api/reminders/{id}/complete` | Mark complete |
 | DELETE | `/api/reminders/{id}` | Delete reminder |
@@ -813,6 +903,38 @@ same filtered pool so the UI can show "12 items remaining".
 | POST | `/api/webhooks/{id}/test` | Test webhook |
 | GET | `/api/webhooks/{id}/deliveries` | Delivery history |
 
+### Printers
+
+Printer configuration and QR-label printing.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/printers` | List configured printers | None |
+| POST | `/api/printers` | Create a printer configuration | Session |
+| GET | `/api/printers/{id}` | Get a printer by ID | None |
+| PATCH | `/api/printers/{id}` | Update a printer configuration | Session |
+| DELETE | `/api/printers/{id}` | Delete a printer configuration | Session |
+| POST | `/api/printers/{id}/test` | Test connection to the printer | Session |
+| POST | `/api/printers/{id}/print` | Print a label for a container (body: `container_id`, `template`) | Session |
+| GET | `/api/printers/{id}/download` | Download a label as PDF (`?container_id=`, `?template=`) | None |
+| GET | `/api/printers/{id}/preview` | Preview a label as PNG (`?container_id=`, `?template=`) | None |
+| GET | `/api/printers/{id}/media` | Detect loaded label media and suggest a template | None |
+| POST | `/api/printers/{id}/print-batch` | Print labels for multiple containers (God View batch print) | Session |
+
+### SSL
+
+Certificate management for the built-in nginx HTTPS setup. All
+endpoints require an admin session.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/ssl` | Get current SSL configuration | Admin |
+| GET | `/api/ssl/status` | SSL status including certificate validity/expiry | Admin |
+| PATCH | `/api/ssl` | Update SSL configuration (mode, domain, email, auto-renew) | Admin |
+| POST | `/api/ssl/generate` | Generate/request a certificate (disabled, self-signed, or Let's Encrypt) | Admin |
+| POST | `/api/ssl/renew` | Renew Let's Encrypt certificate | Admin |
+| POST | `/api/ssl/test` | Test whether the current certificate is valid | Admin |
+
 ### Admin
 
 All admin endpoints require an authenticated session belonging to a
@@ -826,6 +948,7 @@ user with `role=admin`.
 | PATCH | `/api/admin/users/{id}` | Update a user |
 | DELETE | `/api/admin/users/{id}` | Delete a user |
 | GET | `/api/admin/activity` | Activity log feed |
+| GET | `/api/admin/usage-stats` | AI usage aggregates (all-time / 30 days / today + daily series) |
 | GET | `/api/admin/openai` | Read OpenAI configuration (model + key status + feature toggles) |
 | PUT | `/api/admin/openai` | Update OpenAI config (models, tokens, temp, persisted API key, `owner_suggestion_enabled`) |
 | POST | `/api/admin/recompute-size-ages` | Queue a Celery task that infers `size_age_min/max_months` for items with a `size` but no age range yet |
@@ -852,6 +975,64 @@ new code makes the next item ingestion produce names + descriptions in
 that language without any code change. `default_language` must be
 present in `supported_languages`.
 
+### Backup (Admin)
+
+The backup family lives under `/api/admin/backup/*`. Every endpoint
+requires an admin session.
+
+#### Backup Configs
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/backup/configs` | List backup configurations |
+| POST | `/api/admin/backup/configs` | Create a backup configuration |
+| PATCH | `/api/admin/backup/configs/{id}` | Update a backup configuration |
+| DELETE | `/api/admin/backup/configs/{id}` | Delete a backup configuration |
+
+#### Backup Schedules
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/backup/schedules` | List backup schedules |
+| POST | `/api/admin/backup/schedules` | Create a backup schedule |
+| GET | `/api/admin/backup/schedules/{id}` | Get a backup schedule |
+| PATCH | `/api/admin/backup/schedules/{id}` | Update a backup schedule |
+| DELETE | `/api/admin/backup/schedules/{id}` | Delete a backup schedule |
+| POST | `/api/admin/backup/schedules/{id}/run` | Trigger a scheduled backup immediately |
+
+#### Backups & History
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/admin/backup/create` | Trigger an ad-hoc backup |
+| GET | `/api/admin/backup/history` | List backup history |
+| GET | `/api/admin/backup/history/{id}` | Get a backup history entry |
+| GET | `/api/admin/backup/history/{id}/download` | Download a backup archive |
+| DELETE | `/api/admin/backup/history/{id}` | Delete a backup |
+| GET | `/api/admin/backup/quick-download` | Generate and download a backup in one step |
+
+#### Restore
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/admin/backup/restore/upload` | Upload a backup archive and preview its contents |
+| POST | `/api/admin/backup/restore/execute` | Execute a restore from an uploaded archive |
+| POST | `/api/admin/backup/restore/from-history/{id}` | Restore from an existing history entry |
+
+#### Cloud Providers (Google Drive, Dropbox)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/backup/providers/status` | Configured/connected status per provider |
+| POST | `/api/admin/backup/providers/upload` | Upload a backup to a provider |
+| POST | `/api/admin/backup/providers/google-drive/test` | Test Google Drive credentials |
+| POST | `/api/admin/backup/providers/google-drive/list` | List backups stored in Google Drive |
+| POST | `/api/admin/backup/providers/google-drive/download/{remote_id}` | Download a backup from Google Drive |
+| DELETE | `/api/admin/backup/providers/google-drive/{remote_id}` | Delete a backup from Google Drive |
+| POST | `/api/admin/backup/providers/dropbox/test` | Test Dropbox credentials |
+| POST | `/api/admin/backup/providers/dropbox/list` | List backups stored in Dropbox |
+| DELETE | `/api/admin/backup/providers/dropbox/{remote_id}` | Delete a backup from Dropbox |
+
 ### Setup
 
 Public endpoints used by the first-run wizard. See
@@ -861,6 +1042,12 @@ Public endpoints used by the first-run wizard. See
 |--------|----------|-------------|
 | GET | `/api/setup/status` | Returns `{needs_setup: bool}`, no auth |
 | POST | `/api/setup/complete` | One-shot bootstrap (409 if any user exists) |
+
+### Health
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/health` | Liveness check, returns `{"status": "healthy"}` — note: no `/api` prefix | None |
 
 ---
 
@@ -943,6 +1130,11 @@ sensor:
 ```
 
 #### Webhook Automation
+
+> **Note:** real event delivery is not yet wired up (see
+> [Webhooks](#webhooks) above). These automations show the intended
+> payload shape, but today the only way to exercise them is a manual
+> `POST /api/webhooks/{id}/test`.
 
 ```yaml
 # automations.yaml
@@ -1043,6 +1235,18 @@ curl -X POST http://storagehub.local/api/webhooks \
 
 ## Changelog
 
+### Docs audit (2026-07-18)
+
+- Documentation refresh against the actual codebase (no API changes):
+  corrected the interactive-docs URL to `/docs`, corrected API-key
+  creation location (Admin panel → API Keys tab), added an honest note
+  that webhook event delivery is not yet wired (only `/test` fires),
+  added `search.performed` to the planned event catalog, documented the
+  extra `/api/search` filters, and added previously missing endpoint
+  tables (auth, users, shares, inventory/God View, export, activity,
+  printers, SSL, backup family, admin usage-stats, reminder
+  upcoming/get, container path, health).
+
 ### v1.2.2 (2026-05-05) — primary_image_url on lite index
 
 - **`GET /api/ha/items/index`** now includes `primary_image_url`
@@ -1120,4 +1324,4 @@ curl -X POST http://storagehub.local/api/webhooks \
 ## Support
 
 - GitHub Issues: [Report bugs or request features](https://github.com/your-repo/storagehub/issues)
-- Documentation: Check `/api/docs` for interactive OpenAPI documentation
+- Documentation: Check `/docs` for interactive OpenAPI documentation

@@ -6,8 +6,8 @@ This guide helps you integrate StorageHub with Home Assistant for inventory trac
 
 ### 1. Create an API Key
 
-1. Log into StorageHub web UI
-2. Go to Settings > API Keys
+1. Log into StorageHub web UI as an admin
+2. Open the Admin panel and select the **API Keys** tab
 3. Create a new key with `read` and `search` scopes
 4. Copy the key (starts with `shub_`)
 
@@ -188,6 +188,14 @@ automation:
 ---
 
 ## Webhooks for Real-Time Updates
+
+> **⚠️ Current status: event delivery is not yet wired up.** Webhooks
+> can be registered and test-fired via
+> `POST /api/webhooks/{id}/test`, but StorageHub does not yet emit real
+> events (`item.created`, `reminder.due`, etc.) from any code path. The
+> setup below shows the intended flow — until events are wired in, your
+> Home Assistant webhook will only receive payloads from manual test
+> fires.
 
 ### 1. Create a Webhook in Home Assistant
 
@@ -399,6 +407,10 @@ card:
 
 ### Webhook Not Receiving Events
 
+> Remember: real event delivery is not yet wired up (see
+> [Webhooks for Real-Time Updates](#webhooks-for-real-time-updates)) —
+> only manual test fires produce deliveries today.
+
 1. Check webhook is active in StorageHub
 2. Verify Home Assistant webhook URL is accessible
 3. Check webhook delivery history in StorageHub
@@ -428,18 +440,25 @@ card:
 | `GET /api/ha/reminders` | Reminder summary |
 | `GET /api/ha/reminders/list` | Detailed reminder list |
 | `GET /api/ha/locations` | All locations |
+| `GET /api/ha/locations/{id}` | Single location |
 | `GET /api/ha/containers` | All containers |
+| `GET /api/ha/containers/{id}` | Single container |
 | `GET /api/ha/containers/qr/{code}` | Container by QR code |
 | `GET /api/ha/items` | All items |
+| `GET /api/ha/items/index` | Lite item index (ETag-cached, includes `primary_image_url`) |
+| `GET /api/ha/items/{id}` | Single item |
 | `GET /api/ha/search?q=query` | Search items |
+| `GET /api/ha/search/semantic?q=query` | Semantic search (owner pre-filter + synonym expansion) |
 | `GET /api/ha/tags` | All tags |
 
-All endpoints (except `/status`) require `X-API-Key` header.
+All endpoints (except `/status`) require `X-API-Key` header. The
+`/api/ha/search` and `/api/ha/search/semantic` endpoints additionally
+require the API key to have the `search` scope (the rest need `read`).
 
 ---
 
 ## Getting Help
 
 - Full API Documentation: See `API_DOCUMENTATION.md`
-- Interactive API Docs: `http://storagehub.local/api/docs`
+- Interactive API Docs: `http://storagehub.local/docs`
 - Issues: Report on GitHub
