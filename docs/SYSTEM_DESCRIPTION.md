@@ -82,6 +82,14 @@ An individual belonging stored in a container.
 | value_estimate | Decimal | Estimated value |
 | owner_id | UUID | Owner (user) |
 | container_id | UUID | Parent container |
+| suggested_owner_id | UUID | AI-suggested owner; surfaced as a banner, never auto-applied to `owner_id`. Cleared on assign or dismiss |
+| owner_suggestion_reason | Text | AI's reasoning for the suggested owner |
+| size_age_min_months | Integer | Lower bound (months) of the age range implied by the size; NULL for adult / unmapped sizes |
+| size_age_max_months | Integer | Upper bound (months) of the size's age range; drives the Outgrown view |
+| outgrown_dismissed_at | DateTime | Set when the user dismisses the item from the Outgrown view; NULL = eligible to surface again |
+| triage_decision | String | Shared household declutter verdict — `love`, `undecided`, `hate`, or NULL (never triaged) |
+| triage_decided_at | DateTime | When the triage decision was made |
+| triage_show_after | DateTime | Cooldown stamp; item is excluded from the declutter deck until this time |
 | ai_names | JSONB | AI-generated names keyed by ISO language code, e.g. `{"en": "Red Sweater", "no": "Rød Genser"}` |
 | ai_descriptions | JSONB | AI-generated descriptions keyed by ISO language code |
 | ai_processed | Boolean | Whether AI has processed this item |
@@ -100,6 +108,10 @@ Images attached to items.
 | item_id | UUID | Parent item |
 | filename | String | Original filename |
 | filepath | String | Storage path |
+| ai_tags | String[] | AI-generated tags for this image (ARRAY) |
+| ai_description | Text | AI-generated description of the image |
+| ai_processed | Boolean | Whether AI has processed this image |
+| uploaded_by | UUID | User who uploaded the image |
 
 #### User
 System users with authentication.
@@ -113,7 +125,11 @@ System users with authentication.
 | language | Enum | EN, NO |
 | avatar_url | String | Profile picture |
 | password_hash | String | Argon2 hashed password |
+| requires_password | Boolean | Whether card-tap login requires a password |
 | is_active | Boolean | Account status |
+| is_profile | Boolean | Profile-only member (owns items but never logs in; hidden from the login card grid) |
+| birthdate | Date | Optional; feeds the AI owner suggestion and the Outgrown view |
+| gender | Enum | MALE, FEMALE, OTHER (optional; feeds the AI owner suggestion) |
 
 #### Tag
 Labels for organizing items.
@@ -121,7 +137,8 @@ Labels for organizing items.
 | Field | Type | Description |
 |-------|------|-------------|
 | id | UUID | Primary key |
-| name | String | Unique tag name |
+| name | String(100) | Unique tag name |
+| user_created | Boolean | True for manually created tags, false for AI-generated ones |
 
 #### ShareLink
 Public access tokens for sharing containers.
@@ -133,7 +150,7 @@ Public access tokens for sharing containers.
 | user_id | UUID | Creator |
 | token | String | Public access token |
 | is_active | Boolean | Link status |
-| show_items | Boolean | Whether to show items |
+| allow_item_view | Boolean | Whether to show items |
 | expires_at | DateTime | Optional expiration |
 | view_count | Integer | Access counter |
 
@@ -162,12 +179,11 @@ Label printer configurations.
 |-------|------|-------------|
 | id | UUID | Primary key |
 | name | String | Printer name |
-| printer_type | Enum | ZEBRA_ZPL, BROTHER_QL, GENERIC_PDF |
+| printer_type | Enum | ZEBRA_ZPL, BROTHER_QL, GENERIC_PDF, NETWORK_IPP |
 | connection_type | Enum | NETWORK, USB, FILE |
-| address | String | Network address or path |
-| port | Integer | Network port |
-| label_width_mm | Integer | Label width |
-| label_height_mm | Integer | Label height |
+| address | String | Network address (including port, if any) or file path |
+| label_width_mm | Float | Label width |
+| label_height_mm | Float | Label height |
 | is_default | Boolean | Default printer flag |
 
 #### ActivityLog
@@ -181,8 +197,7 @@ Audit trail for all changes.
 | entity_type | String | What was changed |
 | entity_id | UUID | ID of changed entity |
 | entity_name | String | Name at time of change |
-| old_values | JSON | Previous values |
-| new_values | JSON | New values |
+| details | JSONB | Change details, e.g. `{"old": …, "new": …}` |
 | created_at | DateTime | When it happened |
 
 #### AISettings
@@ -199,22 +214,67 @@ Configuration for OpenAI and language settings (singleton table).
 | summary_max_tokens | Integer | Max summary tokens (default: 150) |
 | summary_temperature | Float | Summary temperature (default: 0.3) |
 | summary_enabled | Boolean | Enable AI summaries |
+| owner_suggestion_enabled | Boolean | When true, the vision classifier also suggests the most likely owner (stored as a non-binding suggestion on the item) |
 | supported_languages | String[] | ISO codes the AI generates content in (default: `{en, no}`). Add `de`, `sv`, etc. to extend; the OpenAI prompt is built dynamically from this list |
 | default_language | String | Fallback language when a translation is missing for the user's locale (default: `en`) |
 | openai_api_key | Text | Persisted API key. Wins over the `OPENAI_API_KEY` env var, which stays as a fallback for un-onboarded installs |
+| instance_uuid | UUID | Stable identifier for this StorageHub instance, surfaced by `/api/ha/status`; used as the Home Assistant config-entry unique_id |
 
 #### BackupConfig
-Configuration for automatic backups (singleton table).
+Storage-provider configurations for backups. Multi-row — each row is one
+provider destination (local disk, Google Drive, Dropbox).
 
 | Field | Type | Description |
 |-------|------|-------------|
 | id | UUID | Primary key |
-| enabled | Boolean | Enable automatic backups |
-| frequency_hours | Integer | Hours between backups |
+| name | String | Config name |
+| description | Text | Optional description |
+| provider_type | Enum | LOCAL, GOOGLE_DRIVE, DROPBOX |
+| provider_config | JSON | Provider-specific settings (e.g. Google service-account credentials) |
+| include_images | Boolean | Include image files in the archive |
+| encryption_enabled | Boolean | Encrypt the backup archive |
+| compression_level | Integer | ZIP compression level (default 6) |
 | retention_count | Integer | Number of backups to keep |
-| google_drive_enabled | Boolean | Sync to Google Drive |
-| google_credentials | JSON | OAuth credentials (encrypted) |
-| last_backup_at | DateTime | Last successful backup time |
+| is_active | Boolean | Config enabled |
+| is_default | Boolean | Default config flag |
+
+#### BackupSchedule
+Schedule rows attached to a BackupConfig for automated backups.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| config_id | UUID | Parent BackupConfig |
+| name | String | Schedule name |
+| frequency | Enum | DAILY, WEEKLY, MONTHLY |
+| time_of_day | Time | When to run |
+| day_of_week | Integer | 0-6, for weekly schedules |
+| day_of_month | Integer | 1-28, for monthly schedules |
+| is_active | Boolean | Schedule enabled |
+| last_run_at | DateTime | Last run time |
+| next_run_at | DateTime | Next scheduled run |
+
+#### BackupHistory
+One row per backup operation (manual or scheduled).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| config_id | UUID | BackupConfig used |
+| schedule_id | UUID | Schedule that triggered it (if scheduled) |
+| filename | String | Archive filename |
+| file_path | Text | Local path |
+| remote_id / remote_path | String/Text | Provider-side identifiers |
+| size_bytes | BigInteger | Archive size |
+| checksum | String | Archive checksum |
+| include_images / is_encrypted | Boolean | Options used |
+| status | Enum | PENDING, IN_PROGRESS, COMPLETED, FAILED |
+| error_message | Text | Failure details |
+| progress_phase / progress_percentage | String/Integer | Progress tracking |
+| statistics | JSON | Per-table export counts |
+| started_at / completed_at | DateTime | Timing |
+| triggered_by_id | UUID | User who triggered it |
+| is_scheduled | Boolean | Whether it was a scheduled run |
 
 ---
 
@@ -270,17 +330,31 @@ Configuration for automatic backups (singleton table).
 - Considers item owners, seasons, and categories
 - Configurable model and parameters
 
+**AI Owner Suggestion:**
+- During classification the AI picks the most likely owner from non-admin
+  users, matching item size + motif against each user's age (from
+  `birthdate`) and `gender`
+- Stored as `suggested_owner_id` + `owner_suggestion_reason`; shown as a
+  banner on the item page, never auto-applied
+- Toggleable globally via `AISettings.owner_suggestion_enabled`
+
+**AI Usage Statistics:**
+- Every OpenAI call is logged (model, tokens, estimated cost)
+- Admins view aggregates via `GET /api/admin/usage-stats`
+
 **Semantic Search:**
 - Natural language queries ("red dress size 104")
 - Color synonym understanding (emerald → green)
 - Item type synonyms (cardigan → sweater)
 - Owner name matching
 - Relevance-based ranking:
-  - Exact matches in name: 100 points
-  - Description matches: 50 points
+  - Exact query match in name (manual or AI, any language): 100 points
+  - Exact query match in description: 50 points
   - Owner matches: 40 points
-  - Color matches: 30 points
-  - Tag matches: 10-15 points
+  - Color / item-type matches: 30 points in name or description, 20 points elsewhere
+  - Color / type synonym matches: 15 points
+  - Size matches: 25 points
+  - Tag matches: 15 points per manual tag, 10 per AI tag
 - Autocomplete suggestions
 
 ### 3. QR Code System
@@ -338,7 +412,9 @@ Configuration for automatic backups (singleton table).
 - Expand/collapse all controls
 - Location and container filters
 - Create containers/locations inline
-- Bulk operations support
+- Batch label printing — per-container checkboxes plus toolbar buttons to
+  print labels for the checked or the currently filtered containers (the
+  only bulk operation)
 
 ### 7. Admin Panel
 
@@ -428,25 +504,63 @@ Configuration for automatic backups (singleton table).
 ### 11. Backup & Restore System
 
 **Manual Backups:**
-- Create database dumps on demand
+- Create backups on demand — a ZIP archive of per-table JSON exports
+  (locations, containers, tags, items, image metadata, optionally users)
+  plus a `manifest.json`, not a `pg_dump`
+- Optionally includes the image files themselves (`include_images`)
 - Download backups as compressed archives
 - View backup history with timestamps and sizes
 
 **Automatic Backups:**
-- Configurable backup frequency (hourly to weekly)
+- Schedules attached to a backup config (daily, weekly, or monthly at a
+  configured time of day)
 - Retention policy (number of backups to keep)
-- Runs via Celery beat scheduler
+- Runs via Celery beat scheduler (`check_scheduled_backups` polls every minute)
 
 **Google Drive Integration:**
-- OAuth-based authentication
+- Service-account JSON credentials (no OAuth flow); uploads require a
+  Shared Drive
 - Automatic upload after backup completion
 - List and manage cloud backups
 - Sync backup deletions
 
 **Restore Operations:**
-- Point-in-time restore from any backup
-- Full database replacement
-- Automatic service restart after restore
+- Restore from any backup archive
+- Merge/upsert semantics: each table's JSON export is imported in dependency
+  order, and rows that already exist (matched by tag name, location name,
+  container QR code, etc.) are skipped — the current database is NOT wiped
+  or replaced
+- No service restart is required or performed
+
+### 12. Outgrown View
+
+- Surfaces items whose effective owner (real `owner_id`, or the AI-suggested
+  owner when unset) has aged past the item's size-implied age range
+  (`size_age_min_months` / `size_age_max_months`, populated by the AI
+  classifier or the admin backfill task)
+- Suggests another household member who fits the size now or within ~12 months
+- Per-item actions: reassign to the suggested user, or dismiss
+  (sets `outgrown_dismissed_at`)
+- Admin backfill for pre-feature items via the `backfill_size_age_ranges`
+  Celery task
+
+### 13. Declutter / Triage
+
+- "Tinder for items": one card at a time with Love / Maybe (undecided) /
+  Toss (hate) verdicts, shared per household (one decision per item)
+- Love hides the item for 12 months, Maybe for 3 months
+  (via `triage_show_after`); Toss puts it on the discard pile
+- Owner and tag filters; mobile swipe gestures
+- Discard pile grouped by container path with Delete / Donated / Undo actions
+
+### 14. Home Assistant API
+
+- API-key-authenticated endpoints under `/api/ha` for the Home Assistant
+  integration: status (exposes `instance_uuid`), inventory stats, reminders,
+  locations, containers (including lookup by QR code), items, and tags
+- Items index (`GET /api/ha/items/index`) for bulk syncing
+- Search endpoints, including semantic search
+  (`GET /api/ha/search/semantic`)
 
 ---
 
@@ -458,7 +572,7 @@ All API endpoints are prefixed with `/api/`
 ### Authentication
 Most endpoints require authentication via session cookie. Public endpoints:
 - `GET /api/shares/public/{token}` - View shared containers
-- `GET /api/health` - Health check
+- `GET /health` - Health check (served at the app root, no `/api` prefix)
 - `GET /api/setup/status` - First-run probe (returns `{needs_setup: bool}`)
 - `POST /api/setup/complete` - One-shot bootstrap; refuses with 409 once any user exists
 
@@ -490,11 +604,11 @@ admins from the household card grid.
 | `/api/admin` | Admin operations (users, stats, activity logs) |
 | `/api/admin/openai` | OpenAI model configuration + persisted API key |
 | `/api/admin/languages` | Manage `supported_languages` / `default_language` |
-| `/api/admin/ssl` | SSL certificate management |
+| `/api/ssl` | SSL certificate management |
 | `/api/api-keys` | Long-lived API keys (used by the Home Assistant integration) |
 | `/api/webhooks` | Webhook subscription management |
 | `/api/ha` | Home Assistant integration endpoints (API-key auth) |
-| `/api/backup` | Backup and restore operations |
+| `/api/admin/backup` | Backup and restore operations |
 
 ---
 
@@ -510,10 +624,16 @@ admins from the household card grid.
 
 ### Task Types
 
-- **process_item_image**: AI classification of uploaded images
-- **create_backup**: Create database backup
-- **cleanup_old_backups**: Remove backups exceeding retention limit
-- **upload_backup_to_drive**: Sync backup to Google Drive
+- **process_image_ai**: AI classification of a single uploaded image
+- **process_item_ai**: AI classification of all of an item's images together
+- **batch_process_item_images**: Queue AI processing for an item's images
+- **backfill_size_age_ranges**: Infer size → age-range mappings for existing items (drives the Outgrown view)
+- **cleanup_orphan_tags**: Remove AI-generated tags no longer attached to any item
+- **check_scheduled_backups**: Find due backup schedules and queue them
+- **run_scheduled_backup**: Execute one scheduled backup
+
+The Celery beat schedule contains a single entry: `check-scheduled-backups`,
+which runs every minute.
 
 ---
 
@@ -601,7 +721,7 @@ Internal (set by compose):
 
 Managed via Alembic. Current migrations:
 1. Initial schema
-2. Add printers table
+2. Add user role
 3. Add reminders and share_links
 4. Add user language preference
 5. Add file connection type for printers
@@ -611,11 +731,17 @@ Managed via Alembic. Current migrations:
 9. Add Norwegian AI fields
 10. Add primary_image_id to items
 11. Add API keys and webhooks
-12. Add backup_config table
+12. Add backup system tables (configs, schedules, history)
 13. Add ai_settings table (OpenAI configuration)
 14. Remove segmentation feature
 15. Switch AI translations to JSONB (`ai_names`, `ai_descriptions`) and add `supported_languages` / `default_language` to `ai_settings`
 16. Add `container_type` and `image_filepath` to containers
 17. Add `openai_api_key` to `ai_settings` (persisted across restarts)
+18. Add profile fields to users (`requires_password`, `is_profile`, `birthdate`, `gender`)
+19. Add owner suggestion fields to items (`suggested_owner_id`, `owner_suggestion_reason`)
+20. Add size age range and outgrown fields (`size_age_min_months`, `size_age_max_months`, `outgrown_dismissed_at`)
+21. Add triage fields to items (`triage_decision`, `triage_decided_at`, `triage_show_after`)
+22. Add ai_usage_log table
+23. Add `instance_uuid` to `ai_settings`
 
 Run migrations: `alembic upgrade head`

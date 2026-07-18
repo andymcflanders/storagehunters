@@ -1051,7 +1051,7 @@ Click **God View** in the main navigation.
 **Quick Actions:**
 - Add containers or items directly from the tree
 - Delete items with confirmation
-- Move containers and items via drag-and-drop in the tree
+- Move items between containers via drag-and-drop in the tree
 
 ### Batch Label Printing
 
@@ -1093,7 +1093,7 @@ Klikk **God View** i hovedmenyen.
 **Hurtighandlinger:**
 - Legg til beholdere eller gjenstander direkte fra treet
 - Slett gjenstander med bekreftelse
-- Flytt beholdere og gjenstander med dra-og-slipp i treet
+- Flytt gjenstander mellom beholdere med dra-og-slipp i treet
 
 ### Masseutskrift av etiketter
 

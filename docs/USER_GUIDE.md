@@ -68,10 +68,10 @@ instance hasn't been onboarded yet, run the wizard above.
 ### Dashboard Overview
 
 After logging in, you'll see the dashboard with:
-- **Quick Stats**: Total locations, containers, and items
-- **Recent Activity**: Latest changes in your inventory
+- **Quick Stats**: Total locations, containers, items, and photos
 - **Location Cards**: Quick access to your storage areas
-- **Search Bar**: Find items instantly
+
+The activity log lives in the Admin panel, not on the dashboard.
 
 ### Mobile vs Desktop
 
@@ -137,7 +137,9 @@ Locations represent physical storage areas like rooms, buildings, or storage uni
 2. Click **Delete**
 3. Confirm the deletion
 
-**Note:** You must remove all containers before deleting a location.
+**Warning:** Deleting a location permanently deletes ALL containers and
+items inside it. There is no emptiness check — the deletion cascades
+immediately, so double-check before confirming.
 
 ---
 
@@ -180,11 +182,12 @@ From the container detail page:
 
 ### Moving Containers
 
-Containers can be moved between locations:
-1. Open the container
-2. Click **Move**
-3. Select the new location
-4. Confirm
+There is no Move button on the container page. To reorganize:
+
+- Move individual items between containers with drag-and-drop in
+  [God View](#god-view---complete-inventory).
+- To empty one container into another, use the **Transfer** option when
+  deleting it (see below).
 
 ### Deleting Containers
 
@@ -551,7 +554,7 @@ Edit anything directly in the table:
 2. Type your changes
 3. Press Enter or click away to save
 
-### Creating Items
+### Creating Containers
 
 1. Hover over a location row
 2. Click the **+** button
@@ -567,19 +570,21 @@ Edit anything directly in the table:
 ### Deleting
 
 Click the trash icon on any row to delete:
-- Locations (must be empty)
+- Locations (**warning:** deletes all containers and items inside — the
+  deletion cascades, there is no emptiness check)
 - Containers (shows options if has contents)
 - Items (immediate delete)
 
 ### Batch Printing Labels
 
-Print labels for all containers in a location at once:
+Print labels for several containers at once:
 
-1. Hover over a location row
-2. Click the **Print** button (printer icon)
-3. Select your printer
-4. Preview the labels for all containers
-5. Click **Print All**
+1. Tick the checkbox on each container row you want a label for
+2. Click **Print labels for checked containers** in the toolbar
+3. Select your printer and confirm
+
+Alternatively, apply a container filter and click **Print labels for
+filtered containers** to print every container currently shown.
 
 Labels include:
 - Container name
@@ -765,12 +770,13 @@ Access via the gear icon or **Settings** menu.
 **Profile:**
 - Change your name
 - Update email
-- Upload avatar
 
 **Language:**
 - English
 - Norwegian
-- Affects UI and AI-generated content
+- Selects the UI language and which stored AI translation is displayed.
+  The languages the AI *generates* content in are configured separately
+  under **Admin → AI Settings → Languages**.
 
 **Theme (Dark Mode):**
 StorageHub includes a full dark theme:
@@ -910,13 +916,15 @@ StorageHub includes a comprehensive backup system to protect your inventory data
 
 ### Restoring from Backup
 
-**Warning:** Restoring replaces your current data!
+**Note:** Restoring MERGES the backup into your current database — existing
+rows are kept, and entries from the backup that already exist (matched by
+name or QR code) are skipped rather than overwritten.
 
 1. Find the backup you want to restore
 2. Click **Restore**
 3. Confirm the restoration
 4. Wait for the process to complete
-5. The system reloads with the restored data
+5. The restored data is merged into your inventory
 
 ### Automatic Backups
 
@@ -932,9 +940,11 @@ Configure scheduled backups to run automatically:
 Sync backups to Google Drive for off-site storage:
 
 **Setting Up Google Drive:**
-1. Click **Setup Google Drive** in the Backup section
-2. Follow the OAuth flow to authorize StorageHub
-3. Grant access to manage backup files
+1. Create a Google Cloud service account and download its JSON key file
+2. In the Backup section, add a Google Drive provider and paste the
+   service-account JSON credentials (there is no OAuth sign-in flow)
+3. Share a **Shared Drive** with the service account — service accounts
+   need a Shared Drive to upload files; regular shared folders won't work
 
 **Automatic Sync:**
 - Once configured, backups are automatically uploaded to Google Drive
@@ -948,13 +958,17 @@ Sync backups to Google Drive for off-site storage:
 ### Backup Contents
 
 Each backup includes:
-- All locations, containers, and items
-- User accounts and settings
-- Tags, reminders, and share links
-- Activity logs
-- System configuration
+- All locations, containers, and items (with their tag assignments)
+- Tags
+- Image metadata
+- User accounts (when the backup's include-users option is enabled)
 
-**Note:** Uploaded images are NOT included in database backups. Consider backing up the `uploads/` directory separately.
+NOT included: reminders, share links, activity logs, and system
+configuration (printers, AI settings, etc.).
+
+**Note:** The image files themselves are included only when the backup
+config's **include images** option is enabled. Otherwise, consider backing
+up the `uploads/` directory separately.
 
 ---
 
@@ -1020,7 +1034,6 @@ Each backup includes:
 
 | Shortcut | Action |
 |----------|--------|
-| `/` | Focus search bar |
 | `Esc` | Close modal/cancel |
 | `Enter` | Confirm/save |
 
@@ -1034,8 +1047,8 @@ Each backup includes:
 - Ensure account is active
 
 ### Images Not Processing
-- Check file size (max 20MB)
-- Supported formats: JPG, PNG
+- Check file size (default limit is 10 MB, configurable via `MAX_UPLOAD_SIZE_MB`)
+- Supported formats: JPG, PNG, GIF, WebP
 - Wait for AI processing — items show an "Analyzing…" badge until done.
   AI requires `OPENAI_API_KEY` set either via the env var or
   Admin → AI Settings; without it, items get mock-classified placeholders.
