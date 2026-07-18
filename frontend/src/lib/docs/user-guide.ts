@@ -29,7 +29,7 @@ StorageHub is a powerful home inventory management application that helps you or
 - **AI-Powered Classification**: Automatically categorize items using photos
 - **QR Code Integration**: Generate and scan QR codes for quick access
 - **Smart Search**: Find anything instantly with intelligent search
-- **Sharing**: Share containers or locations with others via secure links
+- **Sharing**: Share containers with others via secure links
 - **Reminders**: Set reminders for seasonal items or maintenance tasks
 - **Multi-Language Support**: Available in English and Norwegian
 
@@ -52,7 +52,7 @@ StorageHub er en kraftig applikasjon for å holde orden på eiendelene dine hjem
 - **AI-drevet klassifisering**: La AI kategorisere gjenstander automatisk fra bilder
 - **QR-kodeintegrering**: Generer og skann QR-koder for rask tilgang
 - **Smart søk**: Finn det du trenger raskt med intelligent søk
-- **Deling**: Del beholdere eller steder med andre via sikre lenker
+- **Deling**: Del beholdere med andre via sikre lenker
 - **Påminnelser**: Sett påminnelser for sesongbaserte gjenstander eller vedlikehold
 - **Flerspråklig**: Tilgjengelig på engelsk og norsk
 
@@ -116,12 +116,13 @@ Items are the individual belongings you want to track. Each item belongs to exac
 
 **Item Properties:**
 - Name and description
-- Quantity
+- Size (e.g. clothing or shoe size)
 - Condition (Good, Fair, Damaged, Needs Repair)
-- Purchase date and price
+- Seasonal classification
+- Value estimate
+- Owner (household member)
 - Tags for categorization
 - Photos
-- Notes
 `,
 			no: `
 ## Forstå hierarkiet
@@ -169,12 +170,13 @@ Gjenstander er de enkelte eiendelene du vil holde oversikt over. Hver gjenstand 
 
 **Egenskaper for gjenstander:**
 - Navn og beskrivelse
-- Antall
+- Størrelse (f.eks. kles- eller skostørrelse)
 - Tilstand (God, Brukbar, Skadet, Trenger reparasjon)
-- Kjøpsdato og pris
+- Sesongklassifisering
+- Verdianslag
+- Eier (husstandsmedlem)
 - Etiketter for kategorisering
 - Bilder
-- Notater
 `
 		}
 	},
@@ -311,6 +313,15 @@ Each container automatically gets a unique QR code:
 2. Click the **QR Code** button
 3. Print or download the QR code
 4. Attach it to the physical container
+
+### Container Photos
+
+Give a container a hero image so it's easy to recognize at a glance:
+
+1. Navigate to the container
+2. Click **Take Photo** to capture an image with your device's camera
+3. The photo is shown at the top of the container page
+4. Use **Replace Image** or **Remove Image** to change it later
 `,
 			no: `
 ## Jobbe med beholdere
@@ -365,6 +376,15 @@ Hver beholder får automatisk en unik QR-kode:
 2. Klikk **QR-kode**-knappen
 3. Skriv ut eller last ned QR-koden
 4. Fest den på den fysiske beholderen
+
+### Beholderbilder
+
+Gi beholderen et hovedbilde så den er lett å kjenne igjen:
+
+1. Gå til beholderen
+2. Klikk **Ta bilde** for å ta et bilde med kameraet på enheten
+3. Bildet vises øverst på beholdersiden
+4. Bruk **Erstatt bilde** eller **Fjern bilde** for å endre det senere
 `
 		}
 	},
@@ -384,9 +404,11 @@ Items are the individual belongings you track in StorageHub.
 3. Fill in the details:
    - **Name** (required): What is this item?
    - **Description**: Additional details
-   - **Quantity**: How many do you have?
+   - **Size**: Clothing/shoe size or dimensions
    - **Condition**: Current state of the item
-   - **Purchase Date/Price**: Optional tracking info
+   - **Seasonal**: Optional season classification
+   - **Value Estimate**: Approximate worth
+   - **Owner**: Which household member it belongs to
    - **Tags**: Categorization labels
    - **Photos**: Visual reference
 
@@ -396,16 +418,15 @@ Photos help you identify and remember items:
 
 1. While creating/editing an item, click **Add Photo**
 2. Take a photo or upload from your device
-3. AI can automatically classify the item based on the photo
+3. AI automatically classifies the item in the background after upload
 
 ### Using Tags
 
 Tags help you categorize and find items:
 
 1. Create tags from the **Tags** page
-2. Assign colors to tags for visual distinction
-3. Add tags to items when creating or editing
-4. Search by tag to find related items
+2. Add tags to items when creating or editing
+3. Search by tag to find related items
 
 ### Item Conditions
 
@@ -446,9 +467,11 @@ Gjenstander er de enkelte eiendelene du holder oversikt over i StorageHub.
 3. Fyll inn detaljene:
    - **Navn** (obligatorisk): Hva er dette?
    - **Beskrivelse**: Flere detaljer
-   - **Antall**: Hvor mange har du?
+   - **Størrelse**: Kles-/skostørrelse eller mål
    - **Tilstand**: Hva er tilstanden?
-   - **Kjøpsdato/pris**: Valgfri sporing
+   - **Sesong**: Valgfri sesongklassifisering
+   - **Verdianslag**: Omtrentlig verdi
+   - **Eier**: Hvilket husstandsmedlem den tilhører
    - **Etiketter**: Kategorisering
    - **Bilder**: Visuell referanse
 
@@ -458,16 +481,15 @@ Bilder hjelper deg å huske og identifisere gjenstander:
 
 1. Når du oppretter eller redigerer en gjenstand, klikk **Legg til bilde**
 2. Ta et bilde eller last opp fra enheten
-3. AI kan klassifisere gjenstanden automatisk basert på bildet
+3. AI klassifiserer gjenstanden automatisk i bakgrunnen etter opplasting
 
 ### Bruke etiketter
 
 Etiketter hjelper deg å kategorisere og finne gjenstander:
 
 1. Opprett etiketter fra **Etiketter**-siden
-2. Tildel farger til etiketter for visuelt skille
-3. Legg til etiketter på gjenstander når du oppretter eller redigerer
-4. Søk etter etikett for å finne relaterte gjenstander
+2. Legg til etiketter på gjenstander når du oppretter eller redigerer
+3. Søk etter etikett for å finne relaterte gjenstander
 
 ### Tilstander
 
@@ -518,24 +540,35 @@ When you add a photo to an item, AI can automatically:
 **How to use:**
 1. Click **Add Photo** when creating an item
 2. Take or upload a photo
-3. Click **Classify with AI**
-4. Review and accept the suggestions
+3. Classification runs automatically in the background after upload
+4. Review the suggested name, description, and tags once processing finishes
+
+### AI Owner Suggestion
+
+When classifying a photo, the AI can also guess which household member an
+item most likely belongs to, based on the item's size or motif and each
+member's age and gender:
+
+- The guess appears as a suggestion banner on the item detail page
+- It is never applied automatically — click to accept it as the owner,
+  or dismiss it
+- Add birthdate and gender to household members to improve suggestions
 
 ### AI-Generated Summaries
 
-Get insights about your containers:
+AI can summarize a container's contents on printed labels:
 
-1. Navigate to a container with items
-2. Click **Generate Summary**
-3. AI creates a brief overview of the contents
+1. When printing a label, choose the template with an AI summary
+2. A brief overview of the container's contents is generated for the
+   label preview and printout
 
 ### Configuration
 
 Administrators can configure AI settings:
 
 - Enable/disable AI features
-- Choose AI model (GPT-4, GPT-4 Mini, etc.)
-- Set API keys
+- Choose AI models from a fixed list (e.g. GPT-4o, GPT-4o Mini)
+- Set the API key
 
 See the Admin Features section for details.
 `,
@@ -555,24 +588,35 @@ Når du legger til et bilde av en gjenstand, kan AI automatisk:
 **Slik bruker du det:**
 1. Klikk **Legg til bilde** når du oppretter en gjenstand
 2. Ta eller last opp et bilde
-3. Klikk **Klassifiser med AI**
-4. Se gjennom og godta forslagene
+3. Klassifiseringen kjører automatisk i bakgrunnen etter opplasting
+4. Se gjennom foreslått navn, beskrivelse og etiketter når prosesseringen er ferdig
+
+### AI-eierforslag
+
+Når et bilde klassifiseres, kan AI-en også gjette hvilket husstandsmedlem
+gjenstanden mest sannsynlig tilhører, basert på størrelse eller motiv og
+hvert medlems alder og kjønn:
+
+- Forslaget vises som et banner på gjenstandens detaljside
+- Det brukes aldri automatisk — klikk for å godta det som eier,
+  eller avvis det
+- Legg inn fødselsdato og kjønn på husstandsmedlemmene for bedre forslag
 
 ### AI-genererte sammendrag
 
-Få oversikt over beholderne dine:
+AI kan oppsummere innholdet i en beholder på utskrevne etiketter:
 
-1. Gå til en beholder med gjenstander
-2. Klikk **Generer sammendrag**
-3. AI lager en kort oppsummering av innholdet
+1. Når du skriver ut en etikett, velg malen med AI-sammendrag
+2. En kort oppsummering av beholderens innhold genereres for
+   forhåndsvisningen og utskriften
 
 ### Konfigurasjon
 
 Administratorer kan konfigurere AI-innstillinger:
 
 - Aktivere/deaktivere AI-funksjoner
-- Velge AI-modell (GPT-4, GPT-4 Mini osv.)
-- Sette API-nøkler
+- Velge AI-modeller fra en fast liste (f.eks. GPT-4o, GPT-4o Mini)
+- Sette API-nøkkelen
 
 Se Admin-funksjoner for detaljer.
 `
@@ -591,7 +635,7 @@ StorageHub provides powerful search capabilities to help you find anything quick
 
 The search bar in the header provides instant results:
 
-1. Click the search bar or press **/** on desktop
+1. Click the search bar
 2. Type your search query
 3. Results appear as you type
 4. Click a result to navigate directly to it
@@ -603,14 +647,15 @@ For advanced searching, visit the dedicated Search page:
 1. Click **Search** in the navigation
 2. Enter your search terms
 3. Use filters to narrow results
-4. Sort results by relevance, date, or name
 
 ### What You Can Search
 
-- **Items**: By name, description, or notes
-- **Containers**: By name or description
-- **Locations**: By name or address
-- **Tags**: Items with specific tags
+Search returns items. Your query matches against:
+
+- Item names and descriptions
+- Tags and AI-generated tags
+- Size
+- Where the item is stored
 
 ### Search Tips
 
@@ -623,19 +668,10 @@ For advanced searching, visit the dedicated Search page:
 
 Narrow your results using filters:
 
-- **Type**: Items, Containers, or Locations
-- **Location**: Limit to specific location
-- **Tags**: Filter by tag
+- **Location**: Limit to a specific location
+- **Owner**: Filter by household member
 - **Condition**: Filter items by condition
 - **Seasonal**: Filter by season
-
-### Sort Options
-
-- **Relevance**: Best matches first
-- **Newest**: Recently created first
-- **Oldest**: Oldest items first
-- **Name (A-Z)**: Alphabetical order
-- **Name (Z-A)**: Reverse alphabetical
 `,
 			no: `
 ## Søk
@@ -646,7 +682,7 @@ StorageHub har kraftig søk som hjelper deg å finne ting raskt.
 
 Søkefeltet øverst gir umiddelbare resultater:
 
-1. Klikk på søkefeltet eller trykk **/** på datamaskinen
+1. Klikk på søkefeltet
 2. Skriv inn søket ditt
 3. Resultatene vises mens du skriver
 4. Klikk på et resultat for å gå direkte dit
@@ -658,14 +694,15 @@ For avansert søk, gå til den dedikerte søkesiden:
 1. Klikk **Søk** i menyen
 2. Skriv inn søkeordene
 3. Bruk filtre for å snevre inn resultatene
-4. Sorter etter relevans, dato eller navn
 
 ### Hva du kan søke i
 
-- **Gjenstander**: Etter navn, beskrivelse eller notater
-- **Beholdere**: Etter navn eller beskrivelse
-- **Steder**: Etter navn eller adresse
-- **Etiketter**: Gjenstander med spesifikke etiketter
+Søket returnerer gjenstander. Søkeordene matcher mot:
+
+- Navn og beskrivelser på gjenstander
+- Etiketter og AI-genererte etiketter
+- Størrelse
+- Hvor gjenstanden er lagret
 
 ### Søketips
 
@@ -678,19 +715,10 @@ For avansert søk, gå til den dedikerte søkesiden:
 
 Snevre inn resultatene med filtre:
 
-- **Type**: Gjenstander, beholdere eller steder
 - **Sted**: Begrens til ett sted
-- **Etiketter**: Filtrer etter etikett
+- **Eier**: Filtrer etter husstandsmedlem
 - **Tilstand**: Filtrer gjenstander etter tilstand
 - **Sesong**: Filtrer etter sesong
-
-### Sorteringsalternativer
-
-- **Relevans**: Beste treff først
-- **Nyeste**: Nyopprettede først
-- **Eldste**: Eldste først
-- **Navn (A–Å)**: Alfabetisk
-- **Navn (Å–A)**: Omvendt alfabetisk
 `
 		}
 	},
@@ -813,11 +841,11 @@ Se "Skrive ut etiketter" for detaljert oppsett.
 			en: `
 ## Sharing
 
-Share containers or locations with others using secure links.
+Share containers with others using secure links.
 
 ### Creating a Share Link
 
-1. Navigate to a container or location
+1. Navigate to a container
 2. Click the **Share** button
 3. Configure sharing options:
    - **Expiration**: When the link expires (or never)
@@ -836,7 +864,7 @@ Share containers or locations with others using secure links.
 
 View and manage active share links:
 
-1. Navigate to the container/location
+1. Navigate to the container
 2. Click **Share**
 3. View active links under "Active Share Links"
 4. Delete links you no longer need
@@ -852,11 +880,11 @@ View and manage active share links:
 			no: `
 ## Deling
 
-Del beholdere eller steder med andre via sikre lenker.
+Del beholdere med andre via sikre lenker.
 
 ### Lage en delingslenke
 
-1. Gå til en beholder eller et sted
+1. Gå til en beholder
 2. Klikk **Del**-knappen
 3. Konfigurer delingsalternativer:
    - **Utløp**: Når lenken slutter å virke (eller aldri)
@@ -875,7 +903,7 @@ Del beholdere eller steder med andre via sikre lenker.
 
 Vis og administrer aktive lenker:
 
-1. Gå til beholderen eller stedet
+1. Gå til beholderen
 2. Klikk **Del**
 3. Se aktive lenker under "Aktive delingslenker"
 4. Slett lenker du ikke trenger lenger
@@ -919,7 +947,7 @@ Set reminders to help you manage seasonal items and maintenance tasks.
 **Recurring Reminders:**
 - Repeat on a schedule
 - Great for seasonal rotations
-- Options: Daily, Weekly, Monthly, Yearly
+- Set the interval as "repeat every N days" (e.g. 7 for weekly, 30 for monthly, 365 for yearly)
 
 ### Use Cases
 
@@ -968,7 +996,7 @@ Sett påminnelser for å holde styr på sesongbaserte gjenstander og vedlikehold
 **Gjentakende:**
 - Gjentas etter en tidsplan
 - Bra for sesongbaserte ting
-- Valg: Daglig, ukentlig, månedlig, årlig
+- Sett intervallet som "gjenta hver N. dag" (f.eks. 7 for ukentlig, 30 for månedlig, 365 for årlig)
 
 ### Bruksområder
 
@@ -1023,24 +1051,15 @@ Click **God View** in the main navigation.
 **Quick Actions:**
 - Add containers or items directly from the tree
 - Delete items with confirmation
-- Move items via drag-and-drop (coming soon)
+- Move containers and items via drag-and-drop in the tree
 
-### Batch Operations
+### Batch Label Printing
 
-**Selecting Items:**
-1. Click checkboxes to select items
-2. Use "Select All" for mass selection
-3. Selected count shows in toolbar
+Checkbox selection is used for printing labels in bulk:
 
-**Batch Printing:**
-1. Select multiple containers
+1. Click checkboxes to select multiple containers
 2. Click **Print Selected**
-3. All selected containers print at once
-
-**Batch Delete:**
-1. Select items to delete
-2. Click **Delete Selected**
-3. Confirm the operation
+3. All selected container labels print at once
 
 ### Filtering
 
@@ -1048,13 +1067,6 @@ Use the toolbar filters to narrow the view:
 - Search within tree
 - Filter by location
 - Filter by container type
-
-### Keyboard Shortcuts
-
-- **Arrow Keys**: Navigate tree
-- **Enter**: Expand/collapse node
-- **Space**: Toggle selection
-- **Escape**: Clear selection
 `,
 			no: `
 ## God View
@@ -1081,24 +1093,15 @@ Klikk **God View** i hovedmenyen.
 **Hurtighandlinger:**
 - Legg til beholdere eller gjenstander direkte fra treet
 - Slett gjenstander med bekreftelse
-- Flytt gjenstander via dra-og-slipp (kommer snart)
+- Flytt beholdere og gjenstander med dra-og-slipp i treet
 
-### Masseoperasjoner
+### Masseutskrift av etiketter
 
-**Velge gjenstander:**
-1. Klikk avkrysningsboksene for å velge
-2. Bruk "Velg alle" for å velge alle
-3. Antall valgte vises i verktøylinjen
+Avkrysningsboksene brukes til å skrive ut etiketter samlet:
 
-**Masseutskrift:**
-1. Velg flere beholdere
+1. Klikk avkrysningsboksene for å velge flere beholdere
 2. Klikk **Skriv ut valgte**
-3. Alle valgte beholdere skrives ut samtidig
-
-**Masseslettin:**
-1. Velg gjenstandene som skal slettes
-2. Klikk **Slett valgte**
-3. Bekreft operasjonen
+3. Alle valgte beholderetiketter skrives ut samtidig
 
 ### Filtrering
 
@@ -1106,13 +1109,6 @@ Bruk filtrene i verktøylinjen for å snevre inn:
 - Søk i treet
 - Filtrer etter sted
 - Filtrer etter beholdertype
-
-### Hurtigtaster
-
-- **Piltaster**: Naviger i treet
-- **Enter**: Åpne/lukk node
-- **Mellomrom**: Veksle valg
-- **Escape**: Fjern valg
 `
 		}
 	},
@@ -1542,15 +1538,7 @@ Export your data for backup or analysis:
 **CSV Export:**
 - Spreadsheet-compatible format
 - Good for reporting and analysis
-- Separate files for each data type
-
-### Statistics
-
-View your storage statistics:
-- Total locations
-- Total containers
-- Total items
-- Storage distribution charts
+- A single CSV file listing all items
 `,
 			no: `
 ## Innstillinger
@@ -1597,15 +1585,7 @@ Eksporter dataene dine for sikkerhetskopi eller analyse:
 **CSV-eksport:**
 - Regnearkkompatibelt format
 - Bra for rapportering og analyse
-- Egne filer for hver datatype
-
-### Statistikk
-
-Se lagringsstatistikken din:
-- Totalt antall steder
-- Totalt antall beholdere
-- Totalt antall gjenstander
-- Fordelingsdiagrammer
+- Én CSV-fil med alle gjenstandene
 `
 		}
 	},
@@ -1641,6 +1621,15 @@ Administrators have access to additional management features.
 2. Confirm deletion
 > Warning: This deletes all user data
 
+### Profile Users
+
+Profiles are household members who own items but never log in — small
+kids, pets, anyone you track without giving them an account:
+
+- Create them like regular users and mark them as a profile
+- They can be set as item owners and get AI owner suggestions
+- They are hidden from the login screen
+
 ### Activity Logs
 
 View system-wide activity:
@@ -1658,21 +1647,39 @@ Configure AI features:
 
 **API Configuration:**
 - Set OpenAI API key
-- Choose model (GPT-4, GPT-4 Mini, etc.)
-- Configure rate limits
+- Choose models from a fixed list for image classification and text
+  summaries
 
 **Model Selection:**
-- GPT-4: Most capable, higher cost
-- GPT-4 Mini: Faster, lower cost
-- Custom: Use any OpenAI-compatible endpoint
+- GPT-4o: Best quality, recommended for classification
+- GPT-4o Mini: Faster, lowest cost
+
+**Usage Statistics:**
+- The AI tab shows usage and cost statistics for AI calls
+
+### API Keys
+
+The **API Keys** tab lets you create keys for external integrations:
+
+1. Click **Create Key** and give it a name
+2. Choose scopes (read, write, search, webhooks, admin)
+3. Copy the key when shown — it starts with \`shub_\` and is only
+   displayed once
+4. Optionally set an expiration; deactivate keys you no longer use
+
+### Home Assistant Integration
+
+StorageHub can feed inventory data into Home Assistant for sensors,
+automations, and voice-activated item search. Create an API key with
+\`read\` and \`search\` scopes and follow the setup guide in
+\`docs/HOME_ASSISTANT_INTEGRATION.md\` in the repository.
 
 ### System Statistics
 
 View overall system metrics:
 - Total users
 - Total storage items
-- Database size
-- API usage
+- AI usage and cost
 `,
 			no: `
 ## Admin-funksjoner
@@ -1702,6 +1709,16 @@ Administratorer har tilgang til ekstra administrasjonsfunksjoner.
 2. Bekreft slettingen
 > Advarsel: Dette sletter alle brukerens data
 
+### Profilbrukere
+
+Profiler er husstandsmedlemmer som eier ting, men som aldri logger inn —
+små barn, kjæledyr, eller andre du vil holde oversikt for uten å gi dem
+en konto:
+
+- Opprett dem som vanlige brukere og marker dem som profil
+- De kan settes som eiere av gjenstander og får AI-eierforslag
+- De vises ikke på innloggingsskjermen
+
 ### Aktivitetslogger
 
 Se aktivitet på tvers av systemet:
@@ -1719,21 +1736,39 @@ Konfigurer AI-funksjoner:
 
 **API-konfigurasjon:**
 - Sett OpenAI API-nøkkel
-- Velg modell (GPT-4, GPT-4 Mini osv.)
-- Konfigurer hastighetsgrenser
+- Velg modeller fra en fast liste for bildeklassifisering og
+  tekstsammendrag
 
 **Modellvalg:**
-- GPT-4: Best kvalitet, høyere kostnad
-- GPT-4 Mini: Raskere, lavere kostnad
-- Egendefinert: Bruk hvilken som helst OpenAI-kompatibel endepunkt
+- GPT-4o: Best kvalitet, anbefalt for klassifisering
+- GPT-4o Mini: Raskere, lavest kostnad
+
+**Bruksstatistikk:**
+- AI-fanen viser bruks- og kostnadsstatistikk for AI-kall
+
+### API-nøkler
+
+Fanen **API-nøkler** lar deg opprette nøkler for eksterne integrasjoner:
+
+1. Klikk **Opprett nøkkel** og gi den et navn
+2. Velg tilganger (lese, skrive, søk, webhooks, admin)
+3. Kopier nøkkelen når den vises — den starter med \`shub_\` og vises
+   bare én gang
+4. Sett eventuelt en utløpsdato; deaktiver nøkler du ikke bruker lenger
+
+### Home Assistant-integrasjon
+
+StorageHub kan levere inventardata til Home Assistant for sensorer,
+automatiseringer og talestyrt gjenstandssøk. Opprett en API-nøkkel med
+tilgangene \`read\` og \`search\`, og følg oppsettsguiden i
+\`docs/HOME_ASSISTANT_INTEGRATION.md\` i kodearkivet.
 
 ### Systemstatistikk
 
 Se overordnede systemmål:
 - Totalt antall brukere
 - Totalt antall gjenstander
-- Databasestørrelse
-- API-forbruk
+- AI-forbruk og kostnad
 `
 		}
 	},
@@ -1754,8 +1789,8 @@ Protect your data with backup features.
 3. Save the downloaded file
 
 **Restore Data:**
-- Contact your administrator for restore procedures
-- JSON backups can be imported by admins
+- Administrators can restore backups from the Admin Panel
+- See "Restoring a Backup" below
 
 ### Google Drive Integration
 
@@ -1764,20 +1799,35 @@ Automatically backup to Google Drive:
 **Setup (Admin):**
 1. Go to **Admin Panel**
 2. Navigate to **Google Drive Setup**
-3. Follow OAuth authentication flow
+3. Upload a Google service-account JSON key and share a Drive folder
+   with the service account
 4. Configure backup schedule
 
 **Backup Options:**
 - **Manual**: Trigger backup on demand
 - **Daily**: Automatic daily backup
 - **Weekly**: Automatic weekly backup
+- **Monthly**: Automatic monthly backup
 
 **What's Backed Up:**
 - All locations
 - All containers
-- All items
-- Item photos
-- User settings
+- All tags
+- All items and their image metadata
+- All users
+- Item photos, only when the backup configuration has "include images"
+  enabled
+
+### Restoring a Backup
+
+Administrators restore from **Admin Panel** > **Backups**:
+
+1. Restore directly from an entry in the backup history, or upload a
+   backup file
+2. Review the preview of what the backup contains
+3. Choose whether to restore images
+4. Confirm — restoring **merges** the backup into your current data, it
+   does not replace it
 
 ### Backup Best Practices
 
@@ -1807,8 +1857,8 @@ Beskytt dataene dine med sikkerhetskopifunksjoner.
 3. Lagre den nedlastede filen
 
 **Gjenopprette data:**
-- Kontakt administratoren for gjenopprettingsrutiner
-- JSON-sikkerhetskopier kan importeres av administratorer
+- Administratorer kan gjenopprette sikkerhetskopier fra adminpanelet
+- Se "Gjenopprette en sikkerhetskopi" nedenfor
 
 ### Google Drive-integrasjon
 
@@ -1817,20 +1867,35 @@ Sikkerhetskopier automatisk til Google Drive:
 **Oppsett (administrator):**
 1. Gå til **Adminpanelet**
 2. Naviger til **Google Drive-oppsett**
-3. Følg OAuth-autentiseringen
+3. Last opp en JSON-nøkkel for en Google-tjenestekonto og del en
+   Drive-mappe med tjenestekontoen
 4. Konfigurer sikkerhetskopiplan
 
 **Sikkerhetskopialternativer:**
 - **Manuelt**: Utløs sikkerhetskopi manuelt
 - **Daglig**: Automatisk daglig sikkerhetskopi
 - **Ukentlig**: Automatisk ukentlig sikkerhetskopi
+- **Månedlig**: Automatisk månedlig sikkerhetskopi
 
 **Hva som tas sikkerhetskopi av:**
 - Alle steder
 - Alle beholdere
-- Alle gjenstander
-- Bilder av gjenstander
-- Brukerinnstillinger
+- Alle etiketter
+- Alle gjenstander og bildemetadataene deres
+- Alle brukere
+- Bilder av gjenstander, kun når "inkluder bilder" er slått på i
+  sikkerhetskopikonfigurasjonen
+
+### Gjenopprette en sikkerhetskopi
+
+Administratorer gjenoppretter fra **Adminpanelet** > **Sikkerhetskopier**:
+
+1. Gjenopprett direkte fra en oppføring i historikken, eller last opp
+   en sikkerhetskopifil
+2. Se gjennom forhåndsvisningen av hva kopien inneholder
+3. Velg om bilder skal gjenopprettes
+4. Bekreft — gjenoppretting **fletter** kopien inn i dataene dine, den
+   erstatter dem ikke
 
 ### Beste praksis
 
