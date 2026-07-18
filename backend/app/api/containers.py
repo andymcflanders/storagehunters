@@ -18,7 +18,9 @@ from app.schemas.container import (
     ContainerWithItems,
     ItemSummary,
 )
+from app.models.webhook import WebhookEvent
 from app.services.activity_logger import ActivityLogger
+from app.services.webhook_events import emit_webhook_event
 from app.services.image_storage import ImageStorageService
 from app.services.qr_generator import QRGeneratorService
 
@@ -129,6 +131,15 @@ async def create_container(
         entity_type="container",
         entity_id=container.id,
         entity_name=container.name,
+    )
+    emit_webhook_event(
+        WebhookEvent.CONTAINER_CREATED,
+        {
+            "container_id": str(container.id),
+            "name": container.name,
+            "location_id": str(container.location_id),
+            "triggered_by": str(current_user.id),
+        },
     )
 
     return _to_response(container)
@@ -246,6 +257,15 @@ async def update_container(
             entity_name=container.name,
             old_values=old_values,
             new_values=new_values,
+        )
+        emit_webhook_event(
+            WebhookEvent.CONTAINER_UPDATED,
+            {
+                "container_id": str(container.id),
+                "name": container.name,
+                "location_id": str(container.location_id),
+                "triggered_by": str(current_user.id),
+            },
         )
 
     await db.flush()
@@ -451,6 +471,15 @@ async def delete_container(
         entity_type="container",
         entity_id=container.id,
         entity_name=container.name,
+    )
+    emit_webhook_event(
+        WebhookEvent.CONTAINER_DELETED,
+        {
+            "container_id": str(container.id),
+            "name": container.name,
+            "location_id": str(container.location_id),
+            "triggered_by": str(current_user.id),
+        },
     )
 
 

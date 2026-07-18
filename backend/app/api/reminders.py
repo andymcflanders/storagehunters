@@ -11,6 +11,8 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession
 from app.models import Container, Item, Reminder, ReminderType
+from app.models.webhook import WebhookEvent
+from app.services.webhook_events import emit_webhook_event
 
 router = APIRouter()
 
@@ -334,6 +336,17 @@ async def complete_reminder(
 
     await db.flush()
     await db.refresh(reminder)
+
+    emit_webhook_event(
+        WebhookEvent.REMINDER_COMPLETED,
+        {
+            "reminder_id": str(reminder.id),
+            "title": reminder.title,
+            "item_id": str(reminder.item_id) if reminder.item_id else None,
+            "container_id": str(reminder.container_id) if reminder.container_id else None,
+            "triggered_by": str(current_user.id),
+        },
+    )
 
     return reminder_to_response(reminder)
 

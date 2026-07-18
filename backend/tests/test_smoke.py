@@ -251,28 +251,8 @@ async def test_api_key_lifecycle(admin_client):
     assert r.status_code in {200, 204}, r.text
 
 
-async def test_webhook_lifecycle(admin_client):
-    r = await admin_client.post(
-        "/api/webhooks",
-        json={
-            "name": "Smoke Hook",
-            "url": "http://localhost:9/hook",
-            "events": ["item.created"],
-        },
-    )
-    assert r.status_code == 201, r.text
-    wid = r.json()["id"]
-    r = await admin_client.get(f"/api/webhooks/{wid}")
-    assert r.status_code == 200
-    r = await admin_client.get(f"/api/webhooks/{wid}/deliveries")
-    assert r.status_code == 200
-    r = await admin_client.patch(f"/api/webhooks/{wid}", json={"is_active": False})
-    assert r.status_code == 200
-    # test delivery will fail to connect (localhost:9) but must not 5xx-crash
-    r = await admin_client.post(f"/api/webhooks/{wid}/test")
-    assert r.status_code not in LENIENT
-    r = await admin_client.delete(f"/api/webhooks/{wid}")
-    assert r.status_code in {200, 204}
+# Webhook create/get/patch/delete/test/deliveries coverage lives in
+# test_webhooks.py, which patches the HTTP layer so no real delivery happens.
 
 
 async def test_printer_update(admin_client, seed):

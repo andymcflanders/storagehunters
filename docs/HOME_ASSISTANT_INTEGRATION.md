@@ -189,13 +189,13 @@ automation:
 
 ## Webhooks for Real-Time Updates
 
-> **⚠️ Current status: event delivery is not yet wired up.** Webhooks
-> can be registered and test-fired via
-> `POST /api/webhooks/{id}/test`, but StorageHub does not yet emit real
-> events (`item.created`, `reminder.due`, etc.) from any code path. The
-> setup below shows the intended flow — until events are wired in, your
-> Home Assistant webhook will only receive payloads from manual test
-> fires.
+> StorageHub emits real events (`item.created`, `item.moved`,
+> `reminder.due`, `reminder.overdue`, `reminder.completed`, etc.) and
+> delivers them to your registered webhooks in the background. Point a
+> webhook at your Home Assistant webhook URL — a LAN address like
+> `http://homeassistant.local:8123/api/webhook/<id>` is fine; private LAN
+> ranges are permitted. Use `POST /api/webhooks/{id}/test` to confirm
+> connectivity before relying on it.
 
 ### 1. Create a Webhook in Home Assistant
 
@@ -407,12 +407,14 @@ card:
 
 ### Webhook Not Receiving Events
 
-> Remember: real event delivery is not yet wired up (see
-> [Webhooks for Real-Time Updates](#webhooks-for-real-time-updates)) —
-> only manual test fires produce deliveries today.
-
-1. Check webhook is active in StorageHub
-2. Verify Home Assistant webhook URL is accessible
+1. Check the webhook is active in StorageHub and subscribed to the events you expect
+2. Confirm delivery attempts under `GET /api/webhooks/{id}/deliveries` — a
+   blocked entry means the SSRF policy refused the target (e.g. a loopback or
+   metadata address; set `WEBHOOK_BLOCK_PRIVATE_NETWORKS=false`/default to
+   allow LAN targets)
+3. Verify the Home Assistant webhook URL is reachable from the StorageHub host
+4. Make sure the Celery worker and beat scheduler are running (reminder
+   due/overdue events come from the periodic scan)
 3. Check webhook delivery history in StorageHub
 4. Test webhook manually:
    ```bash

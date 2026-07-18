@@ -549,16 +549,22 @@ Response:
 
 Webhooks allow you to receive real-time notifications when events occur in StorageHub.
 
-> **⚠️ Current status: event delivery is not yet wired up.** Webhooks can
-> be created, managed, and test-fired via `POST /api/webhooks/{id}/test`,
-> and the delivery machinery (HMAC signing, retries, delivery history)
-> works — but no production code path currently emits real events. The
-> dispatcher (`trigger_webhook_event` in
-> `backend/app/services/webhook_service.py`) has no callers, and the
-> background scheduler only runs the scheduled-backup check. Until events
-> are wired in, subscriptions to `item.created`, `reminder.due`, etc.
-> will never fire on their own. The table below is the **planned** event
-> catalog.
+Events are emitted from the relevant API paths (item/container/location
+created, updated, deleted, moved; reminder completed) and from a periodic
+scan for due/overdue reminders. Delivery happens **out of band** on a Celery
+worker, so a slow or unreachable subscriber never blocks the request that
+triggered the event. Each attempt is recorded (see
+`GET /api/webhooks/{id}/deliveries`), payloads are HMAC-signed when a secret
+is set, and failed 5xx deliveries are retried with backoff.
+
+> **Security — SSRF protection.** Because webhook URLs are user-supplied,
+> outbound delivery refuses loopback, link-local (including the
+> `169.254.169.254` cloud-metadata endpoint), multicast, and reserved
+> addresses, and the target is re-resolved and re-checked at delivery time
+> (which defeats DNS-rebinding). Private LAN ranges are **allowed** by
+> default so you can point a webhook at a Home Assistant box on your LAN;
+> set `WEBHOOK_BLOCK_PRIVATE_NETWORKS=true` to refuse those too. `http`/
+> `https` are the only permitted schemes.
 
 ### Available Events
 
@@ -1135,10 +1141,10 @@ sensor:
 
 #### Webhook Automation
 
-> **Note:** real event delivery is not yet wired up (see
-> [Webhooks](#webhooks) above). These automations show the intended
-> payload shape, but today the only way to exercise them is a manual
-> `POST /api/webhooks/{id}/test`.
+> **Note:** point the webhook at your Home Assistant webhook URL (e.g.
+> `http://homeassistant.local:8123/api/webhook/<id>`) and events will be
+> delivered as they happen. Use `POST /api/webhooks/{id}/test` to verify
+> connectivity first.
 
 ```yaml
 # automations.yaml
@@ -1238,6 +1244,18 @@ curl -X POST http://storagehub.local/api/webhooks \
 ---
 
 ## Changelog
+
+### Webhooks wired up (2026-07-18)
+
+- Webhook **events now fire for real**. Item/container/location
+  created/updated/deleted/moved and reminder.completed are emitted from
+  their API paths; reminder.due/reminder.overdue come from a periodic scan.
+- Delivery moved **off the request path** to a Celery worker (retries +
+  backoff, accurate attempt counts, delivery history).
+- **SSRF protection** added to outbound delivery: loopback / link-local
+  (cloud metadata) / multicast / reserved targets are refused and the host
+  is re-checked at delivery time; private LAN ranges are allowed by default
+  (configurable via `WEBHOOK_BLOCK_PRIVATE_NETWORKS`).
 
 ### Docs audit (2026-07-18)
 

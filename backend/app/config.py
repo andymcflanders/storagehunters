@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     default_label_width_mm: float = 51.0
     default_label_height_mm: float = 25.0
 
+    # Webhooks
+    # SSRF guard for outbound webhook delivery. When enabled (default),
+    # loopback / link-local (cloud metadata) / multicast / reserved targets
+    # are always refused. Private LAN ranges (RFC1918/ULA) are permitted by
+    # default because the common case is a webhook pointed at a Home
+    # Assistant box on the LAN; set webhook_block_private_networks=true to
+    # refuse those too. Turning the guard off entirely is for tests only.
+    webhook_ssrf_protection: bool = True
+    webhook_block_private_networks: bool = False
+
     @property
     def max_upload_size_bytes(self) -> int:
         """Get max upload size in bytes."""

@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
 class APIKeyScope(str, Enum):
@@ -86,6 +86,17 @@ class WebhookEvent(str, Enum):
     STATS_UPDATED = "stats.updated"
 
 
+def _validate_webhook_url(url: str) -> str:
+    """Shared field validator: cheap create-time SSRF check (no DNS)."""
+    from app.services.webhook_security import WebhookURLError, validate_webhook_url
+
+    try:
+        validate_webhook_url(url, resolve=False)
+    except WebhookURLError as exc:
+        raise ValueError(str(exc)) from exc
+    return url
+
+
 class WebhookCreate(BaseModel):
     """Schema for creating a webhook."""
 
@@ -95,6 +106,11 @@ class WebhookCreate(BaseModel):
     events: list[WebhookEvent] = Field(..., min_length=1)
     retry_count: int = Field(default=3, ge=0, le=10)
     timeout_seconds: int = Field(default=30, ge=5, le=120)
+
+    @field_validator("url")
+    @classmethod
+    def _check_url(cls, v: str) -> str:
+        return _validate_webhook_url(v)
 
 
 class WebhookUpdate(BaseModel):
@@ -107,6 +123,11 @@ class WebhookUpdate(BaseModel):
     is_active: bool | None = None
     retry_count: int | None = Field(None, ge=0, le=10)
     timeout_seconds: int | None = Field(None, ge=5, le=120)
+
+    @field_validator("url")
+    @classmethod
+    def _check_url(cls, v: str | None) -> str | None:
+        return _validate_webhook_url(v) if v is not None else v
 
 
 class WebhookResponse(BaseModel):

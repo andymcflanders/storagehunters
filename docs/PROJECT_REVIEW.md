@@ -25,13 +25,30 @@ safety net:
 - **H8 — JSON export** serializes `Decimal` value estimates.
 - **H5 — `network_ipp` printers** creatable (migration `024`).
 - **M12 — `UserUpdate`** no longer advertises `role`/`is_active` (admin-only concerns).
+- **M12 — `UserUpdate`** no longer advertises `role`/`is_active` (admin-only concerns).
 - **Tests/CI** — a pytest smoke suite (`backend/tests/`) now logs in and exercises all 158
   API routes once, with a coverage guard that fails if any route goes untested, regression
   tests for each bug above, and auth-enforcement tests. A GitHub Actions workflow
   (`.github/workflows/ci.yml`) runs it against Postgres + Redis, plus frontend
   `svelte-check`. A `frontend/package-lock.json` was committed (fixes M16).
 
-The remaining findings below are **not yet fixed** and are the recommended next steps.
+A second follow-up ("wire up webhooks") turned the dead webhook feature into a working one:
+
+- **H2 — webhook events now fire.** Item/container/location created/updated/deleted/moved
+  and reminder.completed are emitted from their API paths; reminder.due/overdue come from a
+  new every-minute Celery-beat scan (`scan_due_reminders`) with per-occurrence dedupe columns
+  (migration `025`).
+- **H3 — webhook SSRF** closed. Outbound delivery refuses loopback / link-local (cloud
+  metadata) / multicast / reserved targets and re-resolves the host at delivery time
+  (defeats DNS-rebinding); private LAN ranges stay allowed by default (the HA use case),
+  configurable via `WEBHOOK_BLOCK_PRIVATE_NETWORKS`. Delivery runs **off the request path**
+  on a Celery worker, so a dead subscriber can't block a user request; the fabricated
+  `attempt_count` is now the real count.
+- Twelve new tests in `backend/tests/test_webhooks.py` cover SSRF rejection, signed delivery,
+  delivery-time rebinding blocks, CRUD emission, and the reminder scan.
+
+The remaining findings below are **not yet fixed** and are the recommended next steps
+(the top open items are now H4 stored-XSS uploads, and the backup/certbot operational gaps).
 
 ---
 

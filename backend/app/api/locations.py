@@ -20,7 +20,9 @@ from app.schemas.location import (
     LocationUpdate,
     LocationWithContainers,
 )
+from app.models.webhook import WebhookEvent
 from app.services.activity_logger import ActivityLogger
+from app.services.webhook_events import emit_webhook_event
 from app.services.image_storage import ImageStorageService
 
 router = APIRouter()
@@ -96,6 +98,14 @@ async def create_location(
         entity_type="location",
         entity_id=location.id,
         entity_name=location.name,
+    )
+    emit_webhook_event(
+        WebhookEvent.LOCATION_CREATED,
+        {
+            "location_id": str(location.id),
+            "name": location.name,
+            "triggered_by": str(current_user.id),
+        },
     )
 
     return LocationResponse.model_validate(location)
@@ -178,6 +188,14 @@ async def update_location(
 
     if old_values:
         logger = ActivityLogger(db)
+        emit_webhook_event(
+            WebhookEvent.LOCATION_UPDATED,
+            {
+                "location_id": str(location.id),
+                "name": location.name,
+                "triggered_by": str(current_user.id),
+            },
+        )
         await logger.log_updated(
             user_id=current_user.id,
             entity_type="location",
@@ -213,6 +231,14 @@ async def delete_location(
         entity_type="location",
         entity_id=location.id,
         entity_name=location.name,
+    )
+    emit_webhook_event(
+        WebhookEvent.LOCATION_DELETED,
+        {
+            "location_id": str(location.id),
+            "name": location.name,
+            "triggered_by": str(current_user.id),
+        },
     )
 
     await db.delete(location)

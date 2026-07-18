@@ -11,6 +11,7 @@ from app.models.container import Container
 from app.models.item import Item, ItemImage, ItemTag
 from app.models.location import Location
 from app.models.tag import Tag
+from app.models.webhook import WebhookEvent
 from app.schemas.item import (
     ContainerPath,
     ItemCreate,
@@ -23,6 +24,7 @@ from app.schemas.item import (
 )
 from app.services.activity_logger import ActivityLogger
 from app.services.image_storage import ImageStorageService
+from app.services.webhook_events import emit_webhook_event
 
 router = APIRouter()
 
@@ -105,6 +107,15 @@ async def create_item(
         entity_type="item",
         entity_id=item.id,
         entity_name=item.name,
+    )
+    emit_webhook_event(
+        WebhookEvent.ITEM_CREATED,
+        {
+            "item_id": str(item.id),
+            "name": item.name,
+            "container_id": str(item.container_id),
+            "triggered_by": str(current_user.id),
+        },
     )
 
     return ItemResponse.model_validate(item)
@@ -231,6 +242,15 @@ async def update_item(
             old_values=old_values,
             new_values=new_values,
         )
+        emit_webhook_event(
+            WebhookEvent.ITEM_UPDATED,
+            {
+                "item_id": str(item.id),
+                "name": item.name,
+                "container_id": str(item.container_id),
+                "triggered_by": str(current_user.id),
+            },
+        )
 
     await db.flush()
     await db.refresh(item)
@@ -258,6 +278,15 @@ async def delete_item(
         entity_type="item",
         entity_id=item.id,
         entity_name=item.name,
+    )
+    emit_webhook_event(
+        WebhookEvent.ITEM_DELETED,
+        {
+            "item_id": str(item.id),
+            "name": item.name,
+            "container_id": str(item.container_id),
+            "triggered_by": str(current_user.id),
+        },
     )
 
     await db.delete(item)
@@ -487,6 +516,16 @@ async def move_item(
         entity_name=item.name,
         from_location=old_container.name,
         to_location=target.name,
+    )
+    emit_webhook_event(
+        WebhookEvent.ITEM_MOVED,
+        {
+            "item_id": str(item.id),
+            "name": item.name,
+            "from_container_id": str(old_container_id),
+            "to_container_id": str(container_id),
+            "triggered_by": str(current_user.id),
+        },
     )
 
     return ItemResponse.model_validate(item)

@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import select, and_
@@ -293,6 +293,79 @@ def process_item_ai(self, item_id: str) -> dict:
 def batch_process_item_images(item_id: str) -> dict:
     """Process all images for an item together."""
     return _process_item_sync(UUID(item_id))
+
+
+@celery_app.task
+def deliver_webhook_event(
+    event: str, payload: dict, user_id: str | None = None
+) -> dict:
+    """Deliver a webhook event to all subscribed webhooks (off the request path)."""
+    from app.services.webhook_delivery import deliver_event
+
+    delivered = deliver_event(event, payload, user_id)
+    return {"event": event, "delivered": delivered}
+
+
+# Reminders are considered overdue this long after their due date.
+_OVERDUE_GRACE = timedelta(days=1)
+
+
+@celery_app.task
+def scan_due_reminders() -> dict:
+    """Emit reminder.due / reminder.overdue for reminders that have come due.
+
+    Idempotent: each reminder occurrence fires each event at most once, tracked
+    by due_notified_at / overdue_notified_at. Runs on the beat schedule.
+    """
+    from app.models.reminder import Reminder
+    from app.services.webhook_delivery import deliver_event
+
+    now = datetime.now(timezone.utc)
+    due_count = 0
+    overdue_count = 0
+
+    def _payload(reminder: Reminder) -> dict:
+        return {
+            "reminder_id": str(reminder.id),
+            "title": reminder.title,
+            "due_date": reminder.due_date.isoformat() if reminder.due_date else None,
+            "item_id": str(reminder.item_id) if reminder.item_id else None,
+            "container_id": str(reminder.container_id) if reminder.container_id else None,
+            "user_id": str(reminder.user_id),
+        }
+
+    with get_sync_db() as db:
+        # Newly due: past due_date, not completed, not yet notified.
+        due = db.execute(
+            select(Reminder).where(
+                and_(
+                    Reminder.is_completed == False,  # noqa: E712
+                    Reminder.due_date <= now,
+                    Reminder.due_notified_at.is_(None),
+                )
+            )
+        ).scalars().all()
+        for reminder in due:
+            deliver_event("reminder.due", _payload(reminder))
+            reminder.due_notified_at = now
+            due_count += 1
+
+        # Overdue: past due_date + grace, not completed, not yet notified.
+        overdue = db.execute(
+            select(Reminder).where(
+                and_(
+                    Reminder.is_completed == False,  # noqa: E712
+                    Reminder.due_date <= now - _OVERDUE_GRACE,
+                    Reminder.overdue_notified_at.is_(None),
+                )
+            )
+        ).scalars().all()
+        for reminder in overdue:
+            deliver_event("reminder.overdue", _payload(reminder))
+            reminder.overdue_notified_at = now
+            overdue_count += 1
+
+    return {"due": due_count, "overdue": overdue_count}
 
 
 @celery_app.task

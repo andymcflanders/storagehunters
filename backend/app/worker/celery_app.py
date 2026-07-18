@@ -46,10 +46,14 @@ celery_app.conf.task_annotations = {
     },
 }
 
-# Celery Beat schedule - check for scheduled backups every minute
+# Celery Beat schedule
 celery_app.conf.beat_schedule = {
     "check-scheduled-backups": {
         "task": "app.worker.tasks.check_scheduled_backups",
+        "schedule": crontab(minute="*"),  # Every minute
+    },
+    "scan-due-reminders": {
+        "task": "app.worker.tasks.scan_due_reminders",
         "schedule": crontab(minute="*"),  # Every minute
     },
 }
